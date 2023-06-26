@@ -116,8 +116,6 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
     mapInfo.parallax_scale,
   ), input.uv, mapInfo.mappingType < 2);
 
-
-
   let diffuseMap = textureSample(diffuseTexture, textureSampler, uv);
   let normalMap = textureSample(normalTexture, textureSampler, uv);
   let depthMap = textureSample(depthTexture, textureSampler, uv); 

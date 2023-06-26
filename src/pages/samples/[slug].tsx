@@ -41,6 +41,8 @@ export const pages = {
   gameOfLife: dynamic(() => import('../../sample/gameOfLife/main')),
   renderBundles: dynamic(() => import('../../sample/renderBundles/main')),
   normalMapping: dynamic(() => import('../../sample/normalMapping/main')),
+  comanche: dynamic(() => import('../../sample/comancheVoxel/main')),
+  fullscreenShader: dynamic(() => import('../../sample/shaderFullScreen/main')),
 };
 
 function Page({ slug }: Props): JSX.Element {
