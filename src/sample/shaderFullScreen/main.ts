@@ -1,6 +1,6 @@
 import { makeSample, SampleInit } from '../../components/SampleLayout';
 
-import fullscreenVertWGSL from './fullscreen.vert.wgsl';
+import fullscreenVertWGSL from '../../shaders/fullscreen.vert.wgsl';
 import fullscreenFragWGSL from './fullscreen.frag.wgsl';
 
 import GridRenderer from './grid';
@@ -161,7 +161,7 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
             commandEncoder.beginRenderPass(renderPassDescriptor);
           passEncoder.setPipeline(pipeline);
           passEncoder.setBindGroup(0, fragmentBindGroup);
-          passEncoder.draw(8, 1, 0, 0);
+          passEncoder.draw(6, 1, 0, 0);
           passEncoder.end();
         }
         break;
@@ -186,7 +186,7 @@ const shaderFullScreen: () => JSX.Element = () =>
         contents: __SOURCE__,
       },
       {
-        name: './fullscreen.vert.wgsl',
+        name: '../../shaders/fullscreen.vert.wgsl',
         contents: fullscreenVertWGSL,
         editable: true,
       },

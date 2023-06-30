@@ -15,13 +15,13 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4<f32> {
   var color: vec3f = vec3f(
     smoothstep(0.0, lerpController, abs(input.v_uv.y - 0.5))
   );
-  //Linear line
+  //Linear line (If uvs go up, then it should start in the middle and go down)
   var linearLine: vec3f = vec3f(
-    smoothstep(0.0, 0.0075, abs(input.v_uv.y - mix(0.5, 0.0, input.v_uv.x)))
+    smoothstep(0.0, 0.0075, abs(input.v_uv.y - mix(0.5, 1, input.v_uv.x)))
   );
   //SmoothStep line rperesentation
   var smoothLine: vec3f = vec3f(
-    smoothstep(0.0, 0.0075, abs(input.v_uv.y - mix(1.0, 0.5, clampedUVX)))
+    smoothstep(0.0, 0.0075, abs(input.v_uv.y - mix(0.0, 0.5, clampedUVX)))
   );
 
   var red = vec3f(1.0, 0.0, 0.0);

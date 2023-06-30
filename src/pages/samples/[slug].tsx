@@ -43,6 +43,7 @@ export const pages = {
   normalMapping: dynamic(() => import('../../sample/normalMapping/main')),
   comanche: dynamic(() => import('../../sample/comancheVoxel/main')),
   fullscreenShader: dynamic(() => import('../../sample/shaderFullScreen/main')),
+  rainbowFluids: dynamic(() => import('../../sample/rainbowFluids/main')),
 };
 
 function Page({ slug }: Props): JSX.Element {
