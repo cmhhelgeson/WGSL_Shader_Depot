@@ -1,5 +1,5 @@
 @fragment
-fn sunraysMaskFragmentMain(input: VertexBaseOutput) -> @location(0) vec4<f32> {
+fn fragmentMain(input: VertexBaseOutput) -> @location(0) vec4<f32> {
   var c: vec4<f32> = textureSample(
     fragmentUniforms.imageTexture,
     fragmentUniforms.imageSampler,

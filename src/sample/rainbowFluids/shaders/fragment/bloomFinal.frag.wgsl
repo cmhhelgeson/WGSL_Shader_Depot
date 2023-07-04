@@ -5,7 +5,7 @@ struct BloomFinalUniforms {
 @group(1) @binding(4) var<uniform> bloomFinalUniforms: BloomFinalUniforms;
 
 @fragment
-fn bloomBlurFinalFragmentMain(input: VertexBaseOutput) -> @location(0) vec4<f32> {
+fn fragmentMain(input: VertexBaseOutput) -> @location(0) vec4<f32> {
   var sum: vec4<f32> = vec4<f32>(0.0);
   sum += 
   fn bloomBlurFragmentMain(input: VertexBaseOutput) -> @location(0) vec4<f32> {

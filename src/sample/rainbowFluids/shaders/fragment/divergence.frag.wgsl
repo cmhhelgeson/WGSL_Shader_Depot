@@ -1,15 +1,12 @@
-struct DivergenceUniforms {
-  velocity_texture: texture_2d<f32>
-}
-
-@group(1) @binding(8) var<uniform> divergenceUniforms: DivergenceUniforms
+@group(0) @binding(1) var image_sampler: sampler
+@group(1) @binding(0) var prev_velocity_texture: texture_2d<f32>;
 
 @fragment
-fn divergenceFragmentMain(input: VertexBaseOutput) -> @location(0) vec4<f32> {
-  var L: f32 = textureSample(velocity_texture, fragmentUniforms.sampler, input.vL).x;
-  var R: f32 = textureSample(velocity_texture, fragmentUniforms.sampler, input.vR).x;
-  var T: f32 = textureSample(velocity_texture, fragmentUniforms.sampler, input.vT).y;
-  var B: f32 = textureSample(velocity_texture, fragmentUniforms.sampler, input.vB).y;
+fn fragmentMain(input: VertexBaseOutput) -> @location(0) vec4<f32> {
+  var L: f32 = textureSample(prev_velocity_texture, image_sampler, input.vL).x;
+  var R: f32 = textureSample(prev_velocity_texture, image_sampler, input.vR).x;
+  var T: f32 = textureSample(prev_velocity_texture, image_sampler, input.vT).y;
+  var B: f32 = textureSample(prev_velocity_texture, image_sampler, input.vB).y;
 
   var c: vec2<f32> = textureSample(velocity_texture.v_uv).xy;
   L = select(L, -C.x, input.vL.x < 0.0);

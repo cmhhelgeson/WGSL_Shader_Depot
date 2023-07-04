@@ -1,6 +1,4 @@
 struct AdvectionUniforms {
-  velocity_texture: texture_2d<f32>,
-  source_texture: texture_2d<f32>,
   texel_size: vec2<f32>,
   dye_texel_size: vec2<f32>,
   dt: f32,
@@ -41,34 +39,24 @@ fn bilerp(
 }
 
 
-
-@group(1) @binding(7) var<uniform> advection_uniforms: AdvectionUniforms
+@group(0) @binding(1) var image_sampler: sampler;
+@group(1) @binding(0) var<uniform> uniforms: AdvectionUniforms
+@group(1) @binding(1) var prev_velocity_texture: texture_2d<f32>;
+@group(1) @binding(2) var source_texture: texture_2d<f32>
 
 @fragment
-fn advectionFragmentMain(input: VertexBaseOutput) -> @location(0) vec4<f32> {
-  /*
-  #ifdef MANUAL_FILTERING
-        vec2 coord = vUv - dt * bilerp(uVelocity, vUv, texelSize).xy * texelSize;
-        vec4 result = bilerp(uSource, coord, dyeTexelSize);
-    #else
-        vec2 coord = vUv - dt * texture2D(uVelocity, vUv).xy * texelSize;
-        vec4 result = texture2D(uSource, coord);
-    #endif
-        float decay = 1.0 + dissipation * dt;
-        gl_FragColor = result / decay;
-  */
-
+fn fragmentMain(input: VertexBaseOutput) -> @location(0) vec4<f32> {
   var coord: vec2<f32> = input.v_uv - dt * textureSample(
-    advection_uniforms.velocity_texture,
-    fragmentUniforms.imageSampler,
+    prev_velocity_texture,
+    image_sampler,
     input.v_uv
-  ).xy * advection_uniforms.texel_size;
+  ).xy * uniforms.texel_size;
   var result = textureSample(
-    advection_uniforms.source_texture,
-    fragmentUniforms.imageSampler,
+    source_texture,
+    image_sampler,
     coord
   );
 
-  var decay: f32 = 1.0 + advection_uniforms.dissipation * advection_uniforms.dt;
+  var decay: f32 = 1.0 + .dissipation * uniforms.dt;
   return result / decay;
 }

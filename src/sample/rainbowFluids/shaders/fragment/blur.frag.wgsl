@@ -1,5 +1,5 @@
 @fragment
-fn blurFragmentMain(input: VertexBlurOutput) -> @location(0) vec4<f32> {
+fn fragmentMain(input: VertexBlurOutput) -> @location(0) vec4<f32> {
   var sum: vec4f = textureSample(
     fragmentUniforms.imageTexture, 
     fragmentUniforms.imageSampler,

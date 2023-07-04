@@ -1,5 +1,5 @@
 @fragment
-fn bloomBlurFragmentMain(input: VertexBaseOutput) -> @location(0) vec4<f32> {
+fn fragmentMain(input: VertexBaseOutput) -> @location(0) vec4<f32> {
   var sum: vec4f = vec4f(0.0);
   sum += textureSample(
     fragmentUniforms.imageTexture, fragmentUniforms.textureSample, input.vL

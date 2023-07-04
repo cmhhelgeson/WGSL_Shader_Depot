@@ -12,7 +12,11 @@ struct VertexBaseOutput {
 
 @fragment
 fn fragmentMain(input: VertexBaseOutput) -> @location(0) vec4<f32> {
-  var result: vec4<f32>
-  result = textureSample(output_to_screen, sampler, input.v_uv);
+  var result: vec4<f32>;
+  result = textureLoad(
+    output_to_screen, 
+    vec2<i32>(floor(input.Position.xy)), 
+    0
+  );
   return result;
 }

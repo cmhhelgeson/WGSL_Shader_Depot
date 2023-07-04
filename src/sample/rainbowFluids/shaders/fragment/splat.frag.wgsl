@@ -26,7 +26,7 @@ struct SplatOutput {
 @group(1) @binding(2) var prev_dye_texture: texture_2d<f32>;
 
 @fragment
-fn splatFragmentMain(input: VertexBaseOutput) -> @location(0) vec4<f32> {
+fn fragmentMain(input: VertexBaseOutput) -> SplatOutput {
   var output: SplatOutput;
   //Calculate the uv - pixel coordinate
   var p: vec2<f32> = input.v_uv - uniforms.point.xy;
@@ -36,11 +36,12 @@ fn splatFragmentMain(input: VertexBaseOutput) -> @location(0) vec4<f32> {
   var velocity_splat: vec3<f32> = 
     exp(-dot(p, p) / uniforms.radius) * uniforms.velocity_color;
 
-  var velocity_base: vec3<f32> = textureSample(
+  var velocity_base = textureSample(
     prev_velocity_texture, 
     image_sampler,
-    input.v_uv
+    input.v_uv,
   ).xyz;
+
 
   output.new_velocity_texture = vec4<f32>(velocity_base + velocity_splat, 1.0);
 
@@ -48,11 +49,12 @@ fn splatFragmentMain(input: VertexBaseOutput) -> @location(0) vec4<f32> {
   var dye_splat: vec3<f32> = 
     exp(-dot(p, p) / uniforms.radius) * uniforms.dye_color;
 
-  var dye_base: vec3<f32> = textureSample(
-    uniforms.prev_dye_texture, 
+  var dye_base = textureSample(
+    prev_dye_texture,
     image_sampler,
-    input.v_uv
+    input.v_uv,
   ).xyz;
+
 
   output.new_dye_texture = vec4<f32>(dye_base + dye_splat, 1.0);
   return output;

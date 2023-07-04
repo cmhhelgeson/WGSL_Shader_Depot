@@ -1,5 +1,6 @@
 import { GUI } from 'dat.gui';
 import { configType } from './types';
+import { ArrayLike } from 'wgpu-matrix/dist/1.x/array-like';
 
 /* Return the change in time and the new lastUpdateTime */
 export const calculateDeltaTime = (
@@ -132,4 +133,136 @@ export const correctRadius = (aspectRatio: number, radius: number) => {
     radius *= aspectRatio;
   }
   return radius;
+};
+
+type BindGroupBindingLayout =
+  | GPUBufferBindingLayout
+  | GPUTextureBindingLayout
+  | GPUSamplerBindingLayout
+  | GPUStorageTextureBindingLayout
+  | GPUExternalTextureBindingLayout;
+
+type BindGroupDescriptor = {
+  bindGroup: GPUBindGroup;
+  bindGroupLayout: GPUBindGroupLayout;
+};
+
+type BindGroupDescriptorTemplate = {
+  groupEntries: GPUBindGroupEntry[];
+  layoutEntries: GPUBindGroupLayoutEntry[];
+};
+
+type ResourceTypeName =
+  | 'buffer'
+  | 'texture'
+  | 'sampler'
+  | 'externalTexture'
+  | 'storageTexture';
+
+export const createBindGroupDescriptor = (
+  bindings: number[],
+  visibilities: number[],
+  resourceTypes: ResourceTypeName[],
+  resourceLayouts: BindGroupBindingLayout[],
+  resources: GPUBindingResource[],
+  device: GPUDevice
+): BindGroupDescriptor => {
+  const layoutEntries: GPUBindGroupLayoutEntry[] = [];
+  const groupEntries: GPUBindGroupEntry[] = [];
+  for (let i = 0; i < resources.length; i++) {
+    const layoutEntry: any = {};
+    layoutEntry.binding = bindings[i];
+    layoutEntry.visibility = visibilities[i % visibilities.length];
+    layoutEntry[resourceTypes[i]] = resourceLayouts[i];
+
+    layoutEntries.push(layoutEntry);
+
+    const groupEntry: any = {};
+    groupEntry.binding = bindings[i];
+    groupEntry.resource = resources[i];
+
+    groupEntries.push(groupEntry);
+  }
+
+  const bindGroupLayout = device.createBindGroupLayout({
+    entries: layoutEntries,
+  });
+
+  const bindGroup = device.createBindGroup({
+    layout: bindGroupLayout,
+    entries: groupEntries,
+  });
+
+  return {
+    bindGroup,
+    bindGroupLayout,
+  };
+};
+
+export const createBindGroupDescriptorTemplate = (
+  bindings: number[],
+  visibilities: number[],
+  resourceTypes: ResourceTypeName[],
+  resourceLayouts: BindGroupBindingLayout[],
+  resources: GPUBindingResource[]
+): BindGroupDescriptorTemplate => {
+  const layoutEntries: GPUBindGroupLayoutEntry[] = [];
+  const groupEntries: GPUBindGroupEntry[] = [];
+  for (let i = 0; i < resources.length; i++) {
+    const layoutEntry: any = {};
+    layoutEntry.binding = bindings[i];
+    layoutEntry.visibility = visibilities[i % visibilities.length];
+    layoutEntry[resourceTypes[i]] = resourceLayouts[i];
+
+    layoutEntries.push(layoutEntry);
+
+    const groupEntry: any = {};
+    groupEntry.binding = bindings[i];
+    groupEntry.resource = resources[i];
+
+    groupEntries.push(groupEntry);
+  }
+
+  return {
+    groupEntries,
+    layoutEntries,
+  };
+};
+
+export const writeToF32Buffer = (
+  arrayLikes: ArrayLike[],
+  numberLikes: Float32Array,
+  buffer: GPUBuffer,
+  device: GPUDevice
+) => {
+  let ele = arrayLikes[0] as Float32Array;
+  device.queue.writeBuffer(
+    buffer,
+    0,
+    ele.buffer,
+    ele.byteOffset,
+    ele.byteLength
+  );
+  let writtenBufferSize = arrayLikes[0].length * Float32Array.BYTES_PER_ELEMENT;
+
+  for (let i = 1; i < arrayLikes.length; i++) {
+    ele = arrayLikes[i] as Float32Array;
+    device.queue.writeBuffer(
+      buffer,
+      writtenBufferSize,
+      ele.buffer,
+      ele.byteOffset,
+      ele.byteLength
+    );
+    writtenBufferSize = arrayLikes[i].length * Float32Array.BYTES_PER_ELEMENT;
+    console.log(writtenBufferSize);
+  }
+
+  device.queue.writeBuffer(
+    buffer,
+    writtenBufferSize,
+    numberLikes.buffer,
+    numberLikes.byteOffset,
+    numberLikes.byteLength
+  );
 };

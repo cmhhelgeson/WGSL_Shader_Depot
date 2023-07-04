@@ -1,12 +1,9 @@
-struct GradientSubtractUniforms {
-  pressure_texture: texture_2d<f32>,
-  velocity_texture: texture_2d<f32>,
-}
 
-@group(1) @binding(10) var<uniform> gradient_subtract_uniforms: GradientSubtractUniforms;
+@group(1) @binding(0) var pressure_texture: texture_2d<f32>;
+@group(1) @binding(1) var prev_velocity_texture: texture_2d<f32>
 
 @fragment
-fn gradientSubtractMain(input: VertexBaseOutput) -> @location(0) vec4<f32> {
+fn fragmentMain(input: VertexBaseOutput) -> @location(0) vec4<f32> {
   var L: f32 = textureSample(
     gradient_subtract_uniforms.pressure_texture,
     fragmentUniforms.imageSampler,
