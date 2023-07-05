@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable prettier/prettier */
 import { makeSample, SampleInit } from '../../components/SampleLayout';
-import { vec2, vec3, vec4 } from 'wgpu-matrix';
+import { vec2, vec3 } from 'wgpu-matrix';
 
 import baseVertexWGSL from './shaders/vertex/base.vert.wgsl';
 import blurVertexWGSL from './shaders/vertex/blur.vert.wgsl';
@@ -9,15 +10,10 @@ import debugOutputFragmentWGSL from './shaders/fragment/debugOutput.frag.wgsl';
 import curlFragmentWGSL from './shaders/fragment/curl.frag.wgsl';
 import advectionFragmentWGSL from './shaders/fragment/advection.frag.wgsl';
 import clearFragmentWGSL from './shaders/fragment/clear.frag.wgsl';
-import copyFragmentWGSL from './shaders/fragment/clear.frag.wgsl';
 import divergenceFragmentWGSL from './shaders/fragment/divergence.frag.wgsl';
 import pressureFragmentWGSL from './shaders/fragment/pressure.frag.wgsl';
 import vorticityFragmentWGSL from './shaders/fragment/vorticity.frag.wgsl';
-import sunraysMaskFragmentWGSL from './shaders/fragment/sunraysMask.frag.wgsl';
-import sunraysFragmentWGSL from './shaders/fragment/sunrays.frag.wgsl';
 import gradientSubtractWGSL from './shaders/fragment/gradientSubtract.frag.wgsl';
-import colorFragmentWGSL from './shaders/fragment/color.frag.wgsl';
-import checkerboardFragmentWGSL from './shaders/fragment/checkerboard.frag.wgsl';
 import finalDisplayFragmentWGSL from './shaders/fragment/finalDisplay.frag.wgsl';
 
 import {
@@ -55,16 +51,7 @@ const standardClear: Omit<GPURenderPassColorAttachment, 'view'> = {
 const init: SampleInit = async ({ canvas, pageState, gui }) => {
   // GET ALL DEVICE, WINDOW, ADAPTER DETAILS
   const adapter = await navigator.gpu.requestAdapter();
-  let filteringType: GPUFilterMode = 'nearest';
-  if (adapter.features.has('texture-compression-bc')) {
-    filteringType = 'linear';
-  }
   const device = await adapter.requestDevice();
-
-  const isMobile: boolean = navigator.userAgentData.mobile;
-
-  const dynamicUniformBufferIterationAllignment =
-    adapter.limits.minUniformBufferOffsetAlignment;
 
   device.features.entries;
   if (!pageState.active) return;
@@ -230,7 +217,11 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     [GPUShaderStage.FRAGMENT],
     ['texture'],
     [{ sampleType: 'float' }],
-    [fluidPropertyTextures.velocity.prevView],
+    [
+      [
+        fluidPropertyTextures.velocity.prevView
+      ]
+    ],
     'Curl',
     device
   );
@@ -278,9 +269,11 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     ['buffer', 'texture', 'texture'],
     [{ type: 'uniform' }, { sampleType: 'float' }, { sampleType: 'float' }],
     [
-      { buffer: vorticityUniformBuffer },
-      fluidPropertyTextures.velocity.prevView,
-      fluidPropertyTextures.curl.currentView,
+      [
+        { buffer: vorticityUniformBuffer },
+        fluidPropertyTextures.velocity.prevView,
+        fluidPropertyTextures.curl.currentView,
+      ]
     ],
     'Vorticity',
     device
@@ -327,7 +320,11 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     [GPUShaderStage.FRAGMENT],
     ['texture'],
     [{ sampleType: 'float' }],
-    [fluidPropertyTextures.velocity.prevView],
+    [
+      [
+        fluidPropertyTextures.velocity.prevView
+      ]
+    ],
     'Curl',
     device
   );
@@ -374,7 +371,11 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     [GPUShaderStage.FRAGMENT],
     ['buffer', 'texture'],
     [{ type: 'uniform' }, { sampleType: 'float' }],
-    [{ buffer: clearUniformBuffer }, fluidPropertyTextures.pressure.prevView],
+    [
+      [
+        { buffer: clearUniformBuffer }, fluidPropertyTextures.pressure.prevView
+      ],
+    ],
     'Clear',
     device
   );
@@ -421,8 +422,10 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     ['texture', 'texture'],
     [{ sampleType: 'float' }, { sampleType: 'float' }],
     [
-      fluidPropertyTextures.divergence.currentView,
-      fluidPropertyTextures.pressure.prevView,
+      [
+        fluidPropertyTextures.divergence.currentView,
+        fluidPropertyTextures.pressure.prevView,
+      ]
     ],
     'Pressure',
     device
@@ -467,8 +470,10 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     ['texture', 'texture'],
     [{ sampleType: 'float' }, { sampleType: 'float' }],
     [
-      fluidPropertyTextures.prevPressure.view,
-      fluidPropertyTextures.prevVelocity.view,
+      [
+        fluidPropertyTextures.pressure.prevView,
+        fluidPropertyTextures.velocity.prevView,
+      ]
     ],
     'GradientSubtract',
     device
@@ -490,7 +495,7 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
       entryPoint: 'fragmentMain',
       targets: [
         //velocity texture
-        { format: fluidPropertyTextures.currentVelocity.texture.format },
+        { format: fluidPropertyTextures.velocity.currentTexture.format },
       ],
     },
     primitive: planePrimitive,
@@ -500,7 +505,7 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     label: 'GradientSubtract.renderDescriptor',
     colorAttachments: [
       {
-        view: fluidPropertyTextures.currentVelocity.format,
+        view: fluidPropertyTextures.velocity.currentView,
         ...standardClear,
       },
     ],
@@ -517,32 +522,20 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     ['buffer', 'texture', 'texture'],
     [{ type: 'uniform' }, { sampleType: 'float' }, { sampleType: 'float' }],
     [
-      { buffer: advectionUniformBuffer },
-      fluidPropertyTextures.prevVelocity.view,
-      fluidPropertyTextures.prevVelocity.view,
+      [
+        { buffer: advectionUniformBuffer },
+        fluidPropertyTextures.velocity.prevView,
+        fluidPropertyTextures.velocity.prevView,
+      ],
+      [
+        {buffer: advectionUniformBuffer},
+        fluidPropertyTextures.velocity.prevView, 
+        fluidPropertyTextures.dye.prevView,
+      ]
     ],
     'Advection',
     device
   );
-
-  const advectionShaderBindGroupAlt = device.createBindGroup({
-    label: 'Advection.bindGroupAlt',
-    layout: advectionShaderBindGroupDescriptor.bindGroupLayout,
-    entries: [
-      {
-        binding: 0,
-        resource: { buffer: advectionUniformBuffer },
-      },
-      {
-        binding: 1,
-        resource: fluidPropertyTextures.prevVelocity.view,
-      },
-      {
-        binding: 2,
-        resource: fluidPropertyTextures.prevDye.view,
-      },
-    ],
-  });
 
   const advectionShaderPipelineOne = device.createRenderPipeline({
     label: 'Advection.pipelineOne',
@@ -560,7 +553,7 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
       entryPoint: 'fragmentMain',
       targets: [
         //velocity texture
-        { format: fluidPropertyTextures.currentVelocity.texture.format },
+        { format: fluidPropertyTextures.velocity.currentTexture.format },
       ],
     },
     primitive: planePrimitive,
@@ -582,7 +575,7 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
       entryPoint: 'fragmentMain',
       targets: [
         //velocity texture
-        { format: fluidPropertyTextures.currentDye.texture.format },
+        { format: fluidPropertyTextures.dye.currentTexture.format },
       ],
     },
     primitive: planePrimitive,
@@ -592,7 +585,7 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     label: 'Advection.renderDescriptorOne',
     colorAttachments: [
       {
-        view: fluidPropertyTextures.currentVelocity.view,
+        view: fluidPropertyTextures.velocity.currentView,
         ...standardClear,
       },
     ],
@@ -602,7 +595,7 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     label: 'Advection.renderDescriptorTwo',
     colorAttachments: [
       {
-        view: fluidPropertyTextures.currentDye.view,
+        view: fluidPropertyTextures.dye.currentView,
         ...standardClear,
       },
     ],
@@ -613,7 +606,7 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     [GPUShaderStage.FRAGMENT],
     ['texture'],
     [{ sampleType: 'float' }],
-    [[fluidPropertyTextures.currentDye.view]],
+    [[fluidPropertyTextures.dye.currentView]],
     'Final',
     device
   );
@@ -646,7 +639,7 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     colorAttachments: [
       {
         view: undefined,
-        clearValue: { ...normalizeColor(config.BACK_COLOR), a: 1.0 },
+        ...standardClear,
       },
     ],
   };
@@ -756,7 +749,7 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     );
   };
 
-  let splatStack = [];
+  //let splatStack = [];
 
   const config = defaultConfig;
   initGuiConstants(gui, config);
