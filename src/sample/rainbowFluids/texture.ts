@@ -1,9 +1,45 @@
+/* eslint-disable prettier/prettier */
+import { createBindGroupDescriptor } from "./utils";
+
+export interface FrameBufferDescriptor {
+  width: number;
+  height: number;
+  texelSizeX: number;
+  texelSizeY: number;
+  currentTexture: GPUTexture;
+  currentView: GPUTextureView;
+}
+
+export interface DoubleFrameBufferDescriptor extends FrameBufferDescriptor {
+  prevTexture: GPUTexture;
+  prevView: GPUTextureView;
+}
+
+export interface CreateNavierStokeOutputTexturesReturns {
+  dye: DoubleFrameBufferDescriptor;
+  velocity: DoubleFrameBufferDescriptor;
+  divergence: FrameBufferDescriptor;
+  curl: FrameBufferDescriptor;
+  pressure: DoubleFrameBufferDescriptor;
+}
+
+export const swapBuffersInDoubleFBO = (fbod: DoubleFrameBufferDescriptor) => {
+  const currTex = fbod.currentTexture;
+  const currView = fbod.currentView;
+  const prevView = fbod.prevView;
+  const prevTex = fbod.prevTexture;
+
+  fbod.currentTexture = prevTex;
+  fbod.currentView = prevView;
+  fbod.prevTexture = currTex;
+  fbod.prevView = currView;
+};
+
 export const createNavierStokeOutputTextures = (
   device: GPUDevice,
   canvas: HTMLCanvasElement
 ) => {
   //Two frame buffers, one input and one output
-
   //Copy current dye
   const currentDyeTextureRGBA16F = device.createTexture({
     size: [canvas.width, canvas.height],
@@ -35,8 +71,6 @@ export const createNavierStokeOutputTextures = (
     //GPUTextureUsage.COPY_SRC,
     format: 'rg16float',
   });
-
-  //Into prevVelocity
 
   const prevVelocityTextureRG16F = device.createTexture({
     size: [canvas.width, canvas.height],
@@ -75,72 +109,83 @@ export const createNavierStokeOutputTextures = (
     format: 'r16float',
   });
 
-  return {
-    currentDye: {
+  //Use these as bind group 2 for
+
+  const currentDyeBindGroupDescriptor = createBindGroupDescriptor(
+    [0],
+    [GPUShaderStage.FRAGMENT],
+    ['texture'],
+    [{ sampleType: 'float' }],
+    [
+      currentDyeTextureRGBA16F.createView(),
+    ],
+    'CurrentDye',
+    device
+  );
+
+  const prevDyeBindGroupDescriptor = createBindGroupDescriptor(
+    [0],
+    [GPUShaderStage.FRAGMENT],
+    ['texture'],
+    [{ sampleType: 'float' }],
+    [
+      prevDyeTextureRGBA16F.createView(),
+    ],
+    'CurrentDye',
+    device
+  );
+
+
+  const output: CreateNavierStokeOutputTexturesReturns = {
+    dye: {
       width: canvas.width,
       height: canvas.height,
       texelSizeX: 1.0 / canvas.width,
       texelSizeY: 1.0 / canvas.height,
-      texture: currentDyeTextureRGBA16F,
-      view: currentDyeTextureRGBA16F.createView(),
+      currentTexture: currentDyeTextureRGBA16F,
+      currentView: currentDyeTextureRGBA16F.createView(),
+      prevTexture: prevDyeTextureRGBA16F,
+      prevView: prevDyeTextureRGBA16F.createView(),
     },
-    prevDye: {
+    velocity: {
       width: canvas.width,
       height: canvas.height,
       texelSizeX: 1.0 / canvas.width,
       texelSizeY: 1.0 / canvas.height,
-      texture: prevDyeTextureRGBA16F,
-      view: prevDyeTextureRGBA16F.createView(),
-    },
-    currentVelocity: {
-      width: canvas.width,
-      height: canvas.height,
-      texelSizeX: 1.0 / canvas.width,
-      texelSizeY: 1.0 / canvas.height,
-      texture: currentVelocityTextureRG16F,
-      view: currentVelocityTextureRG16F.createView(),
-    },
-    prevVelocity: {
-      width: canvas.width,
-      height: canvas.height,
-      texelSizeX: 1.0 / canvas.width,
-      texelSizeY: 1.0 / canvas.height,
-      texture: prevVelocityTextureRG16F,
-      view: prevVelocityTextureRG16F.createView(),
+      currentTexture: currentVelocityTextureRG16F,
+      currentView: currentVelocityTextureRG16F.createView(),
+      prevTexture: prevVelocityTextureRG16F,
+      prevView: prevVelocityTextureRG16F.createView(),
     },
     divergence: {
       width: canvas.width,
       height: canvas.height,
       texelSizeX: 1.0 / canvas.width,
       texelSizeY: 1.0 / canvas.height,
-      texture: divergenceTextureR16F,
-      view: divergenceTextureR16F.createView(),
+      currentTexture: divergenceTextureR16F,
+      currentView: divergenceTextureR16F.createView(),
     },
     curl: {
       width: canvas.width,
       height: canvas.height,
       texelSizeX: 1.0 / canvas.width,
       texelSizeY: 1.0 / canvas.height,
-      texture: curlTextureR16F,
-      view: curlTextureR16F.createView(),
+      currentTexture: curlTextureR16F,
+      currentView: curlTextureR16F.createView(),
     },
-    currentPressure: {
+    pressure: {
       width: canvas.width,
       height: canvas.height,
       texelSizeX: 1.0 / canvas.width,
       texelSizeY: 1.0 / canvas.height,
-      texture: currentPressureTextureR16F,
-      view: currentPressureTextureR16F.createView(),
-    },
-    prevPressure: {
-      width: canvas.width,
-      height: canvas.height,
-      texelSizeX: 1.0 / canvas.width,
-      texelSizeY: 1.0 / canvas.height,
-      texture: prevPressureTextureR16F,
-      view: prevPressureTextureR16F.createView(),
+      currentTexture: currentPressureTextureR16F,
+      currentView: currentPressureTextureR16F.createView(),
+      prevTexture: prevPressureTextureR16F,
+      prevView: prevPressureTextureR16F.createView(),
     },
   };
+
+  return output;
 };
 
 export const getTexelDimsAsFloat32Array = (

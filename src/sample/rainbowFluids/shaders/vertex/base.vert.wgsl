@@ -2,7 +2,7 @@ struct VertexInput {
   @builtin(vertex_index) VertexIndex : u32,
 }
 
-struct VertexBaseUniforms {
+struct VertexUniforms {
   texelSize: vec2<f32>,
 }
 
@@ -15,7 +15,7 @@ struct VertexBaseOutput {
   @location(4) vB: vec2<f32>,
 }
 
-@group(0) @binding(0) var<uniform> uniforms: VertexBaseUniforms;
+@group(0) @binding(0) var<uniform> uniforms: VertexUniforms;
 
 @vertex
 fn vertexMain(input: VertexInput) -> VertexBaseOutput {

@@ -1,10 +1,11 @@
-
+/* eslint-disable prettier/prettier */
 import { makeSample, SampleInit } from '../../components/SampleLayout';
 import { vec2, vec3, vec4 } from 'wgpu-matrix';
 
 import baseVertexWGSL from './shaders/vertex/base.vert.wgsl';
+import blurVertexWGSL from './shaders/vertex/blur.vert.wgsl';
 import splatFragmentWGSL from './shaders/fragment/splat.frag.wgsl';
-import debugOutputFragmentWGSL from './shaders/fragment/debugOutput.frag.wgsl'
+import debugOutputFragmentWGSL from './shaders/fragment/debugOutput.frag.wgsl';
 import curlFragmentWGSL from './shaders/fragment/curl.frag.wgsl';
 import advectionFragmentWGSL from './shaders/fragment/advection.frag.wgsl';
 import clearFragmentWGSL from './shaders/fragment/clear.frag.wgsl';
@@ -12,11 +13,12 @@ import copyFragmentWGSL from './shaders/fragment/clear.frag.wgsl';
 import divergenceFragmentWGSL from './shaders/fragment/divergence.frag.wgsl';
 import pressureFragmentWGSL from './shaders/fragment/pressure.frag.wgsl';
 import vorticityFragmentWGSL from './shaders/fragment/vorticity.frag.wgsl';
-import sunraysMaskFragmentWGSL from './shaders/fragment/sunraysMask.frag.wgsl'
+import sunraysMaskFragmentWGSL from './shaders/fragment/sunraysMask.frag.wgsl';
 import sunraysFragmentWGSL from './shaders/fragment/sunrays.frag.wgsl';
 import gradientSubtractWGSL from './shaders/fragment/gradientSubtract.frag.wgsl';
 import colorFragmentWGSL from './shaders/fragment/color.frag.wgsl';
 import checkerboardFragmentWGSL from './shaders/fragment/checkerboard.frag.wgsl';
+import finalDisplayFragmentWGSL from './shaders/fragment/finalDisplay.frag.wgsl';
 
 import {
   correctRadius,
@@ -39,10 +41,10 @@ import {
 import {
   createNavierStokeOutputTextures,
   getTexelDimsAsFloat32Array,
+  swapBuffersInDoubleFBO,
 } from './texture';
 import { ArrayLike } from 'wgpu-matrix/dist/1.x/array-like';
-import { debug } from 'console';
-import { create } from 'wgpu-matrix/dist/1.x/vec4-impl';
+import { normalizeColor } from './color';
 
 const standardClear: Omit<GPURenderPassColorAttachment, 'view'> = {
   clearValue: { r: 0.0, g: 0.0, b: 1.0, a: 1.0 },
@@ -61,7 +63,8 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
 
   const isMobile: boolean = navigator.userAgentData.mobile;
 
-  const dynamicUniformBufferIterationAllignment = adapter.limits.minUniformBufferOffsetAlignment;
+  const dynamicUniformBufferIterationAllignment =
+    adapter.limits.minUniformBufferOffsetAlignment;
 
   device.features.entries;
   if (!pageState.active) return;
@@ -111,8 +114,7 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
   // CREATE ALL TEXTURE RESOURCES
   //rgba16float rg16float r16float
   const fluidPropertyTextures = createNavierStokeOutputTextures(device, canvas);
-  console.log(fluidPropertyTextures)
-
+  console.log(fluidPropertyTextures);
 
   // RESOURCES USED ACROSS MULTIPLE PIPELINES / SHADERS
   const planePrimitive: GPUPrimitiveState = {
@@ -129,23 +131,28 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
   const sampler = device.createSampler({
     minFilter: 'linear',
     magFilter: 'linear',
-  })
+  });
 
   const generalBindGroupDescriptor = createBindGroupDescriptor(
     [0, 1],
     [GPUShaderStage.VERTEX, GPUShaderStage.FRAGMENT],
     ['buffer', 'sampler'],
-    [{type: 'uniform'}, {type: 'filtering'}],
-    [
-      { buffer: vertexBaseUniformBuffer}, 
-      sampler
-    ],
+    [{ type: 'uniform' }, { type: 'filtering' }],
+    [[{ buffer: vertexBaseUniformBuffer }, sampler]],
+    'General',
     device
   );
 
   const baseVertexShaderState: GPUVertexState = {
     module: device.createShaderModule({
       code: baseVertexWGSL,
+    }),
+    entryPoint: 'vertexMain',
+  };
+
+  const blurVertexShaderState: GPUVertexState = {
+    module: device.createShaderModule({
+      code: blurVertexWGSL,
     }),
     entryPoint: 'vertexMain',
   };
@@ -165,22 +172,26 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     [0, 1, 2],
     [GPUShaderStage.FRAGMENT, GPUShaderStage.FRAGMENT, GPUShaderStage.FRAGMENT],
     ['buffer', 'texture', 'texture'],
+    [{ type: 'uniform' }, { sampleType: 'float' }, { sampleType: 'float' }],
     [
-      { type: 'uniform'},
-      { sampleType: 'float' },
-      { sampleType: 'float' },
+      [
+        { buffer: splatUniformBuffer },
+        fluidPropertyTextures.velocity.prevView,
+        fluidPropertyTextures.velocity.prevView,
+      ],
     ],
-    [
-      {buffer: splatUniformBuffer},
-      fluidPropertyTextures.prevVelocity.view,
-      fluidPropertyTextures.prevDye.view,
-    ],
+    'Splat',
     device
-  ); 
+  );
 
   const splatShaderPipeline = device.createRenderPipeline({
+    label: 'Splat.pipeline',
     layout: device.createPipelineLayout({
-      bindGroupLayouts: [generalBindGroupDescriptor.bindGroupLayout, splatShaderBindGroupDescriptor.bindGroupLayout],
+      label: 'Splat.pipelineLayout',
+      bindGroupLayouts: [
+        generalBindGroupDescriptor.bindGroupLayout,
+        splatShaderBindGroupDescriptor.bindGroupLayout,
+      ],
     }),
     vertex: baseVertexShaderState,
     fragment: {
@@ -190,22 +201,25 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
       entryPoint: 'fragmentMain',
       targets: [
         //velocity texture
-        { format: fluidPropertyTextures.currentVelocity.texture.format },
+        { format: fluidPropertyTextures.velocity.currentTexture.format },
         //dye texture
-        { format: fluidPropertyTextures.currentDye.texture.format }
+        { format: fluidPropertyTextures.dye.currentTexture.format },
       ],
     },
     primitive: planePrimitive,
   });
 
   const splatShaderRenderDescriptor: GPURenderPassDescriptor = {
+    label: 'Splat.colorDescriptor',
     colorAttachments: [
       {
-        view: fluidPropertyTextures.currentVelocity.view,
+        //Replace with velocity.currentView at render
+        view: undefined,
         ...standardClear,
       },
       {
-        view: fluidPropertyTextures.currentDye.view,
+        //Replace with dye.currentView at render
+        view: undefined,
         ...standardClear,
       },
     ],
@@ -215,59 +229,70 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     [0],
     [GPUShaderStage.FRAGMENT],
     ['texture'],
-    [{sampleType: 'float'}],
-    [fluidPropertyTextures.prevVelocity.view],
+    [{ sampleType: 'float' }],
+    [fluidPropertyTextures.velocity.prevView],
+    'Curl',
     device
-  )
+  );
 
   const curlShaderPipeline = device.createRenderPipeline({
+    label: 'Curl.pipeline',
     layout: device.createPipelineLayout({
-      bindGroupLayouts: [generalBindGroupDescriptor.bindGroupLayout, curlShaderBindGroupDescriptor.bindGroupLayout],
+      bindGroupLayouts: [
+        generalBindGroupDescriptor.bindGroupLayout,
+        curlShaderBindGroupDescriptor.bindGroupLayout,
+      ],
     }),
     vertex: baseVertexShaderState,
     fragment: {
       module: device.createShaderModule({
-        code: splatFragmentWGSL,
+        code: curlFragmentWGSL,
       }),
       entryPoint: 'fragmentMain',
       targets: [
         //velocity texture
-        { format: fluidPropertyTextures.curl.texture.format },
+        { format: fluidPropertyTextures.curl.currentTexture.format },
       ],
     },
     primitive: planePrimitive,
   });
 
   const curlShaderRenderDescriptor: GPURenderPassDescriptor = {
+    label: 'Curl.renderDescriptor',
     colorAttachments: [
       {
-        view: fluidPropertyTextures.curl.view,
+        view: fluidPropertyTextures.curl.currentView,
         ...standardClear,
-      }
-    ]
+      },
+    ],
   };
 
   const vorticityUniformBuffer = device.createBuffer({
     size: Float32Array.BYTES_PER_ELEMENT * 2,
-    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
 
   const vorticityShaderBindGroupDescriptor = createBindGroupDescriptor(
     [0, 1, 2],
     [GPUShaderStage.FRAGMENT],
     ['buffer', 'texture', 'texture'],
-    [{type: 'uniform'}, {sampleType: 'float'}, {sampleType: 'float'}],
+    [{ type: 'uniform' }, { sampleType: 'float' }, { sampleType: 'float' }],
     [
-      {buffer: vorticityUniformBuffer},
-      fluidPropertyTextures.prevVelocity.view,
-      fluidPropertyTextures.curl.view,
+      { buffer: vorticityUniformBuffer },
+      fluidPropertyTextures.velocity.prevView,
+      fluidPropertyTextures.curl.currentView,
     ],
+    'Vorticity',
     device
   );
 
   const vorticityShaderPipeline = device.createRenderPipeline({
+    label: 'Vorticity.pipeline',
     layout: device.createPipelineLayout({
-      bindGroupLayouts: [generalBindGroupDescriptor.bindGroupLayout, vorticityShaderBindGroupDescriptor.bindGroupLayout],
+      bindGroupLayouts: [
+        generalBindGroupDescriptor.bindGroupLayout,
+        vorticityShaderBindGroupDescriptor.bindGroupLayout,
+      ],
     }),
     vertex: baseVertexShaderState,
     fragment: {
@@ -277,27 +302,43 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
       entryPoint: 'fragmentMain',
       targets: [
         //velocity texture
-        { format: fluidPropertyTextures.currentVelocity.texture.format },
+        { format: fluidPropertyTextures.velocity.currentTexture.format },
       ],
     },
     primitive: planePrimitive,
   });
 
+  swapBuffersInDoubleFBO(fluidPropertyTextures.velocity);
+
   const vorticityShaderRenderDescriptor: GPURenderPassDescriptor = {
+    label: 'Vorticity.renderDescriptor',
     colorAttachments: [
       {
-        view: fluidPropertyTextures.currentVelocity.view,
+        //Replace with velocity.currentView at render
+        view: undefined,
         ...standardClear,
       },
-    ]
+    ],
   };
 
   //
-  const divergenceShaderBindGroupDescriptor = curlShaderBindGroupDescriptor;
+  const divergenceShaderBindGroupDescriptor = createBindGroupDescriptor(
+    [0],
+    [GPUShaderStage.FRAGMENT],
+    ['texture'],
+    [{ sampleType: 'float' }],
+    [fluidPropertyTextures.velocity.prevView],
+    'Curl',
+    device
+  );
 
   const divergenceShaderPipeline = device.createRenderPipeline({
+    label: 'Divergence.pipeline',
     layout: device.createPipelineLayout({
-      bindGroupLayouts: [generalBindGroupDescriptor.bindGroupLayout, divergenceShaderBindGroupDescriptor.bindGroupLayout],
+      bindGroupLayouts: [
+        generalBindGroupDescriptor.bindGroupLayout,
+        divergenceShaderBindGroupDescriptor.bindGroupLayout,
+      ],
     }),
     vertex: baseVertexShaderState,
     fragment: {
@@ -307,40 +348,48 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
       entryPoint: 'fragmentMain',
       targets: [
         //velocity texture
-        { format: fluidPropertyTextures.divergence.texture.format },
+        { format: fluidPropertyTextures.divergence.currentTexture.format },
       ],
     },
     primitive: planePrimitive,
   });
 
-  const divergenceShaderRenderAttachment: GPURenderPassDescriptor = {
+  const divergenceShaderRenderDescriptor: GPURenderPassDescriptor = {
+    label: 'Divergence.renderDescriptor',
     colorAttachments: [
       {
-        view: fluidPropertyTextures.divergence.view,
+        view: fluidPropertyTextures.divergence.currentView,
         ...standardClear,
       },
-    ]
+    ],
   };
 
   const clearUniformBuffer = device.createBuffer({
     size: Float32Array.BYTES_PER_ELEMENT * 1,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-  })
+  });
 
   const clearShaderBindGroupDescriptor = createBindGroupDescriptor(
     [0, 1],
     [GPUShaderStage.FRAGMENT],
     ['buffer', 'texture'],
-    [{type: 'uniform'}, {sampleType: 'float'}],
-    [{buffer: clearUniformBuffer}, fluidPropertyTextures.prevPressure.view],
-    device,
+    [{ type: 'uniform' }, { sampleType: 'float' }],
+    [{ buffer: clearUniformBuffer }, fluidPropertyTextures.pressure.prevView],
+    'Clear',
+    device
   );
 
+  device.createBindGroup;
+
   const clearShaderPipeline = device.createRenderPipeline({
+    label: 'Clear.pipeline',
     layout: device.createPipelineLayout({
-      bindGroupLayouts: [generalBindGroupDescriptor.bindGroupLayout, clearShaderBindGroupDescriptor.bindGroupLayout],
+      bindGroupLayouts: [
+        generalBindGroupDescriptor.bindGroupLayout,
+        clearShaderBindGroupDescriptor.bindGroupLayout,
+      ],
     }),
-    vertex: baseVertexShaderState,
+    vertex: blurVertexShaderState,
     fragment: {
       module: device.createShaderModule({
         code: clearFragmentWGSL,
@@ -348,33 +397,44 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
       entryPoint: 'fragmentMain',
       targets: [
         //velocity texture
-        { format: fluidPropertyTextures.currentPressure.texture.format },
+        { format: fluidPropertyTextures.pressure.currentTexture.format },
       ],
     },
     primitive: planePrimitive,
   });
 
   const clearShaderRenderDescriptor: GPURenderPassDescriptor = {
+    label: 'Clear.renderDescriptor',
     colorAttachments: [
       {
-        view: fluidPropertyTextures.currentPressure.view,
+        view: fluidPropertyTextures.pressure.currentView,
         ...standardClear,
-      }
-    ]
+      },
+    ],
   };
+
+  swapBuffersInDoubleFBO(fluidPropertyTextures.pressure);
 
   const pressureShaderBindGroupDescriptor = createBindGroupDescriptor(
     [0, 1],
     [GPUShaderStage.FRAGMENT],
     ['texture', 'texture'],
-    [{sampleType: 'float'}, {sampleType: 'float'}],
-    [fluidPropertyTextures.divergence.view, fluidPropertyTextures.prevPressure.view],
-    device,
+    [{ sampleType: 'float' }, { sampleType: 'float' }],
+    [
+      fluidPropertyTextures.divergence.currentView,
+      fluidPropertyTextures.pressure.prevView,
+    ],
+    'Pressure',
+    device
   );
 
   const pressureShaderPipeline = device.createRenderPipeline({
+    label: 'Pressure.pipeline',
     layout: device.createPipelineLayout({
-      bindGroupLayouts: [generalBindGroupDescriptor.bindGroupLayout, pressureShaderBindGroupDescriptor.bindGroupLayout],
+      bindGroupLayouts: [
+        generalBindGroupDescriptor.bindGroupLayout,
+        pressureShaderBindGroupDescriptor.bindGroupLayout,
+      ],
     }),
     vertex: baseVertexShaderState,
     fragment: {
@@ -384,41 +444,48 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
       entryPoint: 'fragmentMain',
       targets: [
         //velocity texture
-        { format: fluidPropertyTextures.currentPressure.texture.format },
+        { format: fluidPropertyTextures.pressure.currentTexture.format },
       ],
     },
     primitive: planePrimitive,
   });
 
   const pressureShaderRenderDescriptor: GPURenderPassDescriptor = {
+    label: 'Pressure.renderDescriptor',
     colorAttachments: [
       {
-        view: fluidPropertyTextures.currentPressure.view,
+        //Define at render time as currentPressure
+        view: fluidPropertyTextures.pressure.currentView,
         ...standardClear,
-      }
-    ]
+      },
+    ],
   };
 
   const gradientSubtractShaderBindGroupDescriptor = createBindGroupDescriptor(
     [0, 1],
     [GPUShaderStage.FRAGMENT],
     ['texture', 'texture'],
-    [{sampleType: 'float'}, {sampleType: 'float'}],
+    [{ sampleType: 'float' }, { sampleType: 'float' }],
     [
       fluidPropertyTextures.prevPressure.view,
-      fluidPropertyTextures.prevVelocity.view
+      fluidPropertyTextures.prevVelocity.view,
     ],
+    'GradientSubtract',
     device
   );
 
   const gradientSubtractShaderPipeline = device.createRenderPipeline({
+    label: 'GradientSubtract.pipeline',
     layout: device.createPipelineLayout({
-      bindGroupLayouts: [generalBindGroupDescriptor.bindGroupLayout, gradientSubtractShaderBindGroupDescriptor.bindGroupLayout],
+      bindGroupLayouts: [
+        generalBindGroupDescriptor.bindGroupLayout,
+        gradientSubtractShaderBindGroupDescriptor.bindGroupLayout,
+      ],
     }),
     vertex: baseVertexShaderState,
     fragment: {
       module: device.createShaderModule({
-        code: pressureFragmentWGSL,
+        code: gradientSubtractWGSL,
       }),
       entryPoint: 'fragmentMain',
       targets: [
@@ -429,37 +496,42 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     primitive: planePrimitive,
   });
 
-  const gradientShaderRenderAttachments: GPURenderPassDescriptor = {
+  const gradientSubtractRenderDescriptor: GPURenderPassDescriptor = {
+    label: 'GradientSubtract.renderDescriptor',
     colorAttachments: [
       {
         view: fluidPropertyTextures.currentVelocity.format,
         ...standardClear,
-      }
-    ]
+      },
+    ],
   };
-
 
   const advectionUniformBuffer = device.createBuffer({
     size: Float32Array.BYTES_PER_ELEMENT * 6,
-    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
 
   const advectionShaderBindGroupDescriptor = createBindGroupDescriptor(
     [0, 1, 2],
     [GPUShaderStage.FRAGMENT],
-    ['buffer', 'texture'],
-    [{type: 'uniform'}, {sampleType: 'float'}, {sampleType: 'float'}],
-    [{buffer: advectionUniformBuffer}, fluidPropertyTextures.prevVelocity.view, fluidPropertyTextures.prevVelocity.view],
+    ['buffer', 'texture', 'texture'],
+    [{ type: 'uniform' }, { sampleType: 'float' }, { sampleType: 'float' }],
+    [
+      { buffer: advectionUniformBuffer },
+      fluidPropertyTextures.prevVelocity.view,
+      fluidPropertyTextures.prevVelocity.view,
+    ],
+    'Advection',
     device
   );
 
   const advectionShaderBindGroupAlt = device.createBindGroup({
+    label: 'Advection.bindGroupAlt',
     layout: advectionShaderBindGroupDescriptor.bindGroupLayout,
     entries: [
       {
         binding: 0,
-        resource: 
-          {buffer: advectionUniformBuffer},
+        resource: { buffer: advectionUniformBuffer },
       },
       {
         binding: 1,
@@ -469,12 +541,16 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
         binding: 2,
         resource: fluidPropertyTextures.prevDye.view,
       },
-    ]
-  })
+    ],
+  });
 
   const advectionShaderPipelineOne = device.createRenderPipeline({
+    label: 'Advection.pipelineOne',
     layout: device.createPipelineLayout({
-      bindGroupLayouts: [generalBindGroupDescriptor.bindGroupLayout, advectionShaderBindGroupDescriptor.bindGroupLayout],
+      bindGroupLayouts: [
+        generalBindGroupDescriptor.bindGroupLayout,
+        advectionShaderBindGroupDescriptor.bindGroupLayout,
+      ],
     }),
     vertex: baseVertexShaderState,
     fragment: {
@@ -491,8 +567,12 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
   });
 
   const advectionShaderPipelineTwo = device.createRenderPipeline({
+    label: 'Advection.pipelineTwo',
     layout: device.createPipelineLayout({
-      bindGroupLayouts: [generalBindGroupDescriptor.bindGroupLayout, advectionShaderBindGroupDescriptor.bindGroupLayout],
+      bindGroupLayouts: [
+        generalBindGroupDescriptor.bindGroupLayout,
+        advectionShaderBindGroupDescriptor.bindGroupLayout,
+      ],
     }),
     vertex: baseVertexShaderState,
     fragment: {
@@ -508,38 +588,87 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     primitive: planePrimitive,
   });
 
-  const advectionShaderRenderAttachmentsOne: GPURenderPassDescriptor = {
+  const advectionShaderRenderDescriptorOne: GPURenderPassDescriptor = {
+    label: 'Advection.renderDescriptorOne',
     colorAttachments: [
       {
         view: fluidPropertyTextures.currentVelocity.view,
         ...standardClear,
-      }
-    ]
-  }
+      },
+    ],
+  };
 
   const advectionShaderRenderAttachmentsTwo: GPURenderPassDescriptor = {
+    label: 'Advection.renderDescriptorTwo',
     colorAttachments: [
       {
         view: fluidPropertyTextures.currentDye.view,
         ...standardClear,
-      }
-    ]
-  }
+      },
+    ],
+  };
 
+  const finalDisplayBindGroupDescriptor = createBindGroupDescriptor(
+    [0],
+    [GPUShaderStage.FRAGMENT],
+    ['texture'],
+    [{ sampleType: 'float' }],
+    [[fluidPropertyTextures.currentDye.view]],
+    'Final',
+    device
+  );
+
+  const finalDisplayPipeline = device.createRenderPipeline({
+    label: 'Final.pipeline',
+    layout: device.createPipelineLayout({
+      bindGroupLayouts: [
+        generalBindGroupDescriptor.bindGroupLayout,
+        finalDisplayBindGroupDescriptor.bindGroupLayout,
+      ],
+    }),
+    vertex: baseVertexShaderState,
+    fragment: {
+      module: device.createShaderModule({
+        code: finalDisplayFragmentWGSL,
+      }),
+      entryPoint: 'fragmentMain',
+      targets: [
+        {
+          format: presentationFormat,
+        },
+      ],
+    },
+    primitive: planePrimitive,
+  });
+
+  const finalDisplayRenderDescriptor: GPURenderPassDescriptor = {
+    label: 'Final.renderDescriptor',
+    colorAttachments: [
+      {
+        view: undefined,
+        clearValue: { ...normalizeColor(config.BACK_COLOR), a: 1.0 },
+      },
+    ],
+  };
 
   const debugOutputBindGroupDescriptor = createBindGroupDescriptor(
     [0],
     [GPUShaderStage.FRAGMENT],
     ['texture'],
-    [{sampleType: 'float'}],
-    [fluidPropertyTextures.currentVelocity.view],
+    [{ sampleType: 'float' }],
+    [[fluidPropertyTextures.velocity.currentView]],
+    'DebugOutput',
     device
   );
 
   const debugOutputShaderPipeline = device.createRenderPipeline({
     //@group(0) //@group(1)
+    label: 'DebugOutput.pipeline',
     layout: device.createPipelineLayout({
-      bindGroupLayouts: [generalBindGroupDescriptor.bindGroupLayout, debugOutputBindGroupDescriptor.bindGroupLayout],
+      bindGroupLayouts: [
+        generalBindGroupDescriptor.bindGroupLayout,
+        debugOutputBindGroupDescriptor.bindGroupLayout,
+      ],
     }),
     vertex: {
       module: device.createShaderModule({
@@ -561,72 +690,37 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
   });
 
   const debugOutputRenderDescriptor: GPURenderPassDescriptor = {
+    label: 'DebugOutput.renderDescriptor',
     colorAttachments: [
       {
         view: undefined,
         ...standardClear,
-      }
-    ]
-  }
+      },
+    ],
+  };
 
   const writeSplatUniforms = (
     //vec3s
-    velocity_color: ArrayLike, 
+    velocity_color: ArrayLike,
     dye_color: ArrayLike,
     //vec2s
     _point: ArrayLike,
     //float32s
     aspect_ratio: number,
     radius: number,
-    offset = 0, 
+    offset = 0 //Will consider for 256 byte alligned loops later
   ) => {
-    const velocityColor = velocity_color as Float32Array;
-    const dyeColor = dye_color as Float32Array;
-    const point = _point as Float32Array;
     const rest = new Float32Array([aspect_ratio, radius]);
-
-    //Velocity_Color 16 bytes pos 0
-    device.queue.writeBuffer(
+    writeToF32Buffer(
+      [velocity_color, dye_color, _point],
+      rest,
       splatUniformBuffer,
-      0 + dynamicUniformBufferIterationAllignment * offset, 
-      velocityColor.buffer,
-      velocityColor.byteOffset,
-      velocityColor.byteLength
-    )
-
-    //Dye_Color 16 bytes pos 16
-    device.queue.writeBuffer(
-      splatUniformBuffer,
-      16 + dynamicUniformBufferIterationAllignment * offset, 
-      dyeColor.buffer,
-      dyeColor.byteOffset,
-      dyeColor.byteLength
-    )
-
-    //Point 8 bytes pos 32
-    device.queue.writeBuffer(
-      splatUniformBuffer,
-      32 + dynamicUniformBufferIterationAllignment * offset, 
-      point.buffer,
-      point.byteOffset,
-      point.byteLength
-    )
-
-    //Ratio/Radius 8 bytes pos 40
-    device.queue.writeBuffer(
-      splatUniformBuffer,
-      40 + dynamicUniformBufferIterationAllignment * offset, 
-      rest.buffer,
-      rest.byteOffset,
-      rest.byteLength
+      device
     );
-  }
+  };
 
-  const writeVorticityUniforms = (
-    curl: number,
-    dt: number
-  ) => {
-    const arr = new Float32Array([curl, dt])
+  const writeVorticityUniforms = (curl: number, dt: number) => {
+    const arr = new Float32Array([curl, dt]);
     device.queue.writeBuffer(
       vorticityUniformBuffer,
       0,
@@ -634,11 +728,9 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
       arr.byteOffset,
       arr.byteLength
     );
-  }
+  };
 
-  const writeClearUniforms = (
-    pressure: number
-  ) => {
+  const writeClearUniforms = (pressure: number) => {
     const arr = new Float32Array([pressure]);
     device.queue.writeBuffer(
       clearUniformBuffer,
@@ -647,14 +739,13 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
       arr.byteOffset,
       arr.byteLength
     );
-  }
-
+  };
 
   const writeAdvectionUniforms = (
     texel_size: ArrayLike,
     dye_texel_size: ArrayLike,
-    dt: number, 
-    dissipation: number,
+    dt: number,
+    dissipation: number
   ) => {
     const arr = new Float32Array([dt, dissipation]);
     writeToF32Buffer(
@@ -663,7 +754,7 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
       advectionUniformBuffer,
       device
     );
-  }
+  };
 
   let splatStack = [];
 
@@ -682,14 +773,13 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
 
     //Look to canvasChange in webgpu-samples for dealing with change in height
 
-    const commandEncoder = device.createCommandEncoder(); 
+    const commandEncoder = device.createCommandEncoder();
     {
       // SPLAT SHADER
       const velocityTexelDims = getTexelDimsAsFloat32Array(
-        fluidPropertyTextures.prevVelocity.texelSizeX,
-        fluidPropertyTextures.prevVelocity.texelSizeY
+        fluidPropertyTextures.velocity.texelSizeX,
+        fluidPropertyTextures.velocity.texelSizeY
       );
-      console.log(velocityTexelDims);
 
       //Get texel dimensions of sim texture
       device.queue.writeBuffer(
@@ -706,13 +796,18 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
           pointer.moved = false;
           const dx = pointer.deltaX * config.SPLAT_FORCE;
           const dy = pointer.deltaY * config.SPLAT_FORCE;
-          console.log(dx, dy);
-          const textureAspectRatio = fluidPropertyTextures.prevVelocity.width / fluidPropertyTextures.prevVelocity.height;
+          const textureAspectRatio =
+            fluidPropertyTextures.velocity.width /
+            fluidPropertyTextures.velocity.height;
           writeSplatUniforms(
             //velocity_color (velocity as a color)
             vec3.fromValues(dx, dy, 0.0),
-            vec3.fromValues(pointer.color[0], pointer.color[1], pointer.color[2]),
-            vec3.fromValues(pointer.texcoordX, pointer.texcoordY),
+            vec3.fromValues(
+              pointer.color[0],
+              pointer.color[1],
+              pointer.color[2]
+            ),
+            vec2.fromValues(pointer.texcoordX, pointer.texcoordY),
             textureAspectRatio,
             correctRadius(config.SPLAT_RADIUS / 100.0, textureAspectRatio),
             idx
@@ -724,49 +819,38 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
         splatShaderRenderDescriptor
       );
       splatPassEncoder.setPipeline(splatShaderPipeline);
-      splatPassEncoder.setBindGroup(0, generalBindGroupDescriptor.bindGroup);
-      splatPassEncoder.setBindGroup(1, splatShaderBindGroupDescriptor.bindGroup);
+      splatPassEncoder.setBindGroup(0, generalBindGroupDescriptor.bindGroups[0]);
+      splatPassEncoder.setBindGroup(
+        1,
+        splatShaderBindGroupDescriptor.bindGroups[0]
+      );
       splatPassEncoder.draw(6, 1, 0, 0);
 
       splatPassEncoder.end();
-
     }
-    commandEncoder.copyTextureToTexture(
-      {
-        texture: fluidPropertyTextures.currentVelocity.texture,
-      },
-      {
-        texture: fluidPropertyTextures.prevVelocity.texture,
-      },
-      [fluidPropertyTextures.prevVelocity.width, fluidPropertyTextures.prevVelocity.height]
-    ); 
-
-    commandEncoder.copyTextureToTexture(
-      {
-        texture: fluidPropertyTextures.currentDye.texture,
-      },
-      {
-        texture: fluidPropertyTextures.prevDye.texture,
-      },
-      [fluidPropertyTextures.prevVelocity.width, fluidPropertyTextures.prevVelocity.height]
-    ); 
-    const curlPassEncoder = commandEncoder.
+    //Make sure to do something with config.clearValue within the colorAttachments of your final o
     {
-      debugOutputRenderDescriptor.colorAttachments[0].view = context.getCurrentTexture().createView();
+      debugOutputRenderDescriptor.colorAttachments[0].view = context
+        .getCurrentTexture()
+        .createView();
+      //debugOutputRenderDescriptor.colorAttachments[0].clearValue = normalizeColor(config.BACK_COLOR);
       const debugOutputPassEncoder = commandEncoder.beginRenderPass(
         debugOutputRenderDescriptor
-      )
+      );
       debugOutputPassEncoder.setPipeline(debugOutputShaderPipeline);
-      debugOutputPassEncoder.setBindGroup(0, generalBindGroupDescriptor.bindGroup);
-      debugOutputPassEncoder.setBindGroup(1, debugOutputBindGroupDescriptor.bindGroup);
+      debugOutputPassEncoder.setBindGroup(
+        0,
+        generalBindGroupDescriptor.bindGroups[0]
+      );
+      debugOutputPassEncoder.setBindGroup(
+        1,
+        debugOutputBindGroupDescriptor.bindGroups[0]
+      );
       debugOutputPassEncoder.draw(6, 1, 0, 0);
       debugOutputPassEncoder.end();
     }
-    
 
-
-
-    commandEncoder.copyTextureToTexture
+    commandEncoder.copyTextureToTexture;
 
     device.queue.submit([commandEncoder.finish()]);
     requestAnimationFrame(frame);

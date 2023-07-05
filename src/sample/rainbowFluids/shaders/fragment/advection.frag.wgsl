@@ -5,6 +5,15 @@ struct AdvectionUniforms {
   dissipation: f32,
 }
 
+struct VertexBaseOutput {
+  @builtin(position) Position : vec4<f32>,
+  @location(0) v_uv : vec2<f32>,
+  @location(1) vL: vec2<f32>,
+  @location(2) vR: vec2<f32>,
+  @location(3) vT: vec2<f32>,
+  @location(4) vB: vec2<f32>,
+}
+
 fn bilerp(
   texture: texture_2d<f32>,
   sampler: sampler,
@@ -40,13 +49,13 @@ fn bilerp(
 
 
 @group(0) @binding(1) var image_sampler: sampler;
-@group(1) @binding(0) var<uniform> uniforms: AdvectionUniforms
+@group(1) @binding(0) var<uniform> uniforms: AdvectionUniforms;
 @group(1) @binding(1) var prev_velocity_texture: texture_2d<f32>;
-@group(1) @binding(2) var source_texture: texture_2d<f32>
+@group(1) @binding(2) var source_texture: texture_2d<f32>;
 
 @fragment
 fn fragmentMain(input: VertexBaseOutput) -> @location(0) vec4<f32> {
-  var coord: vec2<f32> = input.v_uv - dt * textureSample(
+  var coord: vec2<f32> = input.v_uv - uniforms.dt * textureSample(
     prev_velocity_texture,
     image_sampler,
     input.v_uv
@@ -57,6 +66,6 @@ fn fragmentMain(input: VertexBaseOutput) -> @location(0) vec4<f32> {
     coord
   );
 
-  var decay: f32 = 1.0 + .dissipation * uniforms.dt;
+  var decay: f32 = 1.0 + uniforms.dissipation * uniforms.dt;
   return result / decay;
 }

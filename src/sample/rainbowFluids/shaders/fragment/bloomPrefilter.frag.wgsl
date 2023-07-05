@@ -3,6 +3,15 @@ struct BloomPrefilterUniforms {
   threshold: f32,
 }
 
+struct VertexBaseOutput {
+  @builtin(position) Position : vec4<f32>,
+  @location(0) v_uv : vec2<f32>,
+  @location(1) vL: vec2<f32>,
+  @location(2) vR: vec2<f32>,
+  @location(3) vT: vec2<f32>,
+  @location(4) vB: vec2<f32>,
+}
+
 @group(1) @binding(3) var<uniform> bloomUniforms: BloomPrefilterUniforms;
 
 @fragment

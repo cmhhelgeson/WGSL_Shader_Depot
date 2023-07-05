@@ -3,6 +3,29 @@ struct VorticityUniforms {
   dt: f32,
 }
 
+struct VertexBaseOutput {
+  @builtin(position) Position : vec4<f32>,
+  @location(0) v_uv : vec2<f32>,
+  @location(1) vL: vec2<f32>,
+  @location(2) vR: vec2<f32>,
+  @location(3) vT: vec2<f32>,
+  @location(4) vB: vec2<f32>,
+}
+
+fn glslMax(
+  velocity: vec2<f32>,
+  scalar: f32,
+) -> vec2<f32> {
+  return vec2f(max(velocity.x, scalar), max(velocity.y, scalar));
+}
+
+fn glslMin(
+  velocity: vec2<f32>,
+  scalar: f32,
+) -> vec2<f32> {
+  return vec2f(min(velocity.x, scalar), min(velocity.y, scalar));
+}
+
 
 @group(0) @binding(1) var image_sampler: sampler;
 
@@ -11,7 +34,7 @@ struct VorticityUniforms {
 @group(1) @binding(2) var curl_texture: texture_2d<f32>;
 
 @fragment
-fn vorticityFragmentMain(input: VertexBaseOutput) -> @location(0) {
+fn fragmentMain(input: VertexBaseOutput) -> @location(0) vec4<f32> {
 
   var L: f32 = textureSample(
     curl_texture,
@@ -52,6 +75,6 @@ fn vorticityFragmentMain(input: VertexBaseOutput) -> @location(0) {
   ).xy;
 
   velocity += force * uniforms.dt;
-  velocity = min(max(velocity, -1000.0), 1000.0);
+  velocity = glslMin(glslMax(velocity, -1000.0), 1000.0);
   return vec4<f32>(velocity, 0.0, 1.0);
 }
