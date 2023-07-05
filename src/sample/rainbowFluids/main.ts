@@ -17,6 +17,7 @@ import gradientSubtractWGSL from './shaders/fragment/gradientSubtract.frag.wgsl'
 import finalDisplayFragmentWGSL from './shaders/fragment/finalDisplay.frag.wgsl';
 
 import {
+  calculateDeltaTime,
   correctRadius,
   createBindGroupDescriptor,
   defaultConfig,
@@ -43,7 +44,7 @@ import { ArrayLike } from 'wgpu-matrix/dist/1.x/array-like';
 import { normalizeColor } from './color';
 
 const standardClear: Omit<GPURenderPassColorAttachment, 'view'> = {
-  clearValue: { r: 0.0, g: 0.0, b: 1.0, a: 1.0 },
+  clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
   loadOp: 'clear',
   storeOp: 'store',
 };
@@ -100,13 +101,13 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
 
   // CREATE ALL TEXTURE RESOURCES
   //rgba16float rg16float r16float
-  const fluidPropertyTextures = createNavierStokeOutputTextures(device, canvas);
+  const fluidPropertyTextures = createNavierStokeOutputTextures(canvas.width, canvas.height, device);
   console.log(fluidPropertyTextures);
 
   // RESOURCES USED ACROSS MULTIPLE PIPELINES / SHADERS
   const planePrimitive: GPUPrimitiveState = {
     topology: 'triangle-list',
-    cullMode: 'back',
+    cullMode: 'none',
   };
 
   const vertexBaseUniformBuffer = device.createBuffer({
@@ -163,8 +164,8 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     [
       [
         { buffer: splatUniformBuffer },
-        fluidPropertyTextures.velocity.prevView,
-        fluidPropertyTextures.velocity.prevView,
+        fluidPropertyTextures.velocity3FromAdvection.currentView,
+        fluidPropertyTextures.dye1FromAdvection.currentView,
       ],
     ],
     'Splat',
@@ -188,9 +189,9 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
       entryPoint: 'fragmentMain',
       targets: [
         //velocity texture
-        { format: fluidPropertyTextures.velocity.currentTexture.format },
+        { format: fluidPropertyTextures.velocity0FromSplat.currentTexture.format },
         //dye texture
-        { format: fluidPropertyTextures.dye.currentTexture.format },
+        { format: fluidPropertyTextures.dye0FromSplat.currentTexture.format },
       ],
     },
     primitive: planePrimitive,
@@ -201,12 +202,12 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     colorAttachments: [
       {
         //Replace with velocity.currentView at render
-        view: undefined,
+        view: fluidPropertyTextures.velocity0FromSplat.currentView,
         ...standardClear,
       },
       {
         //Replace with dye.currentView at render
-        view: undefined,
+        view: fluidPropertyTextures.dye0FromSplat.currentView,
         ...standardClear,
       },
     ],
@@ -219,7 +220,7 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     [{ sampleType: 'float' }],
     [
       [
-        fluidPropertyTextures.velocity.prevView
+        fluidPropertyTextures.velocity0FromSplat.currentView
       ]
     ],
     'Curl',
@@ -271,7 +272,7 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     [
       [
         { buffer: vorticityUniformBuffer },
-        fluidPropertyTextures.velocity.prevView,
+        fluidPropertyTextures.velocity0FromSplat.currentView,
         fluidPropertyTextures.curl.currentView,
       ]
     ],
@@ -295,20 +296,19 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
       entryPoint: 'fragmentMain',
       targets: [
         //velocity texture
-        { format: fluidPropertyTextures.velocity.currentTexture.format },
+        { format: fluidPropertyTextures.velocity1FromVorticity.currentTexture.format },
       ],
     },
     primitive: planePrimitive,
   });
 
-  swapBuffersInDoubleFBO(fluidPropertyTextures.velocity);
 
   const vorticityShaderRenderDescriptor: GPURenderPassDescriptor = {
     label: 'Vorticity.renderDescriptor',
     colorAttachments: [
       {
         //Replace with velocity.currentView at render
-        view: undefined,
+        view: fluidPropertyTextures.velocity1FromVorticity.currentView,
         ...standardClear,
       },
     ],
@@ -322,7 +322,7 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     [{ sampleType: 'float' }],
     [
       [
-        fluidPropertyTextures.velocity.prevView
+        fluidPropertyTextures.velocity1FromVorticity.currentView
       ]
     ],
     'Curl',
@@ -373,7 +373,7 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     [{ type: 'uniform' }, { sampleType: 'float' }],
     [
       [
-        { buffer: clearUniformBuffer }, fluidPropertyTextures.pressure.prevView
+        { buffer: clearUniformBuffer }, fluidPropertyTextures.pressure1FromPressure.currentView
       ],
     ],
     'Clear',
@@ -398,7 +398,7 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
       entryPoint: 'fragmentMain',
       targets: [
         //velocity texture
-        { format: fluidPropertyTextures.pressure.currentTexture.format },
+        { format: fluidPropertyTextures.pressure0FromClear.currentTexture.format },
       ],
     },
     primitive: planePrimitive,
@@ -408,13 +408,12 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     label: 'Clear.renderDescriptor',
     colorAttachments: [
       {
-        view: fluidPropertyTextures.pressure.currentView,
+        view: fluidPropertyTextures.pressure0FromClear.currentView,
         ...standardClear,
       },
     ],
   };
 
-  swapBuffersInDoubleFBO(fluidPropertyTextures.pressure);
 
   const pressureShaderBindGroupDescriptor = createBindGroupDescriptor(
     [0, 1],
@@ -424,7 +423,7 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     [
       [
         fluidPropertyTextures.divergence.currentView,
-        fluidPropertyTextures.pressure.prevView,
+        fluidPropertyTextures.pressure0FromClear.currentView,
       ]
     ],
     'Pressure',
@@ -447,7 +446,7 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
       entryPoint: 'fragmentMain',
       targets: [
         //velocity texture
-        { format: fluidPropertyTextures.pressure.currentTexture.format },
+        { format: fluidPropertyTextures.pressure1FromPressure.currentTexture.format },
       ],
     },
     primitive: planePrimitive,
@@ -458,7 +457,7 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     colorAttachments: [
       {
         //Define at render time as currentPressure
-        view: fluidPropertyTextures.pressure.currentView,
+        view: fluidPropertyTextures.pressure1FromPressure.currentView,
         ...standardClear,
       },
     ],
@@ -471,8 +470,8 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     [{ sampleType: 'float' }, { sampleType: 'float' }],
     [
       [
-        fluidPropertyTextures.pressure.prevView,
-        fluidPropertyTextures.velocity.prevView,
+        fluidPropertyTextures.velocity1FromVorticity.currentView,
+        fluidPropertyTextures.pressure1FromPressure.currentView,
       ]
     ],
     'GradientSubtract',
@@ -495,7 +494,7 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
       entryPoint: 'fragmentMain',
       targets: [
         //velocity texture
-        { format: fluidPropertyTextures.velocity.currentTexture.format },
+        { format: fluidPropertyTextures.velocity2FromGradientSubtract.currentTexture.format },
       ],
     },
     primitive: planePrimitive,
@@ -505,13 +504,18 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     label: 'GradientSubtract.renderDescriptor',
     colorAttachments: [
       {
-        view: fluidPropertyTextures.velocity.currentView,
+        view: fluidPropertyTextures.velocity2FromGradientSubtract.currentView,
         ...standardClear,
       },
     ],
   };
 
-  const advectionUniformBuffer = device.createBuffer({
+  const advectionUniformBufferOne = device.createBuffer({
+    size: Float32Array.BYTES_PER_ELEMENT * 6,
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+  });
+
+  const advectionUniformBufferTwo = device.createBuffer({
     size: Float32Array.BYTES_PER_ELEMENT * 6,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
@@ -523,14 +527,14 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     [{ type: 'uniform' }, { sampleType: 'float' }, { sampleType: 'float' }],
     [
       [
-        { buffer: advectionUniformBuffer },
-        fluidPropertyTextures.velocity.prevView,
-        fluidPropertyTextures.velocity.prevView,
+        { buffer: advectionUniformBufferOne },
+        fluidPropertyTextures.velocity2FromGradientSubtract.currentView,
+        fluidPropertyTextures.velocity2FromGradientSubtract.currentView,
       ],
       [
-        {buffer: advectionUniformBuffer},
-        fluidPropertyTextures.velocity.prevView, 
-        fluidPropertyTextures.dye.prevView,
+        {buffer: advectionUniformBufferTwo},
+        fluidPropertyTextures.velocity3FromAdvection.currentView, 
+        fluidPropertyTextures.dye0FromSplat.currentView,
       ]
     ],
     'Advection',
@@ -553,7 +557,7 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
       entryPoint: 'fragmentMain',
       targets: [
         //velocity texture
-        { format: fluidPropertyTextures.velocity.currentTexture.format },
+        { format: fluidPropertyTextures.velocity3FromAdvection.currentTexture.format },
       ],
     },
     primitive: planePrimitive,
@@ -575,7 +579,7 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
       entryPoint: 'fragmentMain',
       targets: [
         //velocity texture
-        { format: fluidPropertyTextures.dye.currentTexture.format },
+        { format: fluidPropertyTextures.dye1FromAdvection.currentTexture.format },
       ],
     },
     primitive: planePrimitive,
@@ -585,17 +589,17 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     label: 'Advection.renderDescriptorOne',
     colorAttachments: [
       {
-        view: fluidPropertyTextures.velocity.currentView,
+        view: fluidPropertyTextures.velocity3FromAdvection.currentView,
         ...standardClear,
       },
     ],
   };
 
-  const advectionShaderRenderAttachmentsTwo: GPURenderPassDescriptor = {
+  const advectionShaderRenderDescriptorTwo: GPURenderPassDescriptor = {
     label: 'Advection.renderDescriptorTwo',
     colorAttachments: [
       {
-        view: fluidPropertyTextures.dye.currentView,
+        view: fluidPropertyTextures.dye1FromAdvection.currentView,
         ...standardClear,
       },
     ],
@@ -606,7 +610,7 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     [GPUShaderStage.FRAGMENT],
     ['texture'],
     [{ sampleType: 'float' }],
-    [[fluidPropertyTextures.dye.currentView]],
+    [[fluidPropertyTextures.dye1FromAdvection.currentView]],
     'Final',
     device
   );
@@ -649,7 +653,7 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     [GPUShaderStage.FRAGMENT],
     ['texture'],
     [{ sampleType: 'float' }],
-    [[fluidPropertyTextures.velocity.currentView]],
+    [[fluidPropertyTextures.dye1FromAdvection.currentView]],
     'DebugOutput',
     device
   );
@@ -734,7 +738,7 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     );
   };
 
-  const writeAdvectionUniforms = (
+  const writeAdvectionUniformsOne = (
     texel_size: ArrayLike,
     dye_texel_size: ArrayLike,
     dt: number,
@@ -744,7 +748,22 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     writeToF32Buffer(
       [texel_size, dye_texel_size],
       arr,
-      advectionUniformBuffer,
+      advectionUniformBufferOne,
+      device
+    );
+  };
+
+  const writeAdvectionUniformsTwo = (
+    texel_size: ArrayLike,
+    dye_texel_size: ArrayLike,
+    dt: number,
+    dissipation: number
+  ) => {
+    const arr = new Float32Array([dt, dissipation]);
+    writeToF32Buffer(
+      [texel_size, dye_texel_size],
+      arr,
+      advectionUniformBufferTwo,
       device
     );
   };
@@ -760,54 +779,83 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
 
   //Will need to perform copy texture to texture for
 
+  let lastUpdateTime = Date.now();
+  let dt = Date.now();
+
   function frame() {
     // Sample is no longer the active page.
     if (!pageState.active) return;
 
     //Look to canvasChange in webgpu-samples for dealing with change in height
+    // SPLAT SHADER
+    const velocityTexelDims = getTexelDimsAsFloat32Array(
+      fluidPropertyTextures.velocity0FromSplat.texelSizeX,
+      fluidPropertyTextures.velocity0FromSplat.texelSizeY
+    );
+
+    //Get texel dimensions of sim texture
+    device.queue.writeBuffer(
+      vertexBaseUniformBuffer,
+      0,
+      velocityTexelDims.buffer,
+      velocityTexelDims.byteOffset,
+      velocityTexelDims.byteLength
+    );
+    //On desktop should only run once
+    pointers.forEach((pointer, idx) => {
+      if (pointer.moved) {
+        pointer.moved = false;
+        const dx = pointer.deltaX * config.SPLAT_FORCE;
+        const dy = pointer.deltaY * config.SPLAT_FORCE;
+        const textureAspectRatio =
+          fluidPropertyTextures.velocity0FromSplat.width /
+          fluidPropertyTextures.velocity0FromSplat.height;
+        writeSplatUniforms(
+          //velocity_color (velocity as a color)
+          vec3.fromValues(dx, dy, 0.0),
+          vec3.fromValues(
+            pointer.color[0],
+            pointer.color[1],
+            pointer.color[2]
+          ),
+          vec2.fromValues(pointer.texcoordX, pointer.texcoordY),
+          textureAspectRatio,
+          correctRadius(config.SPLAT_RADIUS / 100.0, textureAspectRatio),
+          idx
+        );
+      }
+    });
+    
+    [dt, lastUpdateTime] = calculateDeltaTime(lastUpdateTime);
+    writeVorticityUniforms(config.CURL, dt);
+    writeClearUniforms(config.PRESSURE);
+    writeAdvectionUniformsOne(
+      vec2.fromValues(
+        fluidPropertyTextures.velocity2FromGradientSubtract.texelSizeX,
+        fluidPropertyTextures.velocity2FromGradientSubtract.texelSizeY,
+      ),
+      vec2.fromValues(
+        fluidPropertyTextures.velocity2FromGradientSubtract.texelSizeX,
+        fluidPropertyTextures.velocity2FromGradientSubtract.texelSizeY,
+      ),
+      dt,
+      config.VELOCITY_DISSIPATION,
+    );
+    writeAdvectionUniformsTwo(
+      vec2.fromValues(
+        fluidPropertyTextures.velocity2FromGradientSubtract.texelSizeX,
+        fluidPropertyTextures.velocity2FromGradientSubtract.texelSizeY,
+      ),
+      vec2.fromValues(
+        fluidPropertyTextures.dye0FromSplat.texelSizeX,
+        fluidPropertyTextures.dye0FromSplat.texelSizeY,
+      ),
+      dt,
+      config.DENSITY_DISSIPATION,
+    );
 
     const commandEncoder = device.createCommandEncoder();
     {
-      // SPLAT SHADER
-      const velocityTexelDims = getTexelDimsAsFloat32Array(
-        fluidPropertyTextures.velocity.texelSizeX,
-        fluidPropertyTextures.velocity.texelSizeY
-      );
-
-      //Get texel dimensions of sim texture
-      device.queue.writeBuffer(
-        vertexBaseUniformBuffer,
-        0,
-        velocityTexelDims.buffer,
-        velocityTexelDims.byteOffset,
-        velocityTexelDims.byteLength
-      );
-
-      //On desktop should only run once
-      pointers.forEach((pointer, idx) => {
-        if (pointer.moved) {
-          pointer.moved = false;
-          const dx = pointer.deltaX * config.SPLAT_FORCE;
-          const dy = pointer.deltaY * config.SPLAT_FORCE;
-          const textureAspectRatio =
-            fluidPropertyTextures.velocity.width /
-            fluidPropertyTextures.velocity.height;
-          writeSplatUniforms(
-            //velocity_color (velocity as a color)
-            vec3.fromValues(dx, dy, 0.0),
-            vec3.fromValues(
-              pointer.color[0],
-              pointer.color[1],
-              pointer.color[2]
-            ),
-            vec2.fromValues(pointer.texcoordX, pointer.texcoordY),
-            textureAspectRatio,
-            correctRadius(config.SPLAT_RADIUS / 100.0, textureAspectRatio),
-            idx
-          );
-        }
-      });
-
       const splatPassEncoder = commandEncoder.beginRenderPass(
         splatShaderRenderDescriptor
       );
@@ -820,6 +868,86 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
       splatPassEncoder.draw(6, 1, 0, 0);
 
       splatPassEncoder.end();
+    }
+    {
+      const curlPassEncoder = commandEncoder.beginRenderPass(
+        curlShaderRenderDescriptor
+      );
+      curlPassEncoder.setPipeline(curlShaderPipeline);
+      curlPassEncoder.setBindGroup(0, generalBindGroupDescriptor.bindGroups[0]);
+      curlPassEncoder.setBindGroup(1, curlShaderBindGroupDescriptor.bindGroups[0]);
+      curlPassEncoder.draw(6, 1, 0, 0);
+      curlPassEncoder.end();
+    }
+    {
+      const vorticityPassEncoder = commandEncoder.beginRenderPass(
+        vorticityShaderRenderDescriptor
+      );
+      vorticityPassEncoder.setPipeline(vorticityShaderPipeline);
+      vorticityPassEncoder.setBindGroup(0, generalBindGroupDescriptor.bindGroups[0]);
+      vorticityPassEncoder.setBindGroup(1, vorticityShaderBindGroupDescriptor.bindGroups[0]);
+      vorticityPassEncoder.draw(6, 1, 0, 0);
+      vorticityPassEncoder.end();
+    }
+    {
+      const divergencePassEncoder = commandEncoder.beginRenderPass(
+        divergenceShaderRenderDescriptor
+      );
+      divergencePassEncoder.setPipeline(divergenceShaderPipeline);
+      divergencePassEncoder.setBindGroup(0, generalBindGroupDescriptor.bindGroups[0]);
+      divergencePassEncoder.setBindGroup(1, divergenceShaderBindGroupDescriptor.bindGroups[0]);
+      divergencePassEncoder.draw(6, 1, 0, 0);
+      divergencePassEncoder.end();
+    }
+    {
+      const clearPassEncoder = commandEncoder.beginRenderPass(
+        clearShaderRenderDescriptor
+      );
+      clearPassEncoder.setPipeline(clearShaderPipeline);
+      clearPassEncoder.setBindGroup(0, generalBindGroupDescriptor.bindGroups[0]);
+      clearPassEncoder.setBindGroup(1, clearShaderBindGroupDescriptor.bindGroups[0]);
+      clearPassEncoder.draw(6, 1, 0, 0);
+      clearPassEncoder.end();
+    }
+    {
+      const pressurePassEncoder = commandEncoder.beginRenderPass(
+        pressureShaderRenderDescriptor
+      );
+      pressurePassEncoder.setPipeline(pressureShaderPipeline);
+      pressurePassEncoder.setBindGroup(0, generalBindGroupDescriptor.bindGroups[0]);
+      pressurePassEncoder.setBindGroup(1, pressureShaderBindGroupDescriptor.bindGroups[0]);
+      pressurePassEncoder.draw(6, 1, 0, 0);
+      pressurePassEncoder.end();
+    }
+    {
+      const gradientSubtractEncoder = commandEncoder.beginRenderPass(
+        gradientSubtractRenderDescriptor
+      );
+      gradientSubtractEncoder.setPipeline(gradientSubtractShaderPipeline);
+      gradientSubtractEncoder.setBindGroup(0, generalBindGroupDescriptor.bindGroups[0]);
+      gradientSubtractEncoder.setBindGroup(1, gradientSubtractShaderBindGroupDescriptor.bindGroups[0]);
+      gradientSubtractEncoder.draw(6, 1, 0, 0);
+      gradientSubtractEncoder.end();
+    }
+    {
+      const advectionPassOneEncoder = commandEncoder.beginRenderPass(
+        advectionShaderRenderDescriptorOne
+      );
+      advectionPassOneEncoder.setPipeline(advectionShaderPipelineOne);
+      advectionPassOneEncoder.setBindGroup(0, generalBindGroupDescriptor.bindGroups[0]);
+      advectionPassOneEncoder.setBindGroup(1, advectionShaderBindGroupDescriptor.bindGroups[0]);
+      advectionPassOneEncoder.draw(6, 1, 0, 0);
+      advectionPassOneEncoder.end();
+    }
+    {
+      const advectionPassTwoEncoder = commandEncoder.beginRenderPass(
+        advectionShaderRenderDescriptorTwo
+      );
+      advectionPassTwoEncoder.setPipeline(advectionShaderPipelineTwo);
+      advectionPassTwoEncoder.setBindGroup(0, generalBindGroupDescriptor.bindGroups[0]);
+      advectionPassTwoEncoder.setBindGroup(1, advectionShaderBindGroupDescriptor.bindGroups[1]);
+      advectionPassTwoEncoder.draw(6, 1, 0, 0);
+      advectionPassTwoEncoder.end();
     }
     //Make sure to do something with config.clearValue within the colorAttachments of your final o
     {
@@ -842,8 +970,6 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
       debugOutputPassEncoder.draw(6, 1, 0, 0);
       debugOutputPassEncoder.end();
     }
-
-    commandEncoder.copyTextureToTexture;
 
     device.queue.submit([commandEncoder.finish()]);
     requestAnimationFrame(frame);

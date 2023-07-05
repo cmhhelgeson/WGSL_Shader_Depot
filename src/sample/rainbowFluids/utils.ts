@@ -269,7 +269,7 @@ export const writeToF32Buffer = (
     Float32Array.BYTES_PER_ELEMENT;
 
   for (let i = 1; i < arrayLikes.length; i++) {
-    console.log(writtenBufferSize)
+    console.log(writtenBufferSize);
     ele = arrayLikes[i] as Float32Array;
     device.queue.writeBuffer(
       buffer,
