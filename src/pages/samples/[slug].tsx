@@ -33,14 +33,17 @@ export const pages = {
   imageBlur: dynamic(() => import('../../sample/imageBlur/main')),
   shadowMapping: dynamic(() => import('../../sample/shadowMapping/main')),
   reversedZ: dynamic(() => import('../../sample/reversedZ/main')),
-  deferredRendering: dynamic(
-    () => import('../../sample/deferredRendering/main')
-  ),
   particles: dynamic(() => import('../../sample/particles/main')),
   cornell: dynamic(() => import('../../sample/cornell/main')),
   gameOfLife: dynamic(() => import('../../sample/gameOfLife/main')),
   renderBundles: dynamic(() => import('../../sample/renderBundles/main')),
+  deferredRendering: dynamic(
+    () => import('../../sample/deferredRendering/main')
+  ),
   normalMapping: dynamic(() => import('../../sample/normalMapping/main')),
+  comanche: dynamic(() => import('../../sample/comancheVoxel/main')),
+  fullscreenShader: dynamic(() => import('../../sample/shaderFullScreen/main')),
+  rainbowFluids: dynamic(() => import('../../sample/rainbowFluids/main')),
 };
 
 function Page({ slug }: Props): JSX.Element {
