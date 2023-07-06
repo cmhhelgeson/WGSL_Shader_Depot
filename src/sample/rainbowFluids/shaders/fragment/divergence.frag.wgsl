@@ -22,10 +22,18 @@ fn fragmentMain(input: VertexBaseOutput) -> @location(0) vec4<f32> {
     image_sampler, 
     input.v_uv
   ).xy;
-  L = select(L, -C.x, input.vL.x < 0.0);
-  R = select(R, -C.x, input.vR.x > 1.0);
-  T = select(T, -C.y, input.vT.y > 1.0);
-  B = select(B, -C.y, input.vB.y < 0.0);
+  if (input.vL.x < 0.0) {
+    L = -C.x;
+  }
+  if (input.vR.x > 1.0) {
+    R = -C.x;
+  }
+  if (input.vT.y > 1.0) {
+    T = -C.y;
+  }
+  if (input.vB.y < 0.0) {
+    B = -C.y;
+  }
 
   let div: f32 = 0.5 * (R - L + T - B);
   return vec4<f32>(div, 0.0, 0.0, 1.0);

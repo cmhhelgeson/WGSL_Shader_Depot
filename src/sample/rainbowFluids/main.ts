@@ -825,7 +825,7 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
         pointer.moved = false;
         const dx = pointer.deltaX * config.SPLAT_FORCE;
         const dy = pointer.deltaY * config.SPLAT_FORCE;
-        const textureAspectRatio = fluidPropertyTextures.velocity0FromSplat.width / fluidPropertyTextures.velocity0FromSplat.height;
+        const aspectRatio = canvas.width / canvas.height;
         writeSplatUniforms(
           //velocity_color (velocity as a color)
           vec3.fromValues(dx, dy, 0.0),
@@ -835,8 +835,8 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
             pointer.color[2]
           ),
           vec2.fromValues(pointer.texcoordX, pointer.texcoordY),
-          textureAspectRatio,
-          correctRadius(config.SPLAT_RADIUS / 100.0, textureAspectRatio),
+          aspectRatio,
+          correctRadius(config.SPLAT_RADIUS / 100.0, aspectRatio),
           idx
         );
       }
@@ -965,7 +965,7 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
       advectionPassTwoEncoder.setBindGroup(1, advectionShaderBindGroupDescriptor.bindGroups[1]);
       advectionPassTwoEncoder.draw(6, 1, 0, 0);
       advectionPassTwoEncoder.end();
-    }
+    } 
     //Dye is final output otherwise debug from velocities to dyes to pressures to curl to
     switch(config.DEBUG_VIEW) {
       case "None": {
