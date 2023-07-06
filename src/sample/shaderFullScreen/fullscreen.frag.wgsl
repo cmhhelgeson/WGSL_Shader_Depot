@@ -33,12 +33,12 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4<f32> {
   var blue = vec3f(0.0, 0.0, 1.0);
   var white = vec3f(1.0, 1.0, 1.0);
 
-  if (input.v_uv.y < 0.5) {
+  if (input.v_uv.y > 0.5) {
     //Linear mix
     color = mix(red, blue, input.v_uv.x);
   } else {
     //smoothstep mix
-    color = mix(red, blue, smoothstep(0.0, 1.0, input.v_uv.x));
+    color = mix(red, blue, min(max(smoothstep(0.0, 1.0, input.v_uv.x), uniforms.clamp_min), uniforms.clamp_max));
   }
 
   //Add two white lines
