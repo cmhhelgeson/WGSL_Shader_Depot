@@ -12,7 +12,9 @@ struct VertexBaseOutput {
 
 @fragment
 fn fragmentMain(input: VertexBaseOutput) -> @location(0) vec4<f32> {
-  return vec4<f32>(0.0, 0.0, 0.0, 0.0);
+  var c = textureSample(dye_texture, image_sampler, input.v_uv).rgb;
+  var a: f32 = max(c.r, max(c.g, c.b));
+  return vec4<f32>(c, a);
 }
 
 

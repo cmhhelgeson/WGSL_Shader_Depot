@@ -4,6 +4,19 @@ interface RGBType {
   b: number;
 }
 
+type DebugViewType =
+  | 'None'
+  | 'SplatVelocityOutput'
+  | 'SplatDyeOutput'
+  | 'VorticityVelocityOutput'
+  | 'GradientSubtractVelocityOutput'
+  | 'AdvectionVelocityOutput'
+  | 'AdvectionDyeOutput'
+  | 'ClearPressureOutput'
+  | 'PressurePressureOutput'
+  | 'DivergenceOutput'
+  | 'CurlOutput';
+
 export interface configType {
   SIM_RESOLUTION: number;
   DYE_RESOLUTION: number;
@@ -14,7 +27,7 @@ export interface configType {
   PRESSURE_ITERATIONS: number;
   CURL: number;
   SPLAT_RADIUS: number;
-  SPLAT_FORCE: 6000;
+  SPLAT_FORCE: number;
   SHADING: boolean;
   COLORFUL: boolean;
   COLOR_UPDATE_SPEED: number;
@@ -30,5 +43,5 @@ export interface configType {
   SUNRAYS: boolean;
   SUNRAYS_RESOLUTION: number;
   SUNRAYS_WEIGHT: number;
-  DEBUG_VIEW: 'none' | 'dye' | 'velocity';
+  DEBUG_VIEW: DebugViewType;
 }

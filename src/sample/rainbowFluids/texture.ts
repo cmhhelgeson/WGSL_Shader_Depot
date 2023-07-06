@@ -37,15 +37,6 @@ export const createNavierStokeOutputTextures = (
   simHeight: number,
   device: GPUDevice
 ) => {
-  const prevVelocityTextureRG16F = device.createTexture({
-    size: [simWidth, simHeight],
-    usage:
-      GPUTextureUsage.RENDER_ATTACHMENT |
-      GPUTextureUsage.TEXTURE_BINDING |
-      GPUTextureUsage.COPY_DST,
-    //GPUTextureUsage.COPY_DST,
-    format: 'rg16float',
-  });
   const velocity0TextureRG16F = device.createTexture({
     size: [simWidth, simHeight],
     usage:
@@ -86,15 +77,6 @@ export const createNavierStokeOutputTextures = (
     format: 'rg16float',
   });
 
-  const prevDyeRGBA16F = device.createTexture({
-    size: [simWidth, simHeight],
-    usage:
-      GPUTextureUsage.RENDER_ATTACHMENT |
-      GPUTextureUsage.TEXTURE_BINDING |
-      GPUTextureUsage.COPY_SRC,
-    format: 'rgba16float',
-  });
-
   const dye0TextureRGBA16F = device.createTexture({
     size: [simWidth, simHeight],
     usage:
@@ -125,14 +107,6 @@ export const createNavierStokeOutputTextures = (
     format: 'r16float',
   });
 
-  //Two FrameBuffers, one input and one output
-  const currentPressureTextureR16F = device.createTexture({
-    size: [simWidth, simHeight],
-    usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
-    //GPUTextureUsage.COPY_SRC,
-    format: 'r16float',
-  });
-
   const pressure0TextureR16F = device.createTexture({
     size: [simWidth, simHeight],
     usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
@@ -148,14 +122,6 @@ export const createNavierStokeOutputTextures = (
   });
 
   return {
-    prevVelocity: {
-      width: simWidth,
-      height: simHeight,
-      texelSizeX: 1.0 / simWidth,
-      texelSizeY: 1.0 / simHeight,
-      currentTexture: prevVelocityTextureRG16F,
-      currentView: prevVelocityTextureRG16F.createView(),
-    },
     velocity0FromSplat: {
       width: simWidth,
       height: simHeight,
@@ -188,14 +154,6 @@ export const createNavierStokeOutputTextures = (
       currentTexture: velocity3TextureRG16F,
       currentView: velocity3TextureRG16F.createView(),
     },
-    prevDye: {
-      width: simWidth,
-      height: simHeight,
-      texelSizeX: 1.0 / simWidth,
-      texelSizeY: 1.0 / simHeight,
-      currentTexture: prevDyeRGBA16F,
-      currentView: prevDyeRGBA16F.createView(),
-    },
     dye0FromSplat: {
       width: simWidth,
       height: simHeight,
@@ -218,23 +176,15 @@ export const createNavierStokeOutputTextures = (
       texelSizeX: 1.0 / simWidth,
       texelSizeY: 1.0 / simHeight,
       currentTexture: pressure0TextureR16F,
-      currentView: pressure1TextureR16F.createView(),
+      currentView: pressure0TextureR16F.createView(),
     },
     pressure1FromPressure: {
       width: simWidth,
       height: simHeight,
       texelSizeX: 1.0 / simWidth,
       texelSizeY: 1.0 / simHeight,
-      currentTexture: currentPressureTextureR16F,
-      currentView: currentPressureTextureR16F.createView(),
-    },
-    divergence: {
-      width: simWidth,
-      height: simHeight,
-      texelSizeX: 1.0 / simWidth,
-      texelSizeY: 1.0 / simHeight,
-      currentTexture: divergenceTextureR16F,
-      currentView: divergenceTextureR16F.createView(),
+      currentTexture: pressure1TextureR16F,
+      currentView: pressure1TextureR16F.createView(),
     },
     curl: {
       width: simWidth,
@@ -243,6 +193,14 @@ export const createNavierStokeOutputTextures = (
       texelSizeY: 1.0 / simHeight,
       currentTexture: curlTextureR16F,
       currentView: curlTextureR16F.createView(),
+    },
+    divergence: {
+      width: simWidth,
+      height: simHeight,
+      texelSizeX: 1.0 / simWidth,
+      texelSizeY: 1.0 / simHeight,
+      currentTexture: divergenceTextureR16F,
+      currentView: divergenceTextureR16F.createView(),
     },
   };
 };

@@ -38,10 +38,8 @@ import {
 import {
   createNavierStokeOutputTextures,
   getTexelDimsAsFloat32Array,
-  swapBuffersInDoubleFBO,
 } from './texture';
 import { ArrayLike } from 'wgpu-matrix/dist/1.x/array-like';
-import { normalizeColor } from './color';
 
 const standardClear: Omit<GPURenderPassColorAttachment, 'view'> = {
   clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
@@ -101,7 +99,7 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
 
   // CREATE ALL TEXTURE RESOURCES
   //rgba16float rg16float r16float
-  const fluidPropertyTextures = createNavierStokeOutputTextures(canvas.width, canvas.height, device);
+  const fluidPropertyTextures = createNavierStokeOutputTextures(128, 128, device);
   console.log(fluidPropertyTextures);
 
   // RESOURCES USED ACROSS MULTIPLE PIPELINES / SHADERS
@@ -380,7 +378,6 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     device
   );
 
-  device.createBindGroup;
 
   const clearShaderPipeline = device.createRenderPipeline({
     label: 'Clear.pipeline',
@@ -424,6 +421,10 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
       [
         fluidPropertyTextures.divergence.currentView,
         fluidPropertyTextures.pressure0FromClear.currentView,
+      ],
+      [
+        fluidPropertyTextures.divergence.currentView,
+        fluidPropertyTextures.pressure1FromPressure.currentView,
       ]
     ],
     'Pressure',
@@ -452,12 +453,23 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     primitive: planePrimitive,
   });
 
-  const pressureShaderRenderDescriptor: GPURenderPassDescriptor = {
+  const pressureShaderRenderDescriptorWriteToOne: GPURenderPassDescriptor = {
     label: 'Pressure.renderDescriptor',
     colorAttachments: [
       {
         //Define at render time as currentPressure
         view: fluidPropertyTextures.pressure1FromPressure.currentView,
+        ...standardClear,
+      },
+    ],
+  };
+
+  const pressureShaderRenderDescriptorWriteToZero: GPURenderPassDescriptor = {
+    label: 'Pressure.renderDescriptor',
+    colorAttachments: [
+      {
+        //Define at render time as currentPressure
+        view: fluidPropertyTextures.pressure0FromClear.currentView,
         ...standardClear,
       },
     ],
@@ -653,7 +665,19 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     [GPUShaderStage.FRAGMENT],
     ['texture'],
     [{ sampleType: 'float' }],
-    [[fluidPropertyTextures.dye1FromAdvection.currentView]],
+    [
+      //Velocities, dyes, pressures, curls, divergence
+      [fluidPropertyTextures.velocity0FromSplat.currentView],
+      [fluidPropertyTextures.velocity1FromVorticity.currentView],
+      [fluidPropertyTextures.velocity2FromGradientSubtract.currentView],
+      [fluidPropertyTextures.velocity3FromAdvection.currentView],
+      [fluidPropertyTextures.dye0FromSplat.currentView],
+      [fluidPropertyTextures.dye1FromAdvection.currentView],
+      [fluidPropertyTextures.pressure0FromClear.currentView],
+      [fluidPropertyTextures.pressure1FromPressure.currentView],
+      [fluidPropertyTextures.curl.currentView],
+      [fluidPropertyTextures.divergence.currentView],
+    ],
     'DebugOutput',
     device
   );
@@ -807,9 +831,7 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
         pointer.moved = false;
         const dx = pointer.deltaX * config.SPLAT_FORCE;
         const dy = pointer.deltaY * config.SPLAT_FORCE;
-        const textureAspectRatio =
-          fluidPropertyTextures.velocity0FromSplat.width /
-          fluidPropertyTextures.velocity0FromSplat.height;
+        const textureAspectRatio = fluidPropertyTextures.velocity0FromSplat.width / fluidPropertyTextures.velocity0FromSplat.height;
         writeSplatUniforms(
           //velocity_color (velocity as a color)
           vec3.fromValues(dx, dy, 0.0),
@@ -909,13 +931,14 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
       clearPassEncoder.draw(6, 1, 0, 0);
       clearPassEncoder.end();
     }
-    {
-      const pressurePassEncoder = commandEncoder.beginRenderPass(
-        pressureShaderRenderDescriptor
+    for (let i = 0; i < config.PRESSURE_ITERATIONS; i++) {
+      const currentRenderDescriptor = i % 2 === 0 ? pressureShaderRenderDescriptorWriteToOne : pressureShaderRenderDescriptorWriteToZero;
+      const pressurePassEncoder = commandEncoder.beginRenderPass( 
+        currentRenderDescriptor
       );
       pressurePassEncoder.setPipeline(pressureShaderPipeline);
       pressurePassEncoder.setBindGroup(0, generalBindGroupDescriptor.bindGroups[0]);
-      pressurePassEncoder.setBindGroup(1, pressureShaderBindGroupDescriptor.bindGroups[0]);
+      pressurePassEncoder.setBindGroup(1, pressureShaderBindGroupDescriptor.bindGroups[i % 2]);
       pressurePassEncoder.draw(6, 1, 0, 0);
       pressurePassEncoder.end();
     }
@@ -949,27 +972,131 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
       advectionPassTwoEncoder.draw(6, 1, 0, 0);
       advectionPassTwoEncoder.end();
     }
-    //Make sure to do something with config.clearValue within the colorAttachments of your final o
-    {
-      debugOutputRenderDescriptor.colorAttachments[0].view = context
-        .getCurrentTexture()
-        .createView();
-      //debugOutputRenderDescriptor.colorAttachments[0].clearValue = normalizeColor(config.BACK_COLOR);
-      const debugOutputPassEncoder = commandEncoder.beginRenderPass(
-        debugOutputRenderDescriptor
-      );
-      debugOutputPassEncoder.setPipeline(debugOutputShaderPipeline);
-      debugOutputPassEncoder.setBindGroup(
-        0,
-        generalBindGroupDescriptor.bindGroups[0]
-      );
-      debugOutputPassEncoder.setBindGroup(
-        1,
-        debugOutputBindGroupDescriptor.bindGroups[0]
-      );
-      debugOutputPassEncoder.draw(6, 1, 0, 0);
-      debugOutputPassEncoder.end();
-    }
+    //Dye is final output otherwise debug from velocities to dyes to pressures to curl to
+    switch(config.DEBUG_VIEW) {
+      case "None": {
+        finalDisplayRenderDescriptor.colorAttachments[0].view = context.getCurrentTexture().createView();
+        const finalPassEncoder = commandEncoder.beginRenderPass(
+          finalDisplayRenderDescriptor
+        );
+        finalPassEncoder.setPipeline(finalDisplayPipeline);
+        finalPassEncoder.setBindGroup(0, generalBindGroupDescriptor.bindGroups[0]);
+        //Dye 1 from advection
+        finalPassEncoder.setBindGroup(1, finalDisplayBindGroupDescriptor.bindGroups[0]);
+        finalPassEncoder.draw(6, 1, 0, 0);
+        finalPassEncoder.end();
+      } break;
+      case "SplatVelocityOutput": {
+        finalDisplayRenderDescriptor.colorAttachments[0].view = context.getCurrentTexture().createView();
+        const finalPassEncoder = commandEncoder.beginRenderPass(
+          finalDisplayRenderDescriptor
+        );
+        finalPassEncoder.setPipeline(debugOutputShaderPipeline);
+        finalPassEncoder.setBindGroup(0, generalBindGroupDescriptor.bindGroups[0]);
+        finalPassEncoder.setBindGroup(1, debugOutputBindGroupDescriptor.bindGroups[0]);
+        finalPassEncoder.draw(6, 1, 0, 0);
+        finalPassEncoder.end();
+      } break;
+      case "VorticityVelocityOutput": {
+        finalDisplayRenderDescriptor.colorAttachments[0].view = context.getCurrentTexture().createView();
+        const finalPassEncoder = commandEncoder.beginRenderPass(
+          finalDisplayRenderDescriptor
+        );
+        finalPassEncoder.setPipeline(debugOutputShaderPipeline);
+        finalPassEncoder.setBindGroup(0, generalBindGroupDescriptor.bindGroups[0]);
+        finalPassEncoder.setBindGroup(1, debugOutputBindGroupDescriptor.bindGroups[1]);
+        finalPassEncoder.draw(6, 1, 0, 0);
+        finalPassEncoder.end();
+      } break;
+      case "GradientSubtractVelocityOutput": {
+        debugOutputRenderDescriptor.colorAttachments[0].view = context.getCurrentTexture().createView();
+        const finalPassEncoder = commandEncoder.beginRenderPass(
+          debugOutputRenderDescriptor
+        );
+        finalPassEncoder.setPipeline(debugOutputShaderPipeline);
+        finalPassEncoder.setBindGroup(0, generalBindGroupDescriptor.bindGroups[0]);
+        finalPassEncoder.setBindGroup(1, debugOutputBindGroupDescriptor.bindGroups[2]);
+        finalPassEncoder.draw(6, 1, 0, 0);
+        finalPassEncoder.end();
+      } break;
+      case "AdvectionVelocityOutput": {
+        finalDisplayRenderDescriptor.colorAttachments[0].view = context.getCurrentTexture().createView();
+        const finalPassEncoder = commandEncoder.beginRenderPass(
+          finalDisplayRenderDescriptor
+        );
+        finalPassEncoder.setPipeline(debugOutputShaderPipeline);
+        finalPassEncoder.setBindGroup(0, generalBindGroupDescriptor.bindGroups[0]);
+        finalPassEncoder.setBindGroup(1, debugOutputBindGroupDescriptor.bindGroups[3]);
+        finalPassEncoder.draw(6, 1, 0, 0);
+        finalPassEncoder.end();
+      } break;
+      case "SplatDyeOutput": {
+        finalDisplayRenderDescriptor.colorAttachments[0].view = context.getCurrentTexture().createView();
+        const finalPassEncoder = commandEncoder.beginRenderPass(
+          finalDisplayRenderDescriptor
+        );
+        finalPassEncoder.setPipeline(debugOutputShaderPipeline);
+        finalPassEncoder.setBindGroup(0, generalBindGroupDescriptor.bindGroups[0]);
+        finalPassEncoder.setBindGroup(1, debugOutputBindGroupDescriptor.bindGroups[4]);
+        finalPassEncoder.draw(6, 1, 0, 0);
+        finalPassEncoder.end();
+      } break;
+      case "AdvectionDyeOutput": {
+        finalDisplayRenderDescriptor.colorAttachments[0].view = context.getCurrentTexture().createView();
+        const finalPassEncoder = commandEncoder.beginRenderPass(
+          finalDisplayRenderDescriptor
+        );
+        finalPassEncoder.setPipeline(debugOutputShaderPipeline);
+        finalPassEncoder.setBindGroup(0, generalBindGroupDescriptor.bindGroups[0]);
+        finalPassEncoder.setBindGroup(1, debugOutputBindGroupDescriptor.bindGroups[5]);
+        finalPassEncoder.draw(6, 1, 0, 0);
+        finalPassEncoder.end();
+      } break;
+      case "ClearPressureOutput": {
+        finalDisplayRenderDescriptor.colorAttachments[0].view = context.getCurrentTexture().createView();
+        const finalPassEncoder = commandEncoder.beginRenderPass(
+          finalDisplayRenderDescriptor
+        );
+        finalPassEncoder.setPipeline(debugOutputShaderPipeline);
+        finalPassEncoder.setBindGroup(0, generalBindGroupDescriptor.bindGroups[0]);
+        finalPassEncoder.setBindGroup(1, debugOutputBindGroupDescriptor.bindGroups[6]);
+        finalPassEncoder.draw(6, 1, 0, 0);
+        finalPassEncoder.end();
+      } break;
+      case "PressurePressureOutput": {
+        finalDisplayRenderDescriptor.colorAttachments[0].view = context.getCurrentTexture().createView();
+        const finalPassEncoder = commandEncoder.beginRenderPass(
+          finalDisplayRenderDescriptor
+        );
+        finalPassEncoder.setPipeline(debugOutputShaderPipeline);
+        finalPassEncoder.setBindGroup(0, generalBindGroupDescriptor.bindGroups[0]);
+        finalPassEncoder.setBindGroup(1, debugOutputBindGroupDescriptor.bindGroups[7]);
+        finalPassEncoder.draw(6, 1, 0, 0);
+        finalPassEncoder.end();
+      } break;
+      case "CurlOutput": {
+        finalDisplayRenderDescriptor.colorAttachments[0].view = context.getCurrentTexture().createView();
+        const finalPassEncoder = commandEncoder.beginRenderPass(
+          finalDisplayRenderDescriptor
+        );
+        finalPassEncoder.setPipeline(debugOutputShaderPipeline);
+        finalPassEncoder.setBindGroup(0, generalBindGroupDescriptor.bindGroups[0]);
+        finalPassEncoder.setBindGroup(1, debugOutputBindGroupDescriptor.bindGroups[8]);
+        finalPassEncoder.draw(6, 1, 0, 0);
+        finalPassEncoder.end();
+      } break;
+      case "DivergenceOutput": {
+        finalDisplayRenderDescriptor.colorAttachments[0].view = context.getCurrentTexture().createView();
+        const finalPassEncoder = commandEncoder.beginRenderPass(
+          finalDisplayRenderDescriptor
+        );
+        finalPassEncoder.setPipeline(debugOutputShaderPipeline);
+        finalPassEncoder.setBindGroup(0, generalBindGroupDescriptor.bindGroups[0]);
+        finalPassEncoder.setBindGroup(1, debugOutputBindGroupDescriptor.bindGroups[9]);
+        finalPassEncoder.draw(6, 1, 0, 0);
+        finalPassEncoder.end();
+      } break;
+    } 
 
     device.queue.submit([commandEncoder.finish()]);
     requestAnimationFrame(frame);

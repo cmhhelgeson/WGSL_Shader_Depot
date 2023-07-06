@@ -95,7 +95,19 @@ export const initCaptureGui = (gui: GUI, config: configType) => {
 export const initDebugGui = (gui: GUI, config: configType) => {
   const debugFolder = gui.addFolder('Debug');
   debugFolder
-    .add(config, 'DEBUG_VIEW', ['none', 'dye', 'velocity'])
+    .add(config, 'DEBUG_VIEW', [
+      'None',
+      'SplatVelocityOutput',
+      'SplatDyeOutput',
+      'VorticityVelocityOutput',
+      'GradientSubtractVelocityOutput',
+      'AdvectionVelocityOutput',
+      'AdvectionDyeOutput',
+      'ClearPressureOutput',
+      'PressurePressureOutput',
+      'DivergenceOutput',
+      'CurlOutput',
+    ])
     .name('Debug View');
 };
 
@@ -106,10 +118,11 @@ export const defaultConfig: configType = {
   DENSITY_DISSIPATION: 1,
   VELOCITY_DISSIPATION: 0.2,
   PRESSURE: 0.8,
-  PRESSURE_ITERATIONS: 20,
+  //Make sure PRESSURE_ITERATIONS is an odd number
+  PRESSURE_ITERATIONS: 21,
   CURL: 30,
   SPLAT_RADIUS: 0.25,
-  SPLAT_FORCE: 6000,
+  SPLAT_FORCE: 60,
   SHADING: true,
   COLORFUL: true,
   COLOR_UPDATE_SPEED: 10,
@@ -125,7 +138,7 @@ export const defaultConfig: configType = {
   SUNRAYS: true,
   SUNRAYS_RESOLUTION: 196,
   SUNRAYS_WEIGHT: 1.0,
-  DEBUG_VIEW: 'none',
+  DEBUG_VIEW: 'None',
 };
 
 export const correctRadius = (aspectRatio: number, radius: number) => {
@@ -207,11 +220,6 @@ export const createBindGroupDescriptor = (
     });
     bindGroups.push(newBindGroup);
   }
-  /*const bindGroup = device.createBindGroup({
-    label: `${label}.bindGroup`,
-    layout: bindGroupLayout,
-    entries: groupEntries,
-  }); */
 
   return {
     bindGroups,
@@ -255,7 +263,6 @@ export const writeToF32Buffer = (
   buffer: GPUBuffer,
   device: GPUDevice
 ) => {
-  console.log('Writing to');
   let ele = arrayLikes[0] as Float32Array;
   device.queue.writeBuffer(
     buffer,
@@ -269,7 +276,6 @@ export const writeToF32Buffer = (
     Float32Array.BYTES_PER_ELEMENT;
 
   for (let i = 1; i < arrayLikes.length; i++) {
-    console.log(writtenBufferSize);
     ele = arrayLikes[i] as Float32Array;
     device.queue.writeBuffer(
       buffer,
@@ -282,7 +288,6 @@ export const writeToF32Buffer = (
       (arrayLikes[i].length === 3 ? 4 : arrayLikes[i].length) *
       Float32Array.BYTES_PER_ELEMENT;
   }
-  console.log(writtenBufferSize);
 
   device.queue.writeBuffer(
     buffer,
