@@ -7,7 +7,7 @@
 .canvasContainer>canvas {
   width: 100%;
   aspect-ratio: 1;
-  max-width: 500px;
+  max-width: 900px;
 }
 
 nav.sourceFileNav ul {

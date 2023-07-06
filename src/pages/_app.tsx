@@ -9,7 +9,7 @@ import styles from './MainLayout.module.css';
 
 import { pages } from './samples/[slug]';
 
-const title = 'WebGPU Samples';
+const title = 'WGSL Shader Depot';
 
 const MainLayout: React.FunctionComponent<AppProps> = ({
   Component,
