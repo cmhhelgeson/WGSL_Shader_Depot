@@ -435,3 +435,25 @@ export const getResolution = (
     return { width: min, height: max };
   }
 }
+
+
+export const getPreferredDimensions = (
+  size: number,
+  canvasWidth: number,
+  canvasHeight: number,
+) => {
+  const aspectRatio = canvasWidth / canvasHeight;
+  let width, height;
+  if (canvasHeight < canvasWidth) {
+    width = Math.floor(size * aspectRatio);
+    height = size;
+  } else {
+    width = size;
+    height = Math.floor(size / aspectRatio);
+  }
+  return {
+    width,
+    height
+  };
+}
+

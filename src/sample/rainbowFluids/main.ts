@@ -128,6 +128,11 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
 
+  const canvasTexelBaseUniformBuffer = device.createBuffer({
+    size: Float32Array.BYTES_PER_ELEMENT * 2,
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+  })
+
   const sampler = device.createSampler({
     minFilter: 'linear',
     magFilter: 'linear',
@@ -139,7 +144,10 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     [GPUShaderStage.VERTEX, GPUShaderStage.FRAGMENT],
     ['buffer', 'sampler'],
     [{ type: 'uniform' }, { type: 'filtering' }],
-    [[{ buffer: vertexBaseUniformBuffer }, sampler]],
+    [
+      [{ buffer: vertexBaseUniformBuffer }, sampler],
+      [{buffer: canvasTexelBaseUniformBuffer}, sampler]
+    ],
     'General',
     device
   );
@@ -621,6 +629,28 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
   };
 
   //let splatStack = [];
+  const velocityTexelDims = getTexelDimsAsFloat32Array(
+    fluidPropertyTextures.velocity0FromSplat.texelSizeX,
+    fluidPropertyTextures.velocity0FromSplat.texelSizeY
+  );
+
+  //Get texel dimensions of sim texture
+  device.queue.writeBuffer(
+    vertexBaseUniformBuffer,
+    0,
+    velocityTexelDims.buffer,
+    velocityTexelDims.byteOffset,
+    velocityTexelDims.byteLength
+  );
+
+  const canvasTexelDims = new Float32Array([1.0 / canvas.width, 1.0 / canvas.height]);
+  device.queue.writeBuffer(
+    canvasTexelBaseUniformBuffer,
+    0,
+    canvasTexelDims.buffer,
+    canvasTexelDims.byteOffset,
+    canvasTexelDims.byteLength
+  );
 
   //Will need to perform copy texture to texture for
 
@@ -633,19 +663,7 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
 
     //Look to canvasChange in webgpu-samples for dealing with change in height
     // SPLAT SHADER
-    const velocityTexelDims = getTexelDimsAsFloat32Array(
-      fluidPropertyTextures.velocity0FromSplat.texelSizeX,
-      fluidPropertyTextures.velocity0FromSplat.texelSizeY
-    );
-
-    //Get texel dimensions of sim texture
-    device.queue.writeBuffer(
-      vertexBaseUniformBuffer,
-      0,
-      velocityTexelDims.buffer,
-      velocityTexelDims.byteOffset,
-      velocityTexelDims.byteLength
-    );
+    
     //On desktop should only run once
     pointers.forEach((pointer, idx) => {
       if (pointer.moved) {
@@ -816,7 +834,7 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
           finalDisplayPipelineDescriptor.renderDescriptors[0]
         );
         finalPassEncoder.setPipeline(finalDisplayPipelineDescriptor.pipelines[0]);
-        finalPassEncoder.setBindGroup(0, generalBindGroupDescriptor.bindGroups[0]);
+        finalPassEncoder.setBindGroup(0, generalBindGroupDescriptor.bindGroups[1]);
         //Dye 1 from advection
         finalPassEncoder.setBindGroup(1, finalDisplayBindGroupDescriptor.bindGroups[0]);
         finalPassEncoder.draw(6, 1, 0, 0);

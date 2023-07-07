@@ -56,11 +56,11 @@ fn vertexMain(
 `;
 
 const STRUCT_GRID_SIZE = `
-struct GridSize {
-  w : f32,
-  h : f32,
-  dyeW: f32,
-  dyeH: f32,
+struct TextureDimensions {
+  simWidth : f32,
+  simHeight : f32,
+  dyeWidth: f32,
+  dyeHeight: f32,
   dx : f32,
   rdx : f32,
   dyeRdx : f32
@@ -73,19 +73,31 @@ struct Mouse {
 }`;
 
 // This code initialize the pos and index variables and target only interior cells
-const COMPUTE_START = `
-var pos = vec2<f32>(global_id.xy);
+const COMPUTE_VELOCITY_START = `
+var velocityGridPos = vec2<f32>(
+  floor(input.uv.x * canvasSize.x), floor(input.uv.y * canvasSize.y)
+);
 
-if (pos.x == 0 || pos.y == 0 || pos.x >= uGrid.w - 1 || pos.y >= uGrid.h - 1) {
+if (
+  velocityGridPos.x == 0 || 
+  velocityGridPos.y == 0 || 
+  velocityGridPos.x >= uGrid.simWidth - 1 || 
+  velocityGridPos.y >= uGrid.simHeight - 1) {
     return;
 }      
 
 let index = ID(pos.x, pos.y);`
 
 const COMPUTE_START_DYE = `
-var pos = vec2<f32>(global_id.xy);
+var dyeGridPos = vec2<f32>(
+  floor(input.uv.x * canvasSize.x), floor(input.uv.y * canvasSize.y)
+);
 
-if (pos.x == 0 || pos.y == 0 || pos.x >= uGrid.dyeW - 1 || pos.y >= uGrid.dyeH - 1) {
+if (
+  dyeGridPos.x == 0 || 
+  dyeGridPos.y == 0 || 
+  dyeGridPos.x >= uGrid.dyeWidthidth - 1 || 
+  dyeGridPos.y >= uGrid.dyeHeighteight - 1) {
     return;
 }      
 
@@ -93,9 +105,11 @@ let index = ID(pos.x, pos.y);`
 
 // This code initialize the pos and index variables and target all cells
 const COMPUTE_START_ALL = `    
-var pos = vec2<f32>(global_id.xy);
+var pos = vec2<f32>(
+  floor(input.uv.x * canvasSize.x), floor(input.uv.y * canvasSize.y)
+);
 
-if (pos.x >= uGrid.w || pos.y >= uGrid.h) {
+if (pos.x >= uGrid.simWidth || pos.y >= uGrid.simHeight) {
     return;
 }      
 
@@ -131,19 +145,19 @@ struct Mouse {
 @group(0) @binding(10) var<uniform> uTime : f32;
 @group(0) @binding(11) var<uniform> uSymmetry : f32;
 
-fn ID(x : f32, y : f32) -> u32 { return u32(x + y * uGrid.w); }
+fn ID(x : f32, y : f32) -> u32 { return u32(x + y * uGrid.simWidth); }
 fn inBetween(x : f32, lower : f32, upper : f32) -> bool {
   return x > lower && x < upper;
 }
 fn inBounds(pos : vec2<f32>, xMin : f32, xMax : f32, yMin: f32, yMax : f32) -> bool {
-  return inBetween(pos.x, xMin * uGrid.w, xMax * uGrid.w) && inBetween(pos.y, yMin * uGrid.h, yMax * uGrid.h);
+  return inBetween(pos.x, xMin * uGrid.simWidth, xMax * uGrid.simWidth) && inBetween(pos.y, yMin * uGrid.simHeight, yMax * uGrid.simHeight);
 }
 
 fn createSplat(pos : vec2<f32>, splatPos : vec2<f32>, vel : vec2<f32>, radius : f32) -> vec2<f32> {
   var p = pos - splatPos;
-  p.x *= uGrid.w / uGrid.h;
+  p.x *= uGrid.simWidth / uGrid.simHeight;
   var v = vel;
-  v.x *= uGrid.w / uGrid.h;
+  v.x *= uGrid.simWidth / uGrid.simHeight;
   var splat = exp(-dot(p, p) / radius) * v;
   return splat;
 }
@@ -153,10 +167,10 @@ fn main(
   @builtin(global_invocation_id) global_id : vec3<u32>
 ) {
     
-    ${ COMPUTE_START }
+    ${ COMPUTE_VELOCITY_START }
 
     let tmpT = uTime;
-    var p = pos/vec2(uGrid.w, uGrid.h);
+    var p = pos/vec2(uGrid.simWidth, uGrid.simHeight);
 
     ${ SPLAT_CODE }
     
@@ -165,7 +179,7 @@ fn main(
     x_out[index] = x_in[index]*uDiffusion + splat.x;
     y_out[index] = y_in[index]*uDiffusion + splat.y;
     
-    // var distt = distance(pos/vec2(uGrid.w, uGrid.h), vec2(m.x, m.y));
+    // var distt = distance(pos/vec2(uGrid.simWidth, uGrid.simHeight), vec2(m.x, m.y));
     // var influenceRadius = 0.06;
     // if(distt < influenceRadius) {
     //   var v = uMouse.vel * .25;
@@ -192,12 +206,12 @@ struct Mouse {
 @group(0) @binding(12) var<uniform> uDt : f32;
 @group(0) @binding(13) var<uniform> uSymmetry : f32;
 
-fn ID(x : f32, y : f32) -> u32 { return u32(x + y * uGrid.dyeW); }
+fn ID(x : f32, y : f32) -> u32 { return u32(x + y * uGrid.dyeWidth); }
 fn inBetween(x : f32, lower : f32, upper : f32) -> bool {
   return x > lower && x < upper;
 }
 fn inBounds(pos : vec2<f32>, xMin : f32, xMax : f32, yMin: f32, yMax : f32) -> bool {
-  return inBetween(pos.x, xMin * uGrid.dyeW, xMax * uGrid.dyeW) && inBetween(pos.y, yMin * uGrid.dyeH, yMax * uGrid.dyeH);
+  return inBetween(pos.x, xMin * uGrid.dyeWidth, xMax * uGrid.dyeWidth) && inBetween(pos.y, yMin * uGrid.dyeHeight, yMax * uGrid.dyeHeight);
 }
 // cosine based palette, 4 vec3 params
 fn palette(t : f32, a : vec3<f32>, b : vec3<f32>, c : vec3<f32>, d : vec3<f32> ) -> vec3<f32> {
@@ -206,9 +220,9 @@ fn palette(t : f32, a : vec3<f32>, b : vec3<f32>, c : vec3<f32>, d : vec3<f32> )
 
 fn createSplat(pos : vec2<f32>, splatPos : vec2<f32>, vel : vec2<f32>, radius : f32) -> vec3<f32> {
   var p = pos - splatPos;
-  p.x *= uGrid.w / uGrid.h;
+  p.x *= uGrid.simWidth / uGrid.simHeight;
   var v = vel;
-  v.x *= uGrid.w / uGrid.h;
+  v.x *= uGrid.simWidth / uGrid.simHeight;
   var splat = exp(-dot(p, p) / radius) * length(v);
   return vec3(splat);
 }
@@ -225,7 +239,7 @@ fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
     // let col_start = vec3(1.+uTime*0.);
     // let col_start = palette(uTime/8., vec3(${Math.random()}, ${Math.random()}, ${Math.random()}), vec3(${Math.random()}, ${Math.random()}, ${Math.random()}), vec3(${Math.random()}, ${Math.random()}, ${Math.random()}), vec3(${Math.random()}, ${Math.random()}, ${Math.random()}));
 
-    var p = pos/vec2(uGrid.dyeW, uGrid.dyeH);
+    var p = pos/vec2(uGrid.dyeWidth, uGrid.dyeHeight);
 
     ${ SPLAT_CODE }
 
@@ -239,7 +253,7 @@ fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
     // y_out[index]  = y_in[index]*uDiffusion;
     // z_out[index]  = z_in[index]*uDiffusion;
 
-    // var distt = distance(pos/vec2(uGrid.dyeW, uGrid.dyeH), m);
+    // var distt = distance(pos/vec2(uGrid.dyeWidth, uGrid.dyeHeight), m);
     // var influenceRadius = 0.06;
     // if(distt < influenceRadius) {
     //   var density = ((influenceRadius - distt) / influenceRadius) * 0.004 * length(uMouse.vel)*5000.;
@@ -267,20 +281,20 @@ ${ STRUCT_GRID_SIZE }
 @group(0) @binding(6) var<uniform> uGrid: GridSize;
 @group(0) @binding(7) var<uniform> uDt: f32;
 
-fn ID(x : f32, y : f32) -> u32 { return u32(x + y * uGrid.w); }
+fn ID(x : f32, y : f32) -> u32 { return u32(x + y * uGrid.simWidth); }
 fn in(x : f32, y : f32) -> vec2<f32> { let id = ID(x, y); return vec2(x_in[id], y_in[id]); }
 
 fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
   
-    ${ COMPUTE_START }
+    ${ COMPUTE_VELOCITY_START }
     
     var x = pos.x - uDt * uGrid.rdx * x_vel[index];
     var y = pos.y - uDt * uGrid.rdx * y_vel[index];
 
     if (x < 0) { x = 0; }
-    else if (x >= uGrid.w - 1) { x = uGrid.w - 1; }
+    else if (x >= uGrid.simWidth - 1) { x = uGrid.simWidth - 1; }
     if (y < 0) { y = 0; }
-    else if (y >= uGrid.h - 1) { y = uGrid.h - 1; }
+    else if (y >= uGrid.simHeight - 1) { y = uGrid.simHeight - 1; }
 
     let x1 = floor(x);
     let y1 = floor(y);
@@ -310,21 +324,21 @@ ${ STRUCT_GRID_SIZE }
 @group(0) @binding(8) var<uniform> uGrid : GridSize;
 @group(0) @binding(9) var<uniform> uDt : f32;
 
-fn ID(x : f32, y : f32) -> u32 { return u32(x + y * uGrid.dyeW); }
+fn ID(x : f32, y : f32) -> u32 { return u32(x + y * uGrid.dyeWidth); }
 fn in(x : f32, y : f32) -> vec3<f32> { let id = ID(x, y); return vec3(x_in[id], y_in[id], z_in[id]); }
 fn vel(x : f32, y : f32) -> vec2<f32> { 
-  let id = u32(i32(x) + i32(y) * i32(uGrid.w));
+  let id = u32(i32(x) + i32(y) * i32(uGrid.simWidth));
   return vec2(x_vel[id], y_vel[id]);
 }
 
 fn vel_bilerp(x0 : f32, y0 : f32) -> vec2<f32> {
-    var x = x0 * uGrid.w / uGrid.dyeW;
-    var y = y0 * uGrid.h / uGrid.dyeH;
+    var x = x0 * uGrid.simWidth / uGrid.dyeWidth;
+    var y = y0 * uGrid.simHeight / uGrid.dyeHeight;
 
     if (x < 0) { x = 0; }
-    else if (x >= uGrid.w - 1) { x = uGrid.w - 1; }
+    else if (x >= uGrid.simWidth - 1) { x = uGrid.simWidth - 1; }
     if (y < 0) { y = 0; }
-    else if (y >= uGrid.h - 1) { y = uGrid.h - 1; }
+    else if (y >= uGrid.simHeight - 1) { y = uGrid.simHeight - 1; }
 
     let x1 = floor(x);
     let y1 = floor(y);
@@ -352,9 +366,9 @@ fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
     var y = pos.y - uDt * uGrid.dyeRdx * V.y;
 
     if (x < 0) { x = 0; }
-    else if (x >= uGrid.dyeW - 1) { x = uGrid.dyeW - 1; }
+    else if (x >= uGrid.dyeWidth - 1) { x = uGrid.dyeWidth - 1; }
     if (y < 0) { y = 0; }
-    else if (y >= uGrid.dyeH - 1) { y = uGrid.dyeH - 1; }
+    else if (y >= uGrid.dyeHeight - 1) { y = uGrid.dyeHeight - 1; }
 
     let x1 = floor(x);
     let y1 = floor(y);
@@ -385,12 +399,12 @@ ${ STRUCT_GRID_SIZE }
 @group(0) @binding(0) var velocity_input_texture_xy: texture_2d<f32>;
 @group(0) @binding(3) var<uniform> uGrid : GridSize;
 
-fn ID(x : f32, y : f32) -> u32 { return u32(x + y * uGrid.w); }
+fn ID(x : f32, y : f32) -> u32 { return u32(x + y * uGrid.simWidth); }
 fn vel(x : f32, y : f32) -> vec2<f32> { let id = ID(x, y); return vec2(x_vel[id], y_vel[id]); }
 
 fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
 
-  ${ COMPUTE_START }
+  ${ COMPUTE_VELOCITY_START }
 
   let L = vel(pos.x - 1, pos.y).x;
   let R = vel(pos.x + 1, pos.y).x;
@@ -410,13 +424,13 @@ ${ STRUCT_GRID_SIZE }
 @group(0) @binding(1) var divergence_texture_x: texture_2d<f32>; 
 @group(0) @binding(3) var<uniform> uGrid : GridSize;
 
-fn ID(x : f32, y : f32) -> u32 { return u32(x + y * uGrid.w); }
+fn ID(x : f32, y : f32) -> u32 { return u32(x + y * uGrid.simWidth); }
 fn in(x : f32, y : f32) -> f32 { let id = ID(x, y); return pres_in[id]; }
 
 @fragment
 fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
 
-  ${ COMPUTE_START }
+  ${ COMPUTE_VELOCITY_START }
         
   let L = pos - vec2(1, 0);
   let R = pos + vec2(1, 0);
@@ -446,12 +460,12 @@ ${ STRUCT_GRID_SIZE }
 @group(0) @binding(1) var velocity_input_texture_xy: texture_2d<f32>;
 @group(0) @binding(5) var<uniform> uGrid : GridSize;
 
-fn ID(x : f32, y : f32) -> u32 { return u32(x + y * uGrid.w); }
+fn ID(x : f32, y : f32) -> u32 { return u32(x + y * uGrid.simWidth); }
 fn pres(x : f32, y : f32) -> f32 { let id = ID(x, y); return pressure[id]; }
 
 fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
 
-  ${ COMPUTE_START }
+  ${ COMPUTE_VELOCITY_START }
 
   let L = pos - vec2(1, 0);
   let R = pos + vec2(1, 0);
@@ -480,12 +494,12 @@ ${ STRUCT_GRID_SIZE }
 @group(0) @binding(2) var<storage, read_write> vorticity : array<f32>;
 @group(0) @binding(3) var<uniform> uGrid : GridSize;
 
-fn ID(x : f32, y : f32) -> u32 { return u32(x + y * uGrid.w); }
+fn ID(x : f32, y : f32) -> u32 { return u32(x + y * uGrid.simWidth); }
 fn vel(x : f32, y : f32) -> vec2<f32> { let id = ID(x, y); return vec2(x_vel[id], y_vel[id]); }
 
 fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
 
-  ${ COMPUTE_START }
+  ${ COMPUTE_VELOCITY_START }
 
   let Ly = vel(pos.x - 1, pos.y).y;
   let Ry = vel(pos.x + 1, pos.y).y;
@@ -507,12 +521,12 @@ ${ STRUCT_GRID_SIZE }
 @group(0) @binding(6) var<uniform> uDt : f32;
 @group(0) @binding(7) var<uniform> uVorticity : f32;
 
-fn ID(x : f32, y : f32) -> u32 { return u32(x + y * uGrid.w); }
+fn ID(x : f32, y : f32) -> u32 { return u32(x + y * uGrid.simWidth); }
 fn vort(x : f32, y : f32) -> f32 { let id = ID(x, y); return vorticity[id]; }
 
 fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
 
-  ${ COMPUTE_START }
+  ${ COMPUTE_VELOCITY_START }
 
   let L = vort(pos.x - 1, pos.y);
   let R = vort(pos.x + 1, pos.y);
@@ -542,7 +556,7 @@ ${ STRUCT_GRID_SIZE }
 @group(0) @binding(2) var<uniform> uGrid : GridSize;
 @group(0) @binding(3) var<uniform> uVisc : f32;
 
-fn ID(x : f32, y : f32) -> u32 { return u32(x + y * uGrid.w); }
+fn ID(x : f32, y : f32) -> u32 { return u32(x + y * uGrid.simWidth); }
 
 fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
 
@@ -563,7 +577,7 @@ ${ STRUCT_GRID_SIZE }
 @group(0) @binding(4) var<uniform> uGrid : GridSize;
 @group(0) @binding(5) var<uniform> containFluid : f32;
 
-fn ID(x : f32, y : f32) -> u32 { return u32(x + y * uGrid.w); }
+fn ID(x : f32, y : f32) -> u32 { return u32(x + y * uGrid.simWidth); }
 
 fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
 
@@ -574,9 +588,9 @@ fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
   var scaleY = 1.;
 
   if (pos.x == 0) { pos.x += 1; scaleX = -1.; }
-  else if (pos.x == uGrid.w - 1) { pos.x -= 1; scaleX = -1.; }
+  else if (pos.x == uGrid.simWidth - 1) { pos.x -= 1; scaleX = -1.; }
   if (pos.y == 0) { pos.y += 1; scaleY = -1.; }
-  else if (pos.y == uGrid.h - 1) { pos.y -= 1; scaleY = -1.; }
+  else if (pos.y == uGrid.simHeight - 1) { pos.y -= 1; scaleY = -1.; }
 
   if (containFluid == 0.) {
     scaleX = 1.;
@@ -596,16 +610,16 @@ ${ STRUCT_GRID_SIZE }
 @group(0) @binding(0) var input_texture_x: texture_2d<f32>;
 @group(0) @binding(2) var<uniform> uGrid : GridSize;
 
-fn ID(x : f32, y : f32) -> u32 { return u32(x + y * uGrid.w); }
+fn ID(x : f32, y : f32) -> u32 { return u32(x + y * uGrid.simWidth); }
 
 fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
 
   ${ COMPUTE_START_ALL }
 
   if (pos.x == 0) { pos.x += 1; }
-  else if (pos.x == uGrid.w - 1) { pos.x -= 1; }
+  else if (pos.x == uGrid.simWidth - 1) { pos.x -= 1; }
   if (pos.y == 0) { pos.y += 1; }
-  else if (pos.y == uGrid.h - 1) { pos.y -= 1; }
+  else if (pos.y == uGrid.simHeight - 1) { pos.y -= 1; }
 
   x_out[index] = x_in[ID(pos.x, pos.y)];
 }`
@@ -618,7 +632,7 @@ ${ STRUCT_GRID_SIZE }
 @group(0) @binding(3) var<uniform> uGrid : GridSize;
 @group(0) @binding(4) var<uniform> uTime : f32;
 
-fn ID(x : f32, y : f32) -> u32 { return u32(x + y * uGrid.dyeW); }
+fn ID(x : f32, y : f32) -> u32 { return u32(x + y * uGrid.dyeWidth); }
 
 fn noise(p_ : vec3<f32>) -> f32 {
   var p = p_;
@@ -652,7 +666,7 @@ fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
 
   ${ COMPUTE_START_DYE }
 
-  var uv = pos/vec2(uGrid.dyeW, uGrid.dyeH);
+  var uv = pos/vec2(uGrid.dyeWidth, uGrid.dyeHeight);
   var zoom = 4.;
 
   var smallNoise = fbm(vec3(uv.x*zoom*2., uv.y*zoom*2., uTime+2.145), 7) - .5;
