@@ -35,6 +35,8 @@ export const swapBuffersInDoubleFBO = (fbod: DoubleFrameBufferDescriptor) => {
 export const createNavierStokeOutputTextures = (
   simWidth: number,
   simHeight: number,
+  dyeWidth: number,
+  dyeHeight: number,
   device: GPUDevice
 ) => {
   const velocity0TextureRG16F = device.createTexture({
@@ -78,7 +80,7 @@ export const createNavierStokeOutputTextures = (
   });
 
   const dye0TextureRGBA16F = device.createTexture({
-    size: [simWidth, simHeight],
+    size: [dyeWidth, dyeHeight],
     usage:
       GPUTextureUsage.RENDER_ATTACHMENT |
       GPUTextureUsage.TEXTURE_BINDING |
@@ -87,7 +89,7 @@ export const createNavierStokeOutputTextures = (
   });
 
   const dye1TextureRGBA16F = device.createTexture({
-    size: [simWidth, simHeight],
+    size: [dyeWidth, dyeHeight],
     usage:
       GPUTextureUsage.RENDER_ATTACHMENT |
       GPUTextureUsage.TEXTURE_BINDING |
@@ -154,18 +156,18 @@ export const createNavierStokeOutputTextures = (
     currentView: velocity3TextureRG16F.createView(),
   };
   const dye0FromSplat: FrameBufferDescriptor = {
-    width: simWidth,
-    height: simHeight,
-    texelSizeX: 1.0 / simWidth,
-    texelSizeY: 1.0 / simHeight,
+    width: dyeWidth,
+    height: dyeHeight,
+    texelSizeX: 1.0 / dyeWidth,
+    texelSizeY: 1.0 / dyeHeight,
     currentTexture: dye0TextureRGBA16F,
     currentView: dye0TextureRGBA16F.createView(),
   };
   const dye1FromAdvection: FrameBufferDescriptor = {
-    width: simWidth,
-    height: simHeight,
-    texelSizeX: 1.0 / simWidth,
-    texelSizeY: 1.0 / simHeight,
+    width: dyeWidth,
+    height: dyeHeight,
+    texelSizeX: 1.0 / dyeWidth,
+    texelSizeY: 1.0 / dyeHeight,
     currentTexture: dye1TextureRGBA16F,
     currentView: dye1TextureRGBA16F.createView(),
   };

@@ -22,6 +22,7 @@ import {
   create2DRenderPipelineDescriptor,
   createBindGroupDescriptor,
   defaultConfig,
+  getResolution,
   initDebugGui,
   initGuiConstants,
   scaleByPixelRatio,
@@ -35,9 +36,11 @@ import {
 } from './pointer';
 import {
   createNavierStokeOutputTextures,
+  FrameBufferDescriptor,
   getTexelDimsAsFloat32Array,
 } from './texture';
 import { ArrayLike } from 'wgpu-matrix/dist/1.x/array-like';
+import { createUniformDescriptor } from '../uniform';
 
 const standardClear: Omit<GPURenderPassColorAttachment, 'view'> = {
   clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
@@ -95,10 +98,23 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     updatePointerUpData(pointers[0]);
   });
 
+
+  //Create GUI
+  const config = defaultConfig;
+  initGuiConstants(gui, config);
+  initDebugGui(gui, config);
+
   // CREATE ALL TEXTURE RESOURCES
   //rgba16float rg16float r16float
-  const fluidPropertyTextures = createNavierStokeOutputTextures(128, 128, device);
-  console.log(fluidPropertyTextures);
+  const simDimensions = getResolution(canvas.width, canvas.height, config.SIM_RESOLUTION);
+  const dyeDimensions = getResolution(canvas.width, canvas.height, config.DYE_RESOLUTION);
+  const fluidPropertyTextures = createNavierStokeOutputTextures(
+    simDimensions.width,
+    simDimensions.height,
+    dyeDimensions.width,
+    dyeDimensions.height,
+    device
+  );
 
   // RESOURCES USED ACROSS MULTIPLE PIPELINES / SHADERS
   const planePrimitive: GPUPrimitiveState = {
@@ -116,6 +132,7 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     minFilter: 'linear',
     magFilter: 'linear',
   });
+
 
   const generalBindGroupDescriptor = createBindGroupDescriptor(
     [0, 1],
@@ -153,16 +170,19 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
   });
 
   const splatShaderBindGroupDescriptor = createBindGroupDescriptor(
-    [0, 1, 2],
-    [GPUShaderStage.FRAGMENT, GPUShaderStage.FRAGMENT, GPUShaderStage.FRAGMENT],
-    ['buffer', 'texture', 'texture'],
-    [{ type: 'uniform' }, { sampleType: 'float' }, { sampleType: 'float' }],
+    [0, 1],
+    [GPUShaderStage.FRAGMENT],
+    ['buffer', 'texture'],
+    [{ type: 'uniform' }, { sampleType: 'float' }],
     [
       [
         { buffer: splatUniformBuffer },
         fluidPropertyTextures.velocity3FromAdvection.currentView,
-        fluidPropertyTextures.dye1FromAdvection.currentView,
       ],
+      [
+        {buffer: splatUniformBuffer},
+        fluidPropertyTextures.dye1FromAdvection.currentView,
+      ]
     ],
     'Splat',
     device
@@ -171,10 +191,15 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
   const splatPipelineDescriptor = create2DRenderPipelineDescriptor(
     splatFragmentWGSL,
     [generalBindGroupDescriptor.bindGroupLayout, splatShaderBindGroupDescriptor.bindGroupLayout],
-    [fluidPropertyTextures.velocity0FromSplat, fluidPropertyTextures.dye0FromSplat],
+    [
+      [fluidPropertyTextures.velocity0FromSplat], 
+      [fluidPropertyTextures.dye0FromSplat]
+    ],
     'Splat',
     device,
   )
+  console.log(splatShaderBindGroupDescriptor);
+  console.log(splatPipelineDescriptor)
 
 
   const curlShaderBindGroupDescriptor = createBindGroupDescriptor(
@@ -194,7 +219,7 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
   const curlPipelineDescriptor = create2DRenderPipelineDescriptor(
     curlFragmentWGSL,
     [generalBindGroupDescriptor.bindGroupLayout, curlShaderBindGroupDescriptor.bindGroupLayout],
-    [fluidPropertyTextures.curl],
+    [[fluidPropertyTextures.curl]],
     'Curl',
     device,
   )
@@ -223,7 +248,7 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
   const vorticityPipelineDescriptor = create2DRenderPipelineDescriptor(
     vorticityFragmentWGSL,
     [generalBindGroupDescriptor.bindGroupLayout, vorticityShaderBindGroupDescriptor.bindGroupLayout],
-    [fluidPropertyTextures.velocity1FromVorticity],
+    [[fluidPropertyTextures.velocity1FromVorticity]],
     'Vorticity',
     device,
   )
@@ -246,7 +271,7 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
   const divergencePipelineDescriptor = create2DRenderPipelineDescriptor(
     divergenceFragmentWGSL,
     [generalBindGroupDescriptor.bindGroupLayout, divergenceShaderBindGroupDescriptor.bindGroupLayout],
-    [fluidPropertyTextures.divergence],
+    [[fluidPropertyTextures.divergence]],
     'Divergence',
     device,
   );
@@ -273,7 +298,7 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
   const clearPipelineDescriptor = create2DRenderPipelineDescriptor(
     clearFragmentWGSL,
     [generalBindGroupDescriptor.bindGroupLayout, clearShaderBindGroupDescriptor.bindGroupLayout],
-    [fluidPropertyTextures.pressure0FromClear],
+    [[fluidPropertyTextures.pressure0FromClear]],
     'Clear',
     device,
   )
@@ -360,7 +385,7 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
   const gradientSubtractPipelineDescriptor = create2DRenderPipelineDescriptor(
     gradientSubtractWGSL,
     [generalBindGroupDescriptor.bindGroupLayout, gradientSubtractShaderBindGroupDescriptor.bindGroupLayout],
-    [fluidPropertyTextures.velocity2FromGradientSubtract],
+    [[fluidPropertyTextures.velocity2FromGradientSubtract]],
     'GradientSubtract',
     device,
   )
@@ -470,38 +495,25 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     device
   );
 
-  const finalDisplayPipeline = device.createRenderPipeline({
-    label: 'Final.pipeline',
-    layout: device.createPipelineLayout({
-      bindGroupLayouts: [
-        generalBindGroupDescriptor.bindGroupLayout,
-        finalDisplayBindGroupDescriptor.bindGroupLayout,
-      ],
-    }),
-    vertex: baseVertexShaderState,
-    fragment: {
-      module: device.createShaderModule({
-        code: finalDisplayFragmentWGSL,
-      }),
-      entryPoint: 'fragmentMain',
-      targets: [
-        {
-          format: presentationFormat,
-        },
-      ],
-    },
-    primitive: planePrimitive,
-  });
+  const canvasDisplayFbo: FrameBufferDescriptor = {
+    width: canvas.width,
+    height: canvas.height,
+    texelSizeX: 1.0 / canvas.width,
+    texelSizeY: 1.0 / canvas.height,
+    currentTexture: context.getCurrentTexture(),
+    currentView: context.getCurrentTexture().createView()
+  }
 
-  const finalDisplayRenderDescriptor: GPURenderPassDescriptor = {
-    label: 'Final.renderDescriptor',
-    colorAttachments: [
-      {
-        view: undefined,
-        ...standardClear,
-      },
+  const finalDisplayPipelineDescriptor = create2DRenderPipelineDescriptor(
+    finalDisplayFragmentWGSL,
+    [
+      generalBindGroupDescriptor.bindGroupLayout,
+      finalDisplayBindGroupDescriptor.bindGroupLayout,
     ],
-  };
+    [[canvasDisplayFbo]],
+    'Final',
+    device
+  )
 
   const debugOutputBindGroupDescriptor = createBindGroupDescriptor(
     [0],
@@ -525,43 +537,16 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     device
   );
 
-  const debugOutputShaderPipeline = device.createRenderPipeline({
-    //@group(0) //@group(1)
-    label: 'DebugOutput.pipeline',
-    layout: device.createPipelineLayout({
-      bindGroupLayouts: [
-        generalBindGroupDescriptor.bindGroupLayout,
-        debugOutputBindGroupDescriptor.bindGroupLayout,
-      ],
-    }),
-    vertex: {
-      module: device.createShaderModule({
-        code: baseVertexWGSL,
-      }),
-      entryPoint: 'vertexMain',
-    },
-    fragment: {
-      module: device.createShaderModule({
-        code: debugOutputFragmentWGSL,
-      }),
-      entryPoint: 'fragmentMain',
-      targets: [
-        //velocity texture
-        { format: presentationFormat },
-      ],
-    },
-    primitive: planePrimitive,
-  });
-
-  const debugOutputRenderDescriptor: GPURenderPassDescriptor = {
-    label: 'DebugOutput.renderDescriptor',
-    colorAttachments: [
-      {
-        view: undefined,
-        ...standardClear,
-      },
+  const debugOutputPipelineDescriptor = create2DRenderPipelineDescriptor(
+    debugOutputFragmentWGSL,
+    [
+      generalBindGroupDescriptor.bindGroupLayout,
+      debugOutputBindGroupDescriptor.bindGroupLayout,
     ],
-  };
+    [[canvasDisplayFbo]],
+    'DebugOutput',
+    device
+  );
 
   const writeSplatUniforms = (
     //vec3s
@@ -636,10 +621,6 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
   };
 
   //let splatStack = [];
-
-  const config = defaultConfig;
-  initGuiConstants(gui, config);
-  initDebugGui(gui, config);
 
   //Will need to perform copy texture to texture for
 
@@ -719,9 +700,9 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     const commandEncoder = device.createCommandEncoder();
     {
       const splatPassEncoder = commandEncoder.beginRenderPass(
-        splatPipelineDescriptor.renderDescriptor
+        splatPipelineDescriptor.renderDescriptors[0]
       );
-      splatPassEncoder.setPipeline(splatPipelineDescriptor.pipeline);
+      splatPassEncoder.setPipeline(splatPipelineDescriptor.pipelines[0]);
       splatPassEncoder.setBindGroup(0, generalBindGroupDescriptor.bindGroups[0]);
       splatPassEncoder.setBindGroup(
         1,
@@ -732,10 +713,25 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
       splatPassEncoder.end();
     }
     {
-      const curlPassEncoder = commandEncoder.beginRenderPass(
-        curlPipelineDescriptor.renderDescriptor
+      const splatPassEncoder = commandEncoder.beginRenderPass(
+        splatPipelineDescriptor.renderDescriptors[1]
       );
-      curlPassEncoder.setPipeline(curlPipelineDescriptor.pipeline);
+      splatPassEncoder.setPipeline(splatPipelineDescriptor.pipelines[1]);
+      splatPassEncoder.setBindGroup(0, generalBindGroupDescriptor.bindGroups[0]);
+      splatPassEncoder.setBindGroup(
+        1,
+        splatShaderBindGroupDescriptor.bindGroups[1]
+      );
+      splatPassEncoder.draw(6, 1, 0, 0);
+
+      splatPassEncoder.end();
+
+    }
+    {
+      const curlPassEncoder = commandEncoder.beginRenderPass(
+        curlPipelineDescriptor.renderDescriptors[0]
+      );
+      curlPassEncoder.setPipeline(curlPipelineDescriptor.pipelines[0]);
       curlPassEncoder.setBindGroup(0, generalBindGroupDescriptor.bindGroups[0]);
       curlPassEncoder.setBindGroup(1, curlShaderBindGroupDescriptor.bindGroups[0]);
       curlPassEncoder.draw(6, 1, 0, 0);
@@ -743,9 +739,9 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     }
     {
       const vorticityPassEncoder = commandEncoder.beginRenderPass(
-        vorticityPipelineDescriptor.renderDescriptor
+        vorticityPipelineDescriptor.renderDescriptors[0]
       );
-      vorticityPassEncoder.setPipeline(vorticityPipelineDescriptor.pipeline);
+      vorticityPassEncoder.setPipeline(vorticityPipelineDescriptor.pipelines[0]);
       vorticityPassEncoder.setBindGroup(0, generalBindGroupDescriptor.bindGroups[0]);
       vorticityPassEncoder.setBindGroup(1, vorticityShaderBindGroupDescriptor.bindGroups[0]);
       vorticityPassEncoder.draw(6, 1, 0, 0);
@@ -753,9 +749,9 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     }
     {
       const divergencePassEncoder = commandEncoder.beginRenderPass(
-        divergencePipelineDescriptor.renderDescriptor
+        divergencePipelineDescriptor.renderDescriptors[0]
       );
-      divergencePassEncoder.setPipeline(divergencePipelineDescriptor.pipeline);
+      divergencePassEncoder.setPipeline(divergencePipelineDescriptor.pipelines[0]);
       divergencePassEncoder.setBindGroup(0, generalBindGroupDescriptor.bindGroups[0]);
       divergencePassEncoder.setBindGroup(1, divergenceShaderBindGroupDescriptor.bindGroups[0]);
       divergencePassEncoder.draw(6, 1, 0, 0);
@@ -763,9 +759,9 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     }
     {
       const clearPassEncoder = commandEncoder.beginRenderPass(
-        clearPipelineDescriptor.renderDescriptor
+        clearPipelineDescriptor.renderDescriptors[0]
       );
-      clearPassEncoder.setPipeline(clearPipelineDescriptor.pipeline);
+      clearPassEncoder.setPipeline(clearPipelineDescriptor.pipelines[0]);
       clearPassEncoder.setBindGroup(0, generalBindGroupDescriptor.bindGroups[0]);
       clearPassEncoder.setBindGroup(1, clearShaderBindGroupDescriptor.bindGroups[0]);
       clearPassEncoder.draw(6, 1, 0, 0);
@@ -784,9 +780,9 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     }
     {
       const gradientSubtractEncoder = commandEncoder.beginRenderPass(
-        gradientSubtractPipelineDescriptor.renderDescriptor
+        gradientSubtractPipelineDescriptor.renderDescriptors[0]
       );
-      gradientSubtractEncoder.setPipeline(gradientSubtractPipelineDescriptor.pipeline);
+      gradientSubtractEncoder.setPipeline(gradientSubtractPipelineDescriptor.pipelines[0]);
       gradientSubtractEncoder.setBindGroup(0, generalBindGroupDescriptor.bindGroups[0]);
       gradientSubtractEncoder.setBindGroup(1, gradientSubtractShaderBindGroupDescriptor.bindGroups[0]);
       gradientSubtractEncoder.draw(6, 1, 0, 0);
@@ -815,11 +811,11 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     //Dye is final output otherwise debug from velocities to dyes to pressures to curl to
     switch(config.DEBUG_VIEW) {
       case "None": {
-        finalDisplayRenderDescriptor.colorAttachments[0].view = context.getCurrentTexture().createView();
+        finalDisplayPipelineDescriptor.renderDescriptors[0].colorAttachments[0].view = context.getCurrentTexture().createView();
         const finalPassEncoder = commandEncoder.beginRenderPass(
-          finalDisplayRenderDescriptor
+          finalDisplayPipelineDescriptor.renderDescriptors[0]
         );
-        finalPassEncoder.setPipeline(finalDisplayPipeline);
+        finalPassEncoder.setPipeline(finalDisplayPipelineDescriptor.pipelines[0]);
         finalPassEncoder.setBindGroup(0, generalBindGroupDescriptor.bindGroups[0]);
         //Dye 1 from advection
         finalPassEncoder.setBindGroup(1, finalDisplayBindGroupDescriptor.bindGroups[0]);
@@ -827,110 +823,110 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
         finalPassEncoder.end();
       } break;
       case "SplatVelocityOutput": {
-        finalDisplayRenderDescriptor.colorAttachments[0].view = context.getCurrentTexture().createView();
+        debugOutputPipelineDescriptor.renderDescriptors[0].colorAttachments[0].view = context.getCurrentTexture().createView();
         const finalPassEncoder = commandEncoder.beginRenderPass(
-          finalDisplayRenderDescriptor
+          debugOutputPipelineDescriptor.renderDescriptors[0]
         );
-        finalPassEncoder.setPipeline(debugOutputShaderPipeline);
+        finalPassEncoder.setPipeline(debugOutputPipelineDescriptor.pipelines[0]);
         finalPassEncoder.setBindGroup(0, generalBindGroupDescriptor.bindGroups[0]);
         finalPassEncoder.setBindGroup(1, debugOutputBindGroupDescriptor.bindGroups[0]);
         finalPassEncoder.draw(6, 1, 0, 0);
         finalPassEncoder.end();
       } break;
       case "VorticityVelocityOutput": {
-        finalDisplayRenderDescriptor.colorAttachments[0].view = context.getCurrentTexture().createView();
+        debugOutputPipelineDescriptor.renderDescriptors[0].colorAttachments[0].view = context.getCurrentTexture().createView();
         const finalPassEncoder = commandEncoder.beginRenderPass(
-          finalDisplayRenderDescriptor
+          debugOutputPipelineDescriptor.renderDescriptors[0]
         );
-        finalPassEncoder.setPipeline(debugOutputShaderPipeline);
+        finalPassEncoder.setPipeline(debugOutputPipelineDescriptor.pipelines[0]);
         finalPassEncoder.setBindGroup(0, generalBindGroupDescriptor.bindGroups[0]);
         finalPassEncoder.setBindGroup(1, debugOutputBindGroupDescriptor.bindGroups[1]);
         finalPassEncoder.draw(6, 1, 0, 0);
         finalPassEncoder.end();
       } break;
       case "GradientSubtractVelocityOutput": {
-        debugOutputRenderDescriptor.colorAttachments[0].view = context.getCurrentTexture().createView();
+        debugOutputPipelineDescriptor.renderDescriptors[0].colorAttachments[0].view = context.getCurrentTexture().createView();
         const finalPassEncoder = commandEncoder.beginRenderPass(
-          debugOutputRenderDescriptor
+          debugOutputPipelineDescriptor.renderDescriptors[0]
         );
-        finalPassEncoder.setPipeline(debugOutputShaderPipeline);
+        finalPassEncoder.setPipeline(debugOutputPipelineDescriptor.pipelines[0]);
         finalPassEncoder.setBindGroup(0, generalBindGroupDescriptor.bindGroups[0]);
         finalPassEncoder.setBindGroup(1, debugOutputBindGroupDescriptor.bindGroups[2]);
         finalPassEncoder.draw(6, 1, 0, 0);
         finalPassEncoder.end();
       } break;
       case "AdvectionVelocityOutput": {
-        finalDisplayRenderDescriptor.colorAttachments[0].view = context.getCurrentTexture().createView();
+        debugOutputPipelineDescriptor.renderDescriptors[0].colorAttachments[0].view = context.getCurrentTexture().createView();
         const finalPassEncoder = commandEncoder.beginRenderPass(
-          finalDisplayRenderDescriptor
+          debugOutputPipelineDescriptor.renderDescriptors[0]
         );
-        finalPassEncoder.setPipeline(debugOutputShaderPipeline);
+        finalPassEncoder.setPipeline(debugOutputPipelineDescriptor.pipelines[0]);
         finalPassEncoder.setBindGroup(0, generalBindGroupDescriptor.bindGroups[0]);
         finalPassEncoder.setBindGroup(1, debugOutputBindGroupDescriptor.bindGroups[3]);
         finalPassEncoder.draw(6, 1, 0, 0);
         finalPassEncoder.end();
       } break;
       case "SplatDyeOutput": {
-        finalDisplayRenderDescriptor.colorAttachments[0].view = context.getCurrentTexture().createView();
+        debugOutputPipelineDescriptor.renderDescriptors[0].colorAttachments[0].view = context.getCurrentTexture().createView();
         const finalPassEncoder = commandEncoder.beginRenderPass(
-          finalDisplayRenderDescriptor
+          debugOutputPipelineDescriptor.renderDescriptors[0]
         );
-        finalPassEncoder.setPipeline(debugOutputShaderPipeline);
+        finalPassEncoder.setPipeline(debugOutputPipelineDescriptor.pipelines[0]);
         finalPassEncoder.setBindGroup(0, generalBindGroupDescriptor.bindGroups[0]);
         finalPassEncoder.setBindGroup(1, debugOutputBindGroupDescriptor.bindGroups[4]);
         finalPassEncoder.draw(6, 1, 0, 0);
         finalPassEncoder.end();
       } break;
       case "AdvectionDyeOutput": {
-        finalDisplayRenderDescriptor.colorAttachments[0].view = context.getCurrentTexture().createView();
+        debugOutputPipelineDescriptor.renderDescriptors[0].colorAttachments[0].view = context.getCurrentTexture().createView();
         const finalPassEncoder = commandEncoder.beginRenderPass(
-          finalDisplayRenderDescriptor
+          debugOutputPipelineDescriptor.renderDescriptors[0]
         );
-        finalPassEncoder.setPipeline(debugOutputShaderPipeline);
+        finalPassEncoder.setPipeline(debugOutputPipelineDescriptor.pipelines[0]);
         finalPassEncoder.setBindGroup(0, generalBindGroupDescriptor.bindGroups[0]);
         finalPassEncoder.setBindGroup(1, debugOutputBindGroupDescriptor.bindGroups[5]);
         finalPassEncoder.draw(6, 1, 0, 0);
         finalPassEncoder.end();
       } break;
       case "ClearPressureOutput": {
-        finalDisplayRenderDescriptor.colorAttachments[0].view = context.getCurrentTexture().createView();
+        debugOutputPipelineDescriptor.renderDescriptors[0].colorAttachments[0].view = context.getCurrentTexture().createView();
         const finalPassEncoder = commandEncoder.beginRenderPass(
-          finalDisplayRenderDescriptor
+          debugOutputPipelineDescriptor.renderDescriptors[0]
         );
-        finalPassEncoder.setPipeline(debugOutputShaderPipeline);
+        finalPassEncoder.setPipeline(debugOutputPipelineDescriptor.pipelines[0]);
         finalPassEncoder.setBindGroup(0, generalBindGroupDescriptor.bindGroups[0]);
         finalPassEncoder.setBindGroup(1, debugOutputBindGroupDescriptor.bindGroups[6]);
         finalPassEncoder.draw(6, 1, 0, 0);
         finalPassEncoder.end();
       } break;
       case "PressurePressureOutput": {
-        finalDisplayRenderDescriptor.colorAttachments[0].view = context.getCurrentTexture().createView();
+        debugOutputPipelineDescriptor.renderDescriptors[0].colorAttachments[0].view = context.getCurrentTexture().createView();
         const finalPassEncoder = commandEncoder.beginRenderPass(
-          finalDisplayRenderDescriptor
+          debugOutputPipelineDescriptor.renderDescriptors[0]
         );
-        finalPassEncoder.setPipeline(debugOutputShaderPipeline);
+        finalPassEncoder.setPipeline(debugOutputPipelineDescriptor.pipelines[0]);
         finalPassEncoder.setBindGroup(0, generalBindGroupDescriptor.bindGroups[0]);
         finalPassEncoder.setBindGroup(1, debugOutputBindGroupDescriptor.bindGroups[7]);
         finalPassEncoder.draw(6, 1, 0, 0);
         finalPassEncoder.end();
       } break;
       case "CurlOutput": {
-        finalDisplayRenderDescriptor.colorAttachments[0].view = context.getCurrentTexture().createView();
+        debugOutputPipelineDescriptor.renderDescriptors[0].colorAttachments[0].view = context.getCurrentTexture().createView();
         const finalPassEncoder = commandEncoder.beginRenderPass(
-          finalDisplayRenderDescriptor
+          debugOutputPipelineDescriptor.renderDescriptors[0]
         );
-        finalPassEncoder.setPipeline(debugOutputShaderPipeline);
+        finalPassEncoder.setPipeline(debugOutputPipelineDescriptor.pipelines[0]);
         finalPassEncoder.setBindGroup(0, generalBindGroupDescriptor.bindGroups[0]);
         finalPassEncoder.setBindGroup(1, debugOutputBindGroupDescriptor.bindGroups[8]);
         finalPassEncoder.draw(6, 1, 0, 0);
         finalPassEncoder.end();
       } break;
       case "DivergenceOutput": {
-        finalDisplayRenderDescriptor.colorAttachments[0].view = context.getCurrentTexture().createView();
+        debugOutputPipelineDescriptor.renderDescriptors[0].colorAttachments[0].view = context.getCurrentTexture().createView();
         const finalPassEncoder = commandEncoder.beginRenderPass(
-          finalDisplayRenderDescriptor
+          debugOutputPipelineDescriptor.renderDescriptors[0]
         );
-        finalPassEncoder.setPipeline(debugOutputShaderPipeline);
+        finalPassEncoder.setPipeline(debugOutputPipelineDescriptor.pipelines[0]);
         finalPassEncoder.setBindGroup(0, generalBindGroupDescriptor.bindGroups[0]);
         finalPassEncoder.setBindGroup(1, debugOutputBindGroupDescriptor.bindGroups[9]);
         finalPassEncoder.draw(6, 1, 0, 0);

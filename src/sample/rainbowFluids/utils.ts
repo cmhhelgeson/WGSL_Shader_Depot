@@ -300,21 +300,54 @@ export const writeToF32Buffer = (
   );
 };
 
+type TargetGroupType = FrameBufferDescriptor | null;
+
 export const create2DRenderPipelineDescriptor = (
   fragmentShader: string,
   bindGroupLayouts: GPUBindGroupLayout[],
-  targets: (FrameBufferDescriptor | null)[],
+  targetGroups: TargetGroupType[][],
   label: string,
   device: GPUDevice
 ) => {
-  const pipelineTargets: GPUColorTargetState[] = targets.map((target) => {
-    if (target === null) {
-      return { format: navigator.gpu.getPreferredCanvasFormat() };
-    }
-    return { format: target.currentTexture.format };
+  const perPipelineTargetGroups = targetGroups.map((targets) => {
+    const targetGroups: GPUColorTargetState[] = targets.map((target) => {
+      console.log(target);
+      /*if (target === null) {
+        return { format: navigator.gpu.getPreferredCanvasFormat() };
+      } */
+      return { format: target.currentTexture.format };
+    });
+    return targetGroups;
   });
 
-  const pipeline = device.createRenderPipeline({
+  const pipelines = perPipelineTargetGroups.map((targets, idx) => {
+    return device.createRenderPipeline({
+      label: `${label}.pipeline${idx}`,
+      layout: device.createPipelineLayout({
+        label: `${label}.pipelineLayout${idx}`,
+        bindGroupLayouts: bindGroupLayouts,
+      }),
+      vertex: {
+        module: device.createShaderModule({
+          code: baseVertWGSL,
+        }),
+        entryPoint: 'vertexMain',
+      },
+      fragment: {
+        module: device.createShaderModule({
+          code: fragmentShader,
+        }),
+        entryPoint: 'fragmentMain',
+        targets: targets,
+      },
+      primitive: {
+        topology: 'triangle-list',
+        cullMode: 'none',
+      },
+    });
+  });
+
+  /*const pipeline = device.createRenderPipeline({
     label: `${label}.pipeline`,
     layout: device.createPipelineLayout({
       label: `${label}.pipelineLayout`,
@@ -337,9 +370,29 @@ export const create2DRenderPipelineDescriptor = (
       topology: 'triangle-list',
       cullMode: 'none',
     },
+  }); */
+
+  const renderDescriptors = targetGroups.map((targets, idx) => {
+    const descriptors = targets.map((target) => {
+      const colorAttachment: GPURenderPassColorAttachment = {
+        view: undefined,
+        clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
+        loadOp: 'clear',
+        storeOp: 'store',
+      };
+      if (target !== null) {
+        colorAttachment.view = target.currentView;
+      }
+      return colorAttachment;
+    });
+    const renderDescriptor: GPURenderPassDescriptor = {
+      label: `${label}.colorDescriptor${idx}`,
+      colorAttachments: descriptors,
+    };
+    return renderDescriptor;
   });
 
-  const descriptorColorAttachments: GPURenderPassColorAttachment[] =
+  /*const descriptorColorAttachments: GPURenderPassColorAttachment[] =
     targets.map((target) => {
       const colorAttachment: GPURenderPassColorAttachment = {
         view: undefined,
@@ -353,14 +406,32 @@ export const create2DRenderPipelineDescriptor = (
       }
       colorAttachment.view = target.currentView;
       return colorAttachment;
-    });
+    }); */
 
-  const renderDescriptor: GPURenderPassDescriptor = {
+  /*const renderDescriptor: GPURenderPassDescriptor = {
     label: `${label}.colorDescriptor`,
     colorAttachments: descriptorColorAttachments,
-  };
+  }; */
   return {
-    pipeline,
-    renderDescriptor,
+    pipelines,
+    renderDescriptors,
   };
 };
+
+export const getResolution = (
+  canvasWidth: number,
+  canvasHeight: number,
+  resolution: number
+) => {
+  let aspectRatio = canvasWidth / canvasHeight;
+  if (aspectRatio < 1) {
+    aspectRatio = 1.0 / aspectRatio;
+  }
+  const min = Math.round(resolution);
+  const max = Math.round(resolution * aspectRatio);
+  if (canvasWidth > canvasHeight) {
+    return { width: max, height: min };
+  } else {
+    return { width: min, height: max };
+  }
+}
