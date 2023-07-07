@@ -104,10 +104,22 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
   initGuiConstants(gui, config);
   initDebugGui(gui, config);
 
-  // CREATE ALL TEXTURE RESOURCES
-  //rgba16float rg16float r16float
+  // Const create uniform buffer with all texture and canvas dimensions
   const simDimensions = getResolution(canvas.width, canvas.height, config.SIM_RESOLUTION);
   const dyeDimensions = getResolution(canvas.width, canvas.height, config.DYE_RESOLUTION);
+  const gridUniformBuffer = createUniformDescriptor(
+    'gridSize',
+    6,
+    [
+      simDimensions.width, 
+      simDimensions.height, 
+      dyeDimensions.width, 
+      dyeDimensions.height,
+      canvas.width,
+      canvas.height,
+    ],
+    device
+  );
   const fluidPropertyTextures = createNavierStokeOutputTextures(
     simDimensions.width,
     simDimensions.height,
@@ -131,7 +143,7 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
   const canvasTexelBaseUniformBuffer = device.createBuffer({
     size: Float32Array.BYTES_PER_ELEMENT * 2,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-  })
+  });
 
   const sampler = device.createSampler({
     minFilter: 'linear',

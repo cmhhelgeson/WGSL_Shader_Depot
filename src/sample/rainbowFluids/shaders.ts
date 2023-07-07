@@ -153,11 +153,28 @@ fn inBounds(pos : vec2<f32>, xMin : f32, xMax : f32, yMin: f32, yMax : f32) -> b
   return inBetween(pos.x, xMin * uGrid.simWidth, xMax * uGrid.simWidth) && inBetween(pos.y, yMin * uGrid.simHeight, yMax * uGrid.simHeight);
 }
 
-fn createSplat(pos : vec2<f32>, splatPos : vec2<f32>, vel : vec2<f32>, radius : f32) -> vec2<f32> {
+fn createSplat(
+  //Normalized coordinates of grid pixel
+  pos : vec2<f32>, 
+  //The mouse coordinates
+  splatPos : vec2<f32>, 
+  //The mouse's velocity
+  vel : vec2<f32>, 
+  //The radius of a splat
+  radius : f32
+) -> vec2<f32> {
+  //The distance our calculated pixel from the center of the splat (impact region at mouse coordinates)
   var p = pos - splatPos;
+  //Scaling the position to the grdi
   p.x *= uGrid.simWidth / uGrid.simHeight;
   var v = vel;
   v.x *= uGrid.simWidth / uGrid.simHeight;
+  //Calculate intensity of velocity below I believe
+  // 1. Get the magnitude of the distance from the splat center
+  // 2. Make the magnitude negative so the velocity peters out farther away from the splat
+  // 3. Scale the magnitude by the splat's radius. Larger splats will make the splat dissipate
+  //    at a slower rate.
+  // 4. Make the dissipation occur at a natural rate bound by e.
   var splat = exp(-dot(p, p) / radius) * v;
   return splat;
 }
@@ -167,25 +184,21 @@ fn main(
   @builtin(global_invocation_id) global_id : vec3<u32>
 ) {
     
+    //Check whether the position of the fragment is withint the bounds of our texture
     ${ COMPUTE_VELOCITY_START }
 
-    let tmpT = uTime;
+    //let tmpT = uTime;
+    //Get normalized coordinates of the pixel (could just take v_uv)
     var p = pos/vec2(uGrid.simWidth, uGrid.simHeight);
 
     ${ SPLAT_CODE }
     
-    splat *= uForce * uDt * 200.;
-
-    x_out[index] = x_in[index]*uDiffusion + splat.x;
-    y_out[index] = y_in[index]*uDiffusion + splat.y;
+    var output: vec2<f32> = textureLoad(
+      velocity_input_texture_xy,
+      vec3<f>(velocityGridPos, 0.0),
+    ).xy + splat;
     
-    // var distt = distance(pos/vec2(uGrid.simWidth, uGrid.simHeight), vec2(m.x, m.y));
-    // var influenceRadius = 0.06;
-    // if(distt < influenceRadius) {
-    //   var v = uMouse.vel * .25;
-    //   x_out[index] += v.x;
-    //   y_out[index] += v.y;
-    // }
+    return vec4<f32>(output, 0.0, 1.0);
 }`
 
 const updateDyeShader = /* wgsl */`
