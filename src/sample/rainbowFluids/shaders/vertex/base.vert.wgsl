@@ -38,7 +38,7 @@ fn vertexMain(
 
   var output: VertexBaseOutput;
 
-  var v_uv = uv[input.VertexIndex];
+  var v_uv = uv[VertexIndex];
   output.v_uv = v_uv;
   output.vL = v_uv - vec2f(uniforms.texelSize.x, 0.0);
   output.vR = v_uv + vec2f(uniforms.texelSize.x, 0.0);

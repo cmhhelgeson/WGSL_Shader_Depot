@@ -121,87 +121,98 @@ export const createNavierStokeOutputTextures = (
     format: 'r16float',
   });
 
+  const velocity0FromSplat: FrameBufferDescriptor = {
+    width: simWidth,
+    height: simHeight,
+    texelSizeX: 1.0 / simWidth,
+    texelSizeY: 1.0 / simHeight,
+    currentTexture: velocity0TextureRG16F,
+    currentView: velocity0TextureRG16F.createView(),
+  };
+  const velocity1FromVorticity: FrameBufferDescriptor = {
+    width: simWidth,
+    height: simHeight,
+    texelSizeX: 1.0 / simWidth,
+    texelSizeY: 1.0 / simHeight,
+    currentTexture: velocity1TextureRG16F,
+    currentView: velocity1TextureRG16F.createView(),
+  };
+  const velocity2FromGradientSubtract: FrameBufferDescriptor = {
+    width: simWidth,
+    height: simHeight,
+    texelSizeX: 1.0 / simWidth,
+    texelSizeY: 1.0 / simHeight,
+    currentTexture: velocity2TextureRG16F,
+    currentView: velocity2TextureRG16F.createView(),
+  };
+  const velocity3FromAdvection: FrameBufferDescriptor = {
+    width: simWidth,
+    height: simHeight,
+    texelSizeX: 1.0 / simWidth,
+    texelSizeY: 1.0 / simHeight,
+    currentTexture: velocity3TextureRG16F,
+    currentView: velocity3TextureRG16F.createView(),
+  };
+  const dye0FromSplat: FrameBufferDescriptor = {
+    width: simWidth,
+    height: simHeight,
+    texelSizeX: 1.0 / simWidth,
+    texelSizeY: 1.0 / simHeight,
+    currentTexture: dye0TextureRGBA16F,
+    currentView: dye0TextureRGBA16F.createView(),
+  };
+  const dye1FromAdvection: FrameBufferDescriptor = {
+    width: simWidth,
+    height: simHeight,
+    texelSizeX: 1.0 / simWidth,
+    texelSizeY: 1.0 / simHeight,
+    currentTexture: dye1TextureRGBA16F,
+    currentView: dye1TextureRGBA16F.createView(),
+  };
+  const pressure0FromClear: FrameBufferDescriptor = {
+    width: simWidth,
+    height: simHeight,
+    texelSizeX: 1.0 / simWidth,
+    texelSizeY: 1.0 / simHeight,
+    currentTexture: pressure0TextureR16F,
+    currentView: pressure0TextureR16F.createView(),
+  };
+  const pressure1FromPressure: FrameBufferDescriptor = {
+    width: simWidth,
+    height: simHeight,
+    texelSizeX: 1.0 / simWidth,
+    texelSizeY: 1.0 / simHeight,
+    currentTexture: pressure1TextureR16F,
+    currentView: pressure1TextureR16F.createView(),
+  };
+  const curl: FrameBufferDescriptor = {
+    width: simWidth,
+    height: simHeight,
+    texelSizeX: 1.0 / simWidth,
+    texelSizeY: 1.0 / simHeight,
+    currentTexture: curlTextureR16F,
+    currentView: curlTextureR16F.createView(),
+  };
+  const divergence: FrameBufferDescriptor = {
+    width: simWidth,
+    height: simHeight,
+    texelSizeX: 1.0 / simWidth,
+    texelSizeY: 1.0 / simHeight,
+    currentTexture: divergenceTextureR16F,
+    currentView: divergenceTextureR16F.createView(),
+  };
+
   return {
-    velocity0FromSplat: {
-      width: simWidth,
-      height: simHeight,
-      texelSizeX: 1.0 / simWidth,
-      texelSizeY: 1.0 / simHeight,
-      currentTexture: velocity0TextureRG16F,
-      currentView: velocity0TextureRG16F.createView(),
-    },
-    velocity1FromVorticity: {
-      width: simWidth,
-      height: simHeight,
-      texelSizeX: 1.0 / simWidth,
-      texelSizeY: 1.0 / simHeight,
-      currentTexture: velocity1TextureRG16F,
-      currentView: velocity1TextureRG16F.createView(),
-    },
-    velocity2FromGradientSubtract: {
-      width: simWidth,
-      height: simHeight,
-      texelSizeX: 1.0 / simWidth,
-      texelSizeY: 1.0 / simHeight,
-      currentTexture: velocity2TextureRG16F,
-      currentView: velocity2TextureRG16F.createView(),
-    },
-    velocity3FromAdvection: {
-      width: simWidth,
-      height: simHeight,
-      texelSizeX: 1.0 / simWidth,
-      texelSizeY: 1.0 / simHeight,
-      currentTexture: velocity3TextureRG16F,
-      currentView: velocity3TextureRG16F.createView(),
-    },
-    dye0FromSplat: {
-      width: simWidth,
-      height: simHeight,
-      texelSizeX: 1.0 / simWidth,
-      texelSizeY: 1.0 / simHeight,
-      currentTexture: dye0TextureRGBA16F,
-      currentView: dye0TextureRGBA16F.createView(),
-    },
-    dye1FromAdvection: {
-      width: simWidth,
-      height: simHeight,
-      texelSizeX: 1.0 / simWidth,
-      texelSizeY: 1.0 / simHeight,
-      currentTexture: dye1TextureRGBA16F,
-      currentView: dye1TextureRGBA16F.createView(),
-    },
-    pressure0FromClear: {
-      width: simWidth,
-      height: simHeight,
-      texelSizeX: 1.0 / simWidth,
-      texelSizeY: 1.0 / simHeight,
-      currentTexture: pressure0TextureR16F,
-      currentView: pressure0TextureR16F.createView(),
-    },
-    pressure1FromPressure: {
-      width: simWidth,
-      height: simHeight,
-      texelSizeX: 1.0 / simWidth,
-      texelSizeY: 1.0 / simHeight,
-      currentTexture: pressure1TextureR16F,
-      currentView: pressure1TextureR16F.createView(),
-    },
-    curl: {
-      width: simWidth,
-      height: simHeight,
-      texelSizeX: 1.0 / simWidth,
-      texelSizeY: 1.0 / simHeight,
-      currentTexture: curlTextureR16F,
-      currentView: curlTextureR16F.createView(),
-    },
-    divergence: {
-      width: simWidth,
-      height: simHeight,
-      texelSizeX: 1.0 / simWidth,
-      texelSizeY: 1.0 / simHeight,
-      currentTexture: divergenceTextureR16F,
-      currentView: divergenceTextureR16F.createView(),
-    },
+    velocity0FromSplat,
+    velocity1FromVorticity,
+    velocity2FromGradientSubtract,
+    velocity3FromAdvection,
+    dye0FromSplat,
+    dye1FromAdvection,
+    pressure0FromClear,
+    pressure1FromPressure,
+    curl,
+    divergence,
   };
 };
 

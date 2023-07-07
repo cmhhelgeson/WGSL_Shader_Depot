@@ -10,36 +10,8 @@ type Props = {
 };
 
 export const pages = {
-  helloTriangle: dynamic(() => import('../../sample/helloTriangle/main')),
-  helloTriangleMSAA: dynamic(
-    () => import('../../sample/helloTriangleMSAA/main')
-  ),
   resizeCanvas: dynamic(() => import('../../sample/resizeCanvas/main')),
-  rotatingCube: dynamic(() => import('../../sample/rotatingCube/main')),
-  twoCubes: dynamic(() => import('../../sample/twoCubes/main')),
-  texturedCube: dynamic(() => import('../../sample/texturedCube/main')),
-  instancedCube: dynamic(() => import('../../sample/instancedCube/main')),
-  fractalCube: dynamic(() => import('../../sample/fractalCube/main')),
-  cubemap: dynamic(() => import('../../sample/cubemap/main')),
-  computeBoids: dynamic(() => import('../../sample/computeBoids/main')),
-  animometer: dynamic(() => import('../../sample/animometer/main')),
-  videoUploading: dynamic(() => import('../../sample/videoUploading/main')),
-  videoUploadingWebCodecs: dynamic(
-    () => import('../../sample/videoUploadingWebCodecs/main')
-  ),
-  samplerParameters: dynamic(
-    () => import('../../sample/samplerParameters/main')
-  ),
-  imageBlur: dynamic(() => import('../../sample/imageBlur/main')),
-  shadowMapping: dynamic(() => import('../../sample/shadowMapping/main')),
-  reversedZ: dynamic(() => import('../../sample/reversedZ/main')),
-  particles: dynamic(() => import('../../sample/particles/main')),
-  cornell: dynamic(() => import('../../sample/cornell/main')),
-  gameOfLife: dynamic(() => import('../../sample/gameOfLife/main')),
   renderBundles: dynamic(() => import('../../sample/renderBundles/main')),
-  deferredRendering: dynamic(
-    () => import('../../sample/deferredRendering/main')
-  ),
   normalMapping: dynamic(() => import('../../sample/normalMapping/main')),
   comanche: dynamic(() => import('../../sample/comancheVoxel/main')),
   fullscreenShader: dynamic(() => import('../../sample/shaderFullScreen/main')),

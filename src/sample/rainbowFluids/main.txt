@@ -19,6 +19,7 @@ import finalDisplayFragmentWGSL from './shaders/fragment/finalDisplay.frag.wgsl'
 import {
   calculateDeltaTime,
   correctRadius,
+  create2DRenderPipelineDescriptor,
   createBindGroupDescriptor,
   defaultConfig,
   initDebugGui,
@@ -167,46 +168,14 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     device
   );
 
-  const splatShaderPipeline = device.createRenderPipeline({
-    label: 'Splat.pipeline',
-    layout: device.createPipelineLayout({
-      label: 'Splat.pipelineLayout',
-      bindGroupLayouts: [
-        generalBindGroupDescriptor.bindGroupLayout,
-        splatShaderBindGroupDescriptor.bindGroupLayout,
-      ],
-    }),
-    vertex: baseVertexShaderState,
-    fragment: {
-      module: device.createShaderModule({
-        code: splatFragmentWGSL,
-      }),
-      entryPoint: 'fragmentMain',
-      targets: [
-        //velocity texture
-        { format: fluidPropertyTextures.velocity0FromSplat.currentTexture.format },
-        //dye texture
-        { format: fluidPropertyTextures.dye0FromSplat.currentTexture.format },
-      ],
-    },
-    primitive: planePrimitive,
-  });
+  const splatPipelineDescriptor = create2DRenderPipelineDescriptor(
+    splatFragmentWGSL,
+    [generalBindGroupDescriptor.bindGroupLayout, splatShaderBindGroupDescriptor.bindGroupLayout],
+    [fluidPropertyTextures.velocity0FromSplat, fluidPropertyTextures.dye0FromSplat],
+    'Splat',
+    device,
+  )
 
-  const splatShaderRenderDescriptor: GPURenderPassDescriptor = {
-    label: 'Splat.colorDescriptor',
-    colorAttachments: [
-      {
-        //Replace with velocity.currentView at render
-        view: fluidPropertyTextures.velocity0FromSplat.currentView,
-        ...standardClear,
-      },
-      {
-        //Replace with dye.currentView at render
-        view: fluidPropertyTextures.dye0FromSplat.currentView,
-        ...standardClear,
-      },
-    ],
-  };
 
   const curlShaderBindGroupDescriptor = createBindGroupDescriptor(
     [0],
@@ -222,37 +191,13 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     device
   );
 
-  const curlShaderPipeline = device.createRenderPipeline({
-    label: 'Curl.pipeline',
-    layout: device.createPipelineLayout({
-      bindGroupLayouts: [
-        generalBindGroupDescriptor.bindGroupLayout,
-        curlShaderBindGroupDescriptor.bindGroupLayout,
-      ],
-    }),
-    vertex: baseVertexShaderState,
-    fragment: {
-      module: device.createShaderModule({
-        code: curlFragmentWGSL,
-      }),
-      entryPoint: 'fragmentMain',
-      targets: [
-        //velocity texture
-        { format: fluidPropertyTextures.curl.currentTexture.format },
-      ],
-    },
-    primitive: planePrimitive,
-  });
-
-  const curlShaderRenderDescriptor: GPURenderPassDescriptor = {
-    label: 'Curl.renderDescriptor',
-    colorAttachments: [
-      {
-        view: fluidPropertyTextures.curl.currentView,
-        ...standardClear,
-      },
-    ],
-  };
+  const curlPipelineDescriptor = create2DRenderPipelineDescriptor(
+    curlFragmentWGSL,
+    [generalBindGroupDescriptor.bindGroupLayout, curlShaderBindGroupDescriptor.bindGroupLayout],
+    [fluidPropertyTextures.curl],
+    'Curl',
+    device,
+  )
 
   const vorticityUniformBuffer = device.createBuffer({
     size: Float32Array.BYTES_PER_ELEMENT * 2,
@@ -275,39 +220,13 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     device
   );
 
-  const vorticityShaderPipeline = device.createRenderPipeline({
-    label: 'Vorticity.pipeline',
-    layout: device.createPipelineLayout({
-      bindGroupLayouts: [
-        generalBindGroupDescriptor.bindGroupLayout,
-        vorticityShaderBindGroupDescriptor.bindGroupLayout,
-      ],
-    }),
-    vertex: baseVertexShaderState,
-    fragment: {
-      module: device.createShaderModule({
-        code: vorticityFragmentWGSL,
-      }),
-      entryPoint: 'fragmentMain',
-      targets: [
-        //velocity texture
-        { format: fluidPropertyTextures.velocity1FromVorticity.currentTexture.format },
-      ],
-    },
-    primitive: planePrimitive,
-  });
-
-
-  const vorticityShaderRenderDescriptor: GPURenderPassDescriptor = {
-    label: 'Vorticity.renderDescriptor',
-    colorAttachments: [
-      {
-        //Replace with velocity.currentView at render
-        view: fluidPropertyTextures.velocity1FromVorticity.currentView,
-        ...standardClear,
-      },
-    ],
-  };
+  const vorticityPipelineDescriptor = create2DRenderPipelineDescriptor(
+    vorticityFragmentWGSL,
+    [generalBindGroupDescriptor.bindGroupLayout, vorticityShaderBindGroupDescriptor.bindGroupLayout],
+    [fluidPropertyTextures.velocity1FromVorticity],
+    'Vorticity',
+    device,
+  )
 
   //
   const divergenceShaderBindGroupDescriptor = createBindGroupDescriptor(
@@ -324,37 +243,13 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     device
   );
 
-  const divergenceShaderPipeline = device.createRenderPipeline({
-    label: 'Divergence.pipeline',
-    layout: device.createPipelineLayout({
-      bindGroupLayouts: [
-        generalBindGroupDescriptor.bindGroupLayout,
-        divergenceShaderBindGroupDescriptor.bindGroupLayout,
-      ],
-    }),
-    vertex: baseVertexShaderState,
-    fragment: {
-      module: device.createShaderModule({
-        code: divergenceFragmentWGSL,
-      }),
-      entryPoint: 'fragmentMain',
-      targets: [
-        //velocity texture
-        { format: fluidPropertyTextures.divergence.currentTexture.format },
-      ],
-    },
-    primitive: planePrimitive,
-  });
-
-  const divergenceShaderRenderDescriptor: GPURenderPassDescriptor = {
-    label: 'Divergence.renderDescriptor',
-    colorAttachments: [
-      {
-        view: fluidPropertyTextures.divergence.currentView,
-        ...standardClear,
-      },
-    ],
-  };
+  const divergencePipelineDescriptor = create2DRenderPipelineDescriptor(
+    divergenceFragmentWGSL,
+    [generalBindGroupDescriptor.bindGroupLayout, divergenceShaderBindGroupDescriptor.bindGroupLayout],
+    [fluidPropertyTextures.divergence],
+    'Divergence',
+    device,
+  );
 
   const clearUniformBuffer = device.createBuffer({
     size: Float32Array.BYTES_PER_ELEMENT * 1,
@@ -375,38 +270,13 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     device
   );
 
-
-  const clearShaderPipeline = device.createRenderPipeline({
-    label: 'Clear.pipeline',
-    layout: device.createPipelineLayout({
-      bindGroupLayouts: [
-        generalBindGroupDescriptor.bindGroupLayout,
-        clearShaderBindGroupDescriptor.bindGroupLayout,
-      ],
-    }),
-    vertex: blurVertexShaderState,
-    fragment: {
-      module: device.createShaderModule({
-        code: clearFragmentWGSL,
-      }),
-      entryPoint: 'fragmentMain',
-      targets: [
-        //velocity texture
-        { format: fluidPropertyTextures.pressure0FromClear.currentTexture.format },
-      ],
-    },
-    primitive: planePrimitive,
-  });
-
-  const clearShaderRenderDescriptor: GPURenderPassDescriptor = {
-    label: 'Clear.renderDescriptor',
-    colorAttachments: [
-      {
-        view: fluidPropertyTextures.pressure0FromClear.currentView,
-        ...standardClear,
-      },
-    ],
-  };
+  const clearPipelineDescriptor = create2DRenderPipelineDescriptor(
+    clearFragmentWGSL,
+    [generalBindGroupDescriptor.bindGroupLayout, clearShaderBindGroupDescriptor.bindGroupLayout],
+    [fluidPropertyTextures.pressure0FromClear],
+    'Clear',
+    device,
+  )
 
 
   const pressureShaderBindGroupDescriptor = createBindGroupDescriptor(
@@ -487,37 +357,13 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     device
   );
 
-  const gradientSubtractShaderPipeline = device.createRenderPipeline({
-    label: 'GradientSubtract.pipeline',
-    layout: device.createPipelineLayout({
-      bindGroupLayouts: [
-        generalBindGroupDescriptor.bindGroupLayout,
-        gradientSubtractShaderBindGroupDescriptor.bindGroupLayout,
-      ],
-    }),
-    vertex: baseVertexShaderState,
-    fragment: {
-      module: device.createShaderModule({
-        code: gradientSubtractWGSL,
-      }),
-      entryPoint: 'fragmentMain',
-      targets: [
-        //velocity texture
-        { format: fluidPropertyTextures.velocity2FromGradientSubtract.currentTexture.format },
-      ],
-    },
-    primitive: planePrimitive,
-  });
-
-  const gradientSubtractRenderDescriptor: GPURenderPassDescriptor = {
-    label: 'GradientSubtract.renderDescriptor',
-    colorAttachments: [
-      {
-        view: fluidPropertyTextures.velocity2FromGradientSubtract.currentView,
-        ...standardClear,
-      },
-    ],
-  };
+  const gradientSubtractPipelineDescriptor = create2DRenderPipelineDescriptor(
+    gradientSubtractWGSL,
+    [generalBindGroupDescriptor.bindGroupLayout, gradientSubtractShaderBindGroupDescriptor.bindGroupLayout],
+    [fluidPropertyTextures.velocity2FromGradientSubtract],
+    'GradientSubtract',
+    device,
+  )
 
   const advectionUniformBufferOne = device.createBuffer({
     size: Float32Array.BYTES_PER_ELEMENT * 6,
@@ -825,7 +671,7 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
         pointer.moved = false;
         const dx = pointer.deltaX * config.SPLAT_FORCE;
         const dy = pointer.deltaY * config.SPLAT_FORCE;
-        const textureAspectRatio = fluidPropertyTextures.velocity0FromSplat.width / fluidPropertyTextures.velocity0FromSplat.height;
+        const aspectRatio = canvas.width / canvas.height;
         writeSplatUniforms(
           //velocity_color (velocity as a color)
           vec3.fromValues(dx, dy, 0.0),
@@ -835,8 +681,8 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
             pointer.color[2]
           ),
           vec2.fromValues(pointer.texcoordX, pointer.texcoordY),
-          textureAspectRatio,
-          correctRadius(config.SPLAT_RADIUS / 100.0, textureAspectRatio),
+          aspectRatio,
+          correctRadius(config.SPLAT_RADIUS / 100.0, aspectRatio),
           idx
         );
       }
@@ -873,9 +719,9 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     const commandEncoder = device.createCommandEncoder();
     {
       const splatPassEncoder = commandEncoder.beginRenderPass(
-        splatShaderRenderDescriptor
+        splatPipelineDescriptor.renderDescriptor
       );
-      splatPassEncoder.setPipeline(splatShaderPipeline);
+      splatPassEncoder.setPipeline(splatPipelineDescriptor.pipeline);
       splatPassEncoder.setBindGroup(0, generalBindGroupDescriptor.bindGroups[0]);
       splatPassEncoder.setBindGroup(
         1,
@@ -887,9 +733,9 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     }
     {
       const curlPassEncoder = commandEncoder.beginRenderPass(
-        curlShaderRenderDescriptor
+        curlPipelineDescriptor.renderDescriptor
       );
-      curlPassEncoder.setPipeline(curlShaderPipeline);
+      curlPassEncoder.setPipeline(curlPipelineDescriptor.pipeline);
       curlPassEncoder.setBindGroup(0, generalBindGroupDescriptor.bindGroups[0]);
       curlPassEncoder.setBindGroup(1, curlShaderBindGroupDescriptor.bindGroups[0]);
       curlPassEncoder.draw(6, 1, 0, 0);
@@ -897,9 +743,9 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     }
     {
       const vorticityPassEncoder = commandEncoder.beginRenderPass(
-        vorticityShaderRenderDescriptor
+        vorticityPipelineDescriptor.renderDescriptor
       );
-      vorticityPassEncoder.setPipeline(vorticityShaderPipeline);
+      vorticityPassEncoder.setPipeline(vorticityPipelineDescriptor.pipeline);
       vorticityPassEncoder.setBindGroup(0, generalBindGroupDescriptor.bindGroups[0]);
       vorticityPassEncoder.setBindGroup(1, vorticityShaderBindGroupDescriptor.bindGroups[0]);
       vorticityPassEncoder.draw(6, 1, 0, 0);
@@ -907,9 +753,9 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     }
     {
       const divergencePassEncoder = commandEncoder.beginRenderPass(
-        divergenceShaderRenderDescriptor
+        divergencePipelineDescriptor.renderDescriptor
       );
-      divergencePassEncoder.setPipeline(divergenceShaderPipeline);
+      divergencePassEncoder.setPipeline(divergencePipelineDescriptor.pipeline);
       divergencePassEncoder.setBindGroup(0, generalBindGroupDescriptor.bindGroups[0]);
       divergencePassEncoder.setBindGroup(1, divergenceShaderBindGroupDescriptor.bindGroups[0]);
       divergencePassEncoder.draw(6, 1, 0, 0);
@@ -917,9 +763,9 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     }
     {
       const clearPassEncoder = commandEncoder.beginRenderPass(
-        clearShaderRenderDescriptor
+        clearPipelineDescriptor.renderDescriptor
       );
-      clearPassEncoder.setPipeline(clearShaderPipeline);
+      clearPassEncoder.setPipeline(clearPipelineDescriptor.pipeline);
       clearPassEncoder.setBindGroup(0, generalBindGroupDescriptor.bindGroups[0]);
       clearPassEncoder.setBindGroup(1, clearShaderBindGroupDescriptor.bindGroups[0]);
       clearPassEncoder.draw(6, 1, 0, 0);
@@ -938,9 +784,9 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     }
     {
       const gradientSubtractEncoder = commandEncoder.beginRenderPass(
-        gradientSubtractRenderDescriptor
+        gradientSubtractPipelineDescriptor.renderDescriptor
       );
-      gradientSubtractEncoder.setPipeline(gradientSubtractShaderPipeline);
+      gradientSubtractEncoder.setPipeline(gradientSubtractPipelineDescriptor.pipeline);
       gradientSubtractEncoder.setBindGroup(0, generalBindGroupDescriptor.bindGroups[0]);
       gradientSubtractEncoder.setBindGroup(1, gradientSubtractShaderBindGroupDescriptor.bindGroups[0]);
       gradientSubtractEncoder.draw(6, 1, 0, 0);
@@ -965,7 +811,7 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
       advectionPassTwoEncoder.setBindGroup(1, advectionShaderBindGroupDescriptor.bindGroups[1]);
       advectionPassTwoEncoder.draw(6, 1, 0, 0);
       advectionPassTwoEncoder.end();
-    }
+    } 
     //Dye is final output otherwise debug from velocities to dyes to pressures to curl to
     switch(config.DEBUG_VIEW) {
       case "None": {

@@ -1,6 +1,8 @@
 import { GUI } from 'dat.gui';
 import { configType } from './types';
 import { ArrayLike } from 'wgpu-matrix/dist/1.x/array-like';
+import { FrameBufferDescriptor } from './texture';
+import baseVertWGSL from './shaders/vertex/base.vert.wgsl';
 
 /* Return the change in time and the new lastUpdateTime */
 export const calculateDeltaTime = (
@@ -296,4 +298,69 @@ export const writeToF32Buffer = (
     numberLikes.byteOffset,
     numberLikes.byteLength
   );
+};
+
+export const create2DRenderPipelineDescriptor = (
+  fragmentShader: string,
+  bindGroupLayouts: GPUBindGroupLayout[],
+  targets: (FrameBufferDescriptor | null)[],
+  label: string,
+  device: GPUDevice
+) => {
+  const pipelineTargets: GPUColorTargetState[] = targets.map((target) => {
+    if (target === null) {
+      return { format: navigator.gpu.getPreferredCanvasFormat() };
+    }
+    return { format: target.currentTexture.format };
+  });
+
+  const pipeline = device.createRenderPipeline({
+    label: `${label}.pipeline`,
+    layout: device.createPipelineLayout({
+      label: `${label}.pipelineLayout`,
+      bindGroupLayouts: bindGroupLayouts,
+    }),
+    vertex: {
+      module: device.createShaderModule({
+        code: baseVertWGSL,
+      }),
+      entryPoint: 'vertexMain',
+    },
+    fragment: {
+      module: device.createShaderModule({
+        code: fragmentShader,
+      }),
+      entryPoint: 'fragmentMain',
+      targets: pipelineTargets,
+    },
+    primitive: {
+      topology: 'triangle-list',
+      cullMode: 'none',
+    },
+  });
+
+  const descriptorColorAttachments: GPURenderPassColorAttachment[] =
+    targets.map((target) => {
+      const colorAttachment: GPURenderPassColorAttachment = {
+        view: undefined,
+        clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
+        loadOp: 'clear',
+        storeOp: 'store',
+      };
+      if (target === null) {
+        colorAttachment.view = undefined;
+        return colorAttachment;
+      }
+      colorAttachment.view = target.currentView;
+      return colorAttachment;
+    });
+
+  const renderDescriptor: GPURenderPassDescriptor = {
+    label: `${label}.colorDescriptor`,
+    colorAttachments: descriptorColorAttachments,
+  };
+  return {
+    pipeline,
+    renderDescriptor,
+  };
 };

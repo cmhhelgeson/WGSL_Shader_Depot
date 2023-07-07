@@ -17,14 +17,13 @@ fn vertexMain(
     vec2(-1.0,  1.0),
   );
 
-  //Calculates uvs with y direction up, as is the case for WebGL I believe
   const uv = array(
-    pos[0] * 0.5 + 0.5,
-    pos[1] * 0.5 + 0.5,
-    pos[2] * 0.5 + 0.5,
-    pos[3] * 0.5 + 0.5,
-    pos[4] * 0.5 + 0.5,
-    pos[5] * 0.5 + 0.5,
+    vec2(1.0, 0.0),
+    vec2(1.0, 1.0),
+    vec2(0.0, 1.0),
+    vec2(1.0, 0.0),
+    vec2(0.0, 1.0),
+    vec2(0.0, 0.0),
   );
 
   output.Position = vec4<f32>(pos[VertexIndex], 0.0, 1.0);

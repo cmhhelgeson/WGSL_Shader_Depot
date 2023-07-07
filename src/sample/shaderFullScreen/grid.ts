@@ -1,4 +1,4 @@
-import fullscreenVertWGSL from './fullscreen.vert.wgsl';
+import fullscreenVertWGSL from '../../shaders/fullscreenWebGL.vert.wgsl';
 import gridFragWGSL from './grid.frag.wgsl';
 
 type GridRendererArgumentsType = {

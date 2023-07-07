@@ -1,11 +1,12 @@
 /* eslint-disable prettier/prettier */
 import { makeSample, SampleInit } from '../../components/SampleLayout';
 
-import fullscreenVertWGSL from '../../shaders/fullscreen.vert.wgsl';
+import fullscreenVertWGSL from '../../shaders/fullscreenWebGL.vert.wgsl';
 import fullscreenFragWGSL from './fullscreen.frag.wgsl';
 import { createBindGroupDescriptor } from '../bindGroup';
 
 import GridRenderer from './grid';
+import { createUniformDescriptor } from '../uniform';
 
 const init: SampleInit = async ({ canvas, pageState, gui }) => {
   //Normal setup
@@ -26,13 +27,23 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     alphaMode: 'premultiplied',
   });
 
+  const settings = {
+    shaderType: 'grid',
+    gridDimensions: 10.0,
+    cellOriginX: 0.0,
+    cellOriginY: 0.0,
+    cellOrigin: 0.0,
+    clampMin: 0.25,
+    clampMax: 0.75,
+  };
 
-  const fragmentBufferSize = Float32Array.BYTES_PER_ELEMENT * 2;
-  const fragmentBuffer = device.createBuffer({
-    size: fragmentBufferSize,
-    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-  });
 
+  const fragBufferDescriptor = createUniformDescriptor(
+    'Fragment_Buffer',
+    2,
+    [settings.clampMin, settings.clampMax],
+    device,
+  )
 
   const fragmentBindGroupDescriptor = createBindGroupDescriptor(
     [0],
@@ -40,7 +51,7 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     ['buffer'],
     [{type: 'uniform'}],
     [
-      [{buffer: fragmentBuffer}]
+      [{buffer: fragBufferDescriptor.buffer}]
     ],
     'StandardFragment',
     device  
@@ -93,15 +104,7 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     cellOriginY.setValue(settings.cellOrigin);
   };
 
-  const settings = {
-    shaderType: 'grid',
-    gridDimensions: 10.0,
-    cellOriginX: 0.0,
-    cellOriginY: 0.0,
-    cellOrigin: 0.0,
-    clampMin: 0.25,
-    clampMax: 0.75,
-  };
+  
 
   gui.add(settings, 'shaderType', ['grid', 'step mix']);
   gui.add(settings, 'gridDimensions', 1.0, 30.0).step(1.0);
@@ -113,11 +116,11 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     .onChange(changeCellOriginUniform);
   gui.add(settings, 'clampMin', 0.0, 1.0).onChange(() => {
     const arr = new Float32Array([settings.clampMin]);
-    device.queue.writeBuffer(fragmentBuffer, 0, arr.buffer, arr.byteOffset, arr.byteLength);
+    device.queue.writeBuffer(fragBufferDescriptor.buffer, 0, arr.buffer, arr.byteOffset, arr.byteLength);
   })
   gui.add(settings, 'clampMax', 0.0, 1.0).onChange(() => {
     const arr = new Float32Array([settings.clampMax]);
-    device.queue.writeBuffer(fragmentBuffer, 4, arr.buffer, arr.byteOffset, arr.byteLength);
+    device.queue.writeBuffer(fragBufferDescriptor.buffer, 4, arr.buffer, arr.byteOffset, arr.byteLength);
   })
 
   const gridRenderer = new GridRenderer(
@@ -125,12 +128,6 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     presentationFormat,
     renderPassDescriptor
   );
-
-  device.queue.writeBuffer(
-    fragmentBuffer,
-    0,
-    new Float32Array([settings.clampMin, settings.clampMax])
-  )
 
   function frame() {
     // Sample is no longer the active page.

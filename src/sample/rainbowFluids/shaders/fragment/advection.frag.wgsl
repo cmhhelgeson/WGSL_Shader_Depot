@@ -5,6 +5,10 @@ struct AdvectionUniforms {
   dissipation: f32,
 }
 
+struct VertexUniforms {
+  texelSize: vec2<f32>,
+}
+
 struct VertexBaseOutput {
   @builtin(position) Position : vec4<f32>,
   @location(0) v_uv : vec2<f32>,
