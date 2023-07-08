@@ -7,8 +7,7 @@ struct VertexBaseOutput {
   @location(4) vB: vec2<f32>,
 }
 
-@group(0) @binding(1) var image_sampler: sampler;
-@group(1) @binding(0) var output_to_screen: texture_2d<f32>;
+@group(0) @binding(0) var output_to_screen: texture_2d<f32>;
 
 @fragment
 fn fragmentMain(input: VertexBaseOutput) -> @location(0) vec4<f32> {

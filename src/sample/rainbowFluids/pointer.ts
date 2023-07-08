@@ -93,3 +93,32 @@ export const updatePointerMoveData = (
 export const updatePointerUpData = (pointer: PointerPrototype) => {
   pointer.down = false;
 };
+
+export type MouseStep = {
+  x: number;
+  y: number;
+};
+
+export type MouseInfo = {
+  current: MouseStep | null;
+  last: MouseStep | null;
+  velocity: MouseStep;
+};
+
+export const InitMouse = (): MouseInfo => {
+  return {
+    current: null,
+    last: null,
+    velocity: {x: 0, y: 0},
+  };
+};
+
+export const getMouseVelocity = (
+  prevMouse: MouseStep,
+  curMouse: MouseStep,
+): MouseStep => {
+  return {
+    x: curMouse.x - prevMouse.x,
+    y: curMouse.y - prevMouse.y
+  }
+}
