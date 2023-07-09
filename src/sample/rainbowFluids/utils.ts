@@ -2,7 +2,7 @@ import { GUI } from 'dat.gui';
 import { configType } from './types';
 import { ArrayLike } from 'wgpu-matrix/dist/1.x/array-like';
 import { FrameBufferDescriptor } from './texture';
-import { VertexBaseShader } from './shader';
+import { VertexBaseShader } from './shaders/vertex/shader';
 
 /* Return the change in time and the new lastUpdateTime */
 export const calculateDeltaTime = (
@@ -317,9 +317,9 @@ export const create2DRenderPipelineDescriptor = (
   const perPipelineTargetGroups = targetGroups.map((targets) => {
     const targetGroups: GPUColorTargetState[] = targets.map((target) => {
       console.log(target);
-      /*if (target === null) {
+      if (target === null) {
         return { format: navigator.gpu.getPreferredCanvasFormat() };
-      } */
+      }
       return { format: target.format };
     });
     return targetGroups;

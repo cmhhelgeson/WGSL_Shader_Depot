@@ -18,7 +18,7 @@ import {
   vorticityConfinmentShader,
   vorticityShader,
   VertexBaseShader
-} from './shader';
+} from './shaders/vertex/shader';
 
 import debugOutputFragmentWGSL from './shaders/fragment/debugOutput.frag.wgsl';
 
@@ -82,30 +82,6 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
   const pointers: PointerPrototype[] = [];
   pointers.push(new PointerPrototype());
 
-  canvas.addEventListener('mousedown', (e) => {
-    const posX = scaleByPixelRatio(e.offsetX);
-    const posY = scaleByPixelRatio(e.offsetY);
-    let pointer = pointers.find((p) => p.id == -1);
-    if (pointer == null) {
-      pointer = new PointerPrototype();
-    }
-    updatePointerDownData(pointer, -1, posX, posY, canvas.width, canvas.height);
-  });
-
-  canvas.addEventListener('mousemove', (e) => {
-    const pointer = pointers[0];
-    if (!pointer || !pointer.down) return;
-    const posX = scaleByPixelRatio(e.offsetX);
-    const posY = scaleByPixelRatio(e.offsetY);
-    updatePointerMoveData(pointer, posX, posY, canvas.width, canvas.height);
-  });
-
-  window.addEventListener('mouseup', () => {
-    if (!pointers[0]) return;
-    updatePointerUpData(pointers[0]);
-  });
-
-
   //Create GUI
   const config = defaultConfig;
   initGuiConstants(gui, config);
@@ -116,7 +92,7 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
   const dyeDimensions = getResolution(canvas.width, canvas.height, config.DYE_RESOLUTION);
   const GridInfoUniform = createUniformDescriptor(
     'gridSize',
-    6,
+    9,
     [
       simDimensions.width, 
       simDimensions.height, 
@@ -144,7 +120,7 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
   )
 
   const mouseUniformBuffer = device.createBuffer({
-    size: 4,
+    size: Float32Array.BYTES_PER_ELEMENT * 4,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
   });
 
@@ -170,7 +146,7 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
 
   // SPLAT SHADER OBJECTS
   const splatUniformBuffer = device.createBuffer({
-    size: Float32Array.BYTES_PER_ELEMENT * 9,
+    size: Float32Array.BYTES_PER_ELEMENT * 12,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
 
@@ -209,7 +185,7 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
       // 14. Output Dye
       [fluidPropertyTextures.dyeSwap1.createView()],
     ],
-    'PressureOrGradient',
+    'OneTextureBindGroup',
     device
   );
 
@@ -269,7 +245,6 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     advectShader,
     [
       GridInfoBindGroupDescriptor.bindGroupLayout, 
-      MouseBindGroupDescriptor.bindGroupLayout,
       splatBindGroupDescriptor.bindGroupLayout,
       twoTextureBindGroupDescriptor.bindGroupLayout,
     ],
@@ -284,7 +259,6 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     boundaryShader,
     [
       GridInfoBindGroupDescriptor.bindGroupLayout, 
-      MouseBindGroupDescriptor.bindGroupLayout,
       splatBindGroupDescriptor.bindGroupLayout,
       oneTextureBindGroupDescriptor.bindGroupLayout,
     ],
@@ -299,14 +273,12 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     divergenceShader,
     [
       GridInfoBindGroupDescriptor.bindGroupLayout, 
-      MouseBindGroupDescriptor.bindGroupLayout,
-      splatBindGroupDescriptor.bindGroupLayout,
       oneTextureBindGroupDescriptor.bindGroupLayout,
     ],
     [
       [fluidPropertyTextures.divergenceSwap0], 
     ],
-    'Boundary',
+    'Divergence',
     device,
   );
   //6
@@ -314,8 +286,6 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     boundaryPressureShader,
     [
       GridInfoBindGroupDescriptor.bindGroupLayout, 
-      MouseBindGroupDescriptor.bindGroupLayout,
-      splatBindGroupDescriptor.bindGroupLayout,
       oneTextureBindGroupDescriptor.bindGroupLayout,
     ],
     [
@@ -329,8 +299,6 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     pressureShader,
     [
       GridInfoBindGroupDescriptor.bindGroupLayout, 
-      MouseBindGroupDescriptor.bindGroupLayout,
-      splatBindGroupDescriptor.bindGroupLayout,
       twoTextureBindGroupDescriptor.bindGroupLayout,
     ],
     [
@@ -344,8 +312,6 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     boundaryPressureShader,
     [
       GridInfoBindGroupDescriptor.bindGroupLayout, 
-      MouseBindGroupDescriptor.bindGroupLayout,
-      splatBindGroupDescriptor.bindGroupLayout,
       oneTextureBindGroupDescriptor.bindGroupLayout,
     ],
     [
@@ -359,8 +325,6 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     gradientSubtractShader,
     [
       GridInfoBindGroupDescriptor.bindGroupLayout, 
-      MouseBindGroupDescriptor.bindGroupLayout,
-      splatBindGroupDescriptor.bindGroupLayout,
       twoTextureBindGroupDescriptor.bindGroupLayout,
     ],
     [
@@ -374,7 +338,6 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     clearPressureShader,
     [
       GridInfoBindGroupDescriptor.bindGroupLayout, 
-      MouseBindGroupDescriptor.bindGroupLayout,
       splatBindGroupDescriptor.bindGroupLayout,
       oneTextureBindGroupDescriptor.bindGroupLayout,
     ],
@@ -389,8 +352,6 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     vorticityShader,
     [
       GridInfoBindGroupDescriptor.bindGroupLayout, 
-      MouseBindGroupDescriptor.bindGroupLayout,
-      splatBindGroupDescriptor.bindGroupLayout,
       oneTextureBindGroupDescriptor.bindGroupLayout,
     ],
     [
@@ -404,7 +365,6 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     vorticityConfinmentShader,
     [
       GridInfoBindGroupDescriptor.bindGroupLayout, 
-      MouseBindGroupDescriptor.bindGroupLayout,
       splatBindGroupDescriptor.bindGroupLayout,
       twoTextureBindGroupDescriptor.bindGroupLayout,
     ],
@@ -434,8 +394,6 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     FinalOutputShader,
     [
       GridInfoBindGroupDescriptor.bindGroupLayout, 
-      MouseBindGroupDescriptor.bindGroupLayout,
-      splatBindGroupDescriptor.bindGroupLayout,
       oneTextureBindGroupDescriptor.bindGroupLayout,
     ],
     [
@@ -447,19 +405,60 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
 
   const mouse = InitMouse();
 
+  canvas.addEventListener("mousemove", (e) => {
+    const {width, height} = canvas.getBoundingClientRect();
+    if (!mouse.current) {
+      mouse.current = {x: 0, y: 0};
+      mouse.current.x = e.offsetX / width;
+      mouse.current.y = 1 - e.offsetY / height;;
+    }
+  })
+
   device.queue.writeBuffer(
     splatUniformBuffer,
     0,
     new Float32Array([
-      0.2, //force
-      0.
+      0.2, //Velocity Force 0
+      0.0002, //Velocity Radius 4
+      0.9999, //Velocity Diffusion 8 
+      1, //Dye force 12
+      0.001, //Dye Radius 16 
+      0.98, //Dye diffusion 20
+      0, //time, 24
+      0, //dt 28
+      0, //symmetry 32
+      2, //vorticity 36
+      0.8, //viscosity, 40
+      1 //containFluid   44 
     ])
   )
+
+  const writeTime = (time: number, dt: number) => {
+    const arr = new Float32Array([time, dt]);
+    device.queue.writeBuffer(
+      splatUniformBuffer,
+      24,
+      arr.buffer,
+      arr.byteOffset,
+      arr.byteLength
+    )
+  } 
+
+  let dt = 0.0;
+  let time = 0.0;
+
+  let lastTime = performance.now()
 
   function frame() {
     // Sample is no longer the active page.
     if (!pageState.active) return;
 
+    const currentTime = performance.now();
+    dt = Math.min(1/60, (currentTime - lastTime) / 1000) * 5;
+    time += dt;
+    lastTime = currentTime;
+
+    writeTime(time, dt);
 
     if (mouse.current) {
       //Get velocity by subtracting positions
@@ -487,6 +486,7 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     const commandEncoder = device.createCommandEncoder();
     const runPass = (
       pipelineDescriptor: RenderPipelineDescriptor,
+      otherBindGroups: BindGroupDescriptor[],
       textureBindGroup: BindGroupDescriptor,
       bgIdx: number,
     ) => {
@@ -494,56 +494,135 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
         pipelineDescriptor.renderDescriptors[0]
       );
       passEncoder.setPipeline(pipelineDescriptor.pipelines[0]);
-      passEncoder.setBindGroup(0, GridInfoBindGroupDescriptor.bindGroups[0]);
-      passEncoder.setBindGroup(1, MouseBindGroupDescriptor.bindGroups[0]);
-      passEncoder.setBindGroup(2, splatBindGroupDescriptor.bindGroups[0]);
-      passEncoder.setBindGroup(3, textureBindGroup.bindGroups[bgIdx]);
+      for (let i = 0; i < otherBindGroups.length; i++) {
+        passEncoder.setBindGroup(i, otherBindGroups[i].bindGroups[0])
+      }
+      passEncoder.setBindGroup(otherBindGroups.length, textureBindGroup.bindGroups[bgIdx]);
       passEncoder.draw(6, 1, 0, 0);
       passEncoder.end();
     }
     {//1
-      runPass(updateDyePipelineDescriptor, oneTextureBindGroupDescriptor, 0)
+      runPass(
+        updateDyePipelineDescriptor,
+        [GridInfoBindGroupDescriptor, MouseBindGroupDescriptor, splatBindGroupDescriptor],
+        oneTextureBindGroupDescriptor, 
+        0
+      )
     }
     {//2
-      runPass(updateVelocityPipelineDescriptor, oneTextureBindGroupDescriptor, 1)
+      runPass(
+        updateDyePipelineDescriptor,
+        [GridInfoBindGroupDescriptor, MouseBindGroupDescriptor, splatBindGroupDescriptor],
+        oneTextureBindGroupDescriptor, 
+        1
+      )
     }
     {//3
-      runPass(advectVelocityPipelineDescriptor, twoTextureBindGroupDescriptor, 0)
+      runPass(
+        advectVelocityPipelineDescriptor,
+        [GridInfoBindGroupDescriptor, splatBindGroupDescriptor],
+        twoTextureBindGroupDescriptor,
+        0,
+      )
     }
     {//4
-      runPass(boundaryPipelineDescriptor, oneTextureBindGroupDescriptor, 2)
+      runPass(
+        boundaryPipelineDescriptor,
+        [GridInfoBindGroupDescriptor, splatBindGroupDescriptor],
+        oneTextureBindGroupDescriptor,
+        2,
+      )
     }
     {//5
-      runPass(divergencePipelineDescriptor, oneTextureBindGroupDescriptor, 3)
+      runPass(
+        divergencePipelineDescriptor,
+        [GridInfoBindGroupDescriptor],
+        oneTextureBindGroupDescriptor,
+        3,
+      )
     }
     {//6
-      runPass(boundaryDivPipelineDescriptor, oneTextureBindGroupDescriptor, 4)
+      runPass(
+        boundaryDivPipelineDescriptor,
+        [GridInfoBindGroupDescriptor],
+        oneTextureBindGroupDescriptor,
+        4,
+      )
     }
     {
       for (let i = 0; i < config.PRESSURE_ITERATIONS; i++) {  
         //7
-        runPass(pressurePipelineDescriptor, twoTextureBindGroupDescriptor, 1)
+        runPass(
+          pressurePipelineDescriptor,
+          [GridInfoBindGroupDescriptor],
+          twoTextureBindGroupDescriptor,
+          1
+        )
+        //runPass(pressurePipelineDescriptor, twoTextureBindGroupDescriptor, 1)
         //8
-        runPass(boundaryPressurePipelineDescriptor, oneTextureBindGroupDescriptor, 5)
+        runPass(
+          boundaryPressurePipelineDescriptor,
+          [GridInfoBindGroupDescriptor],
+          oneTextureBindGroupDescriptor,
+          5
+        );
+        //runPass(boundaryPressurePipelineDescriptor, oneTextureBindGroupDescriptor, 5)
       }
     }
     {//9
-      runPass(gradientSubtractPipelineDescriptor, twoTextureBindGroupDescriptor, 2)
+      runPass(
+        gradientSubtractPipelineDescriptor,
+        [GridInfoBindGroupDescriptor],
+        twoTextureBindGroupDescriptor,
+        2
+      )
+      //runPass(gradientSubtractPipelineDescriptor, twoTextureBindGroupDescriptor, 2)
     }
     {//10
-      runPass(clearPressurePipelineDescriptor, oneTextureBindGroupDescriptor, 6)
+      runPass(
+        clearPressurePipelineDescriptor,
+        [GridInfoBindGroupDescriptor, splatBindGroupDescriptor],
+        oneTextureBindGroupDescriptor,
+        6,
+      )
+      //runPass(clearPressurePipelineDescriptor, oneTextureBindGroupDescriptor, 6)
     }
     {//11
-      runPass(vorticityPipelineDescriptor, oneTextureBindGroupDescriptor, 7)
+      runPass(
+        vorticityPipelineDescriptor,
+        [GridInfoBindGroupDescriptor],
+        oneTextureBindGroupDescriptor,
+        7
+      )
+      //runPass(vorticityPipelineDescriptor, oneTextureBindGroupDescriptor, 7)
     }
     {//12
-      runPass(vorticityConfinementPipelineDescriptor, twoTextureBindGroupDescriptor, 3)
+      runPass(
+        vorticityConfinementPipelineDescriptor,
+        [GridInfoBindGroupDescriptor, splatBindGroupDescriptor],
+        twoTextureBindGroupDescriptor,
+        3
+      )
+      //runPass(vorticityConfinementPipelineDescriptor, twoTextureBindGroupDescriptor, 3)
     }
     {//13
-      runPass(advectDyePipelineDescriptor, twoTextureBindGroupDescriptor, 4)
+      runPass(
+        advectDyePipelineDescriptor,
+        [GridInfoBindGroupDescriptor, MouseBindGroupDescriptor, splatBindGroupDescriptor],
+        twoTextureBindGroupDescriptor,
+        4
+      )
+      //runPass(advectDyePipelineDescriptor, twoTextureBindGroupDescriptor, 4)
     }
     {//14
-      runPass(outputDyePipelineDescriptor, oneTextureBindGroupDescriptor, 8);
+      outputDyePipelineDescriptor.renderDescriptors[0].colorAttachments[0].view = context.getCurrentTexture().createView();
+      runPass(
+        outputDyePipelineDescriptor,
+        [GridInfoBindGroupDescriptor],
+        oneTextureBindGroupDescriptor,
+        8
+      )
+      //runPass(outputDyePipelineDescriptor, oneTextureBindGroupDescriptor, 8);
     }
 
     commandEncoder.copyTextureToTexture(
