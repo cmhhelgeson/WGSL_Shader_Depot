@@ -1,3 +1,5 @@
+import { ArrayLike } from 'wgpu-matrix/dist/1.x/array-like';
+
 type BindGroupBindingLayout =
   | GPUBufferBindingLayout
   | GPUTextureBindingLayout
@@ -5,9 +7,9 @@ type BindGroupBindingLayout =
   | GPUStorageTextureBindingLayout
   | GPUExternalTextureBindingLayout;
 
-type BindGroupDescriptor = {
-  groups: GPUBindGroup[];
-  layout: GPUBindGroupLayout;
+export type BindGroupDescriptor = {
+  bindGroups: GPUBindGroup[];
+  bindGroupLayout: GPUBindGroupLayout;
 };
 
 type BindGroupDescriptorTemplate = {
@@ -72,8 +74,8 @@ export const createBindGroupDescriptor = (
   }
 
   return {
-    groups: bindGroups,
-    layout: bindGroupLayout,
+    bindGroups,
+    bindGroupLayout,
   };
 };
 

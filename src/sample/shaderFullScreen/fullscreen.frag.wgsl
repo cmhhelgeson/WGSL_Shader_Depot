@@ -6,9 +6,17 @@ struct VertexOutput {
 struct MixUniforms {
   clamp_min: f32,
   clamp_max: f32,
+  dt: f32,
+  texelSizeX: f32,
 }
 
 @group(0) @binding(0) var<uniform> uniforms: MixUniforms;
+
+fn reverseClamp(value: f32, minVal: f32, maxVal: f32) -> f32 {
+  var minRange: f32 = min(minVal, maxVal);
+  var maxRange: f32 = max(minVal, maxVal);
+  return clamp(value, minRange, maxRange);
+}
 
 @fragment
 fn fragmentMain(input: VertexOutput) -> @location(0) vec4<f32> {
@@ -33,18 +41,20 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4<f32> {
   var blue = vec3f(0.0, 0.0, 1.0);
   var white = vec3f(1.0, 1.0, 1.0);
 
+
   if (input.v_uv.y > 0.5) {
     //Linear mix
     color = mix(red, blue, input.v_uv.x);
+    color = mix(white, color, linearLine); 
+    color = mix(white, color, smoothstep(0.0, input.v_uv.x, uniforms.dt / 2));
   } else {
     //smoothstep mix
     color = mix(red, blue, min(max(smoothstep(0.0, 1.0, input.v_uv.x), uniforms.clamp_min), uniforms.clamp_max));
+    color = mix(white, color, smoothLine);
+    color = mix(white, color, smoothstep(0.0, input.v_uv.x, uniforms.dt / 2 - 0.5));
   }
 
   //Add two white lines
-  color = mix(white, color, linearLine); 
-  color = mix(white, color, smoothLine);
-  
-  return vec4f(color, 1.0);
+  return vec4f(color, 0.0);
 
 }

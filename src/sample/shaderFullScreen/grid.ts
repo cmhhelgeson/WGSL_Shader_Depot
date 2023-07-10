@@ -5,6 +5,7 @@ type GridRendererArgumentsType = {
   gridDimensions: number;
   cellOriginX: number;
   cellOriginY: number;
+  lineWidth: number;
 };
 
 export default class GridRenderer {
@@ -16,9 +17,14 @@ export default class GridRenderer {
   private readonly renderPassDescriptor: GPURenderPassDescriptor;
   private readonly pipeline: GPURenderPipeline;
   private readonly bindGroup: GPUBindGroup;
+  private dimensions: number;
+  private originX: number;
+  private originY: number;
+  private lineWidth: number;
   private readonly changeDimensions: (dimensions: number) => void;
   private readonly changeCellOriginX: (offset: number) => void;
   private readonly changeCellOriginY: (offset: number) => void;
+  private readonly changeLineWidth: (offset: number) => void;
 
   constructor(
     device: GPUDevice,
@@ -41,7 +47,7 @@ export default class GridRenderer {
       ],
     });
 
-    const uniformBufferSize = Float32Array.BYTES_PER_ELEMENT * 3;
+    const uniformBufferSize = Float32Array.BYTES_PER_ELEMENT * 4;
     const uniformBuffer = device.createBuffer({
       size: uniformBufferSize,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
@@ -90,19 +96,39 @@ export default class GridRenderer {
     });
 
     this.changeDimensions = (dimensions: number) => {
-      device.queue.writeBuffer(
-        uniformBuffer,
-        0,
-        new Float32Array([dimensions])
-      );
+      if (this.dimensions !== dimensions) {
+        device.queue.writeBuffer(
+          uniformBuffer,
+          0,
+          new Float32Array([dimensions])
+        );
+        this.dimensions = dimensions;
+      }
     };
 
     this.changeCellOriginX = (offset: number) => {
-      device.queue.writeBuffer(uniformBuffer, 4, new Float32Array([offset]));
+      if (this.originX !== offset) {
+        device.queue.writeBuffer(uniformBuffer, 4, new Float32Array([offset]));
+        this.originX = offset;
+      }
     };
 
     this.changeCellOriginY = (offset: number) => {
-      device.queue.writeBuffer(uniformBuffer, 8, new Float32Array([offset]));
+      if (this.originY !== offset) {
+        device.queue.writeBuffer(uniformBuffer, 8, new Float32Array([offset]));
+        this.originY = offset;
+      }
+    };
+
+    this.changeLineWidth = (newWidth: number) => {
+      if (this.lineWidth !== newWidth) {
+        device.queue.writeBuffer(
+          uniformBuffer,
+          12,
+          new Float32Array([newWidth])
+        );
+        this.lineWidth = newWidth;
+      }
     };
   }
 
@@ -110,6 +136,7 @@ export default class GridRenderer {
     this.changeDimensions(args.gridDimensions);
     this.changeCellOriginX(args.cellOriginX);
     this.changeCellOriginY(args.cellOriginY);
+    this.changeLineWidth(args.lineWidth);
     const passEncoder = commandEncoder.beginRenderPass(
       this.renderPassDescriptor
     );

@@ -1,12 +1,12 @@
-/* eslint-disable prettier/prettier */
 import { makeSample, SampleInit } from '../../components/SampleLayout';
 
 import fullscreenVertWGSL from '../../shaders/fullscreenWebGL.vert.wgsl';
 import fullscreenFragWGSL from './fullscreen.frag.wgsl';
-import { createBindGroupDescriptor } from '../bindGroup';
+import { createBindGroupDescriptor } from '../../utils/bindGroup';
 
 import GridRenderer from './grid';
-import { createUniformDescriptor } from '../uniform';
+import { createUniformDescriptor } from '../../utils/uniform';
+import { cosineInterpolate } from '../../utils/interpolate';
 
 const init: SampleInit = async ({ canvas, pageState, gui }) => {
   //Normal setup
@@ -28,40 +28,39 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
   });
 
   const settings = {
-    shaderType: 'grid',
+    shaderType: 'step mix',
     gridDimensions: 10.0,
     cellOriginX: 0.0,
     cellOriginY: 0.0,
     cellOrigin: 0.0,
     clampMin: 0.25,
     clampMax: 0.75,
+    lineWidth: 1.0,
+    pulseWidth: 2.0,
+    pulseLine: true,
   };
-
 
   const fragBufferDescriptor = createUniformDescriptor(
     'Fragment_Buffer',
-    2,
-    [settings.clampMin, settings.clampMax],
-    device,
-  )
+    4,
+    [settings.clampMin, settings.clampMax, 0, 1.0 / canvas.width],
+    device
+  );
 
   const fragmentBindGroupDescriptor = createBindGroupDescriptor(
     [0],
     [GPUShaderStage.FRAGMENT],
     ['buffer'],
-    [{type: 'uniform'}],
-    [
-      [{buffer: fragBufferDescriptor.buffer}]
-    ],
+    [{ type: 'uniform' }],
+    [[{ buffer: fragBufferDescriptor.buffer }]],
     'StandardFragment',
-    device  
-  )
-
+    device
+  );
 
   //Create the render pipeline
   const pipeline = device.createRenderPipeline({
     layout: device.createPipelineLayout({
-      bindGroupLayouts: [fragmentBindGroupDescriptor.layout],
+      bindGroupLayouts: [fragmentBindGroupDescriptor.bindGroupLayout],
     }),
     vertex: {
       module: device.createShaderModule({
@@ -86,6 +85,8 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     },
   });
 
+  console.log(presentationFormat);
+
   const renderPassDescriptor: GPURenderPassDescriptor = {
     colorAttachments: [
       {
@@ -104,10 +105,8 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     cellOriginY.setValue(settings.cellOrigin);
   };
 
-  
-
   gui.add(settings, 'shaderType', ['grid', 'step mix']);
-  gui.add(settings, 'gridDimensions', 1.0, 30.0).step(1.0);
+  gui.add(settings, 'gridDimensions', 1.0, 100.0).step(1.0);
   const cellOriginX = gui.add(settings, 'cellOriginX', -1.0, 1.0).step(0.1);
   const cellOriginY = gui.add(settings, 'cellOriginY', -1.0, 1.0).step(0.1);
   gui
@@ -116,12 +115,27 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     .onChange(changeCellOriginUniform);
   gui.add(settings, 'clampMin', 0.0, 1.0).onChange(() => {
     const arr = new Float32Array([settings.clampMin]);
-    device.queue.writeBuffer(fragBufferDescriptor.buffer, 0, arr.buffer, arr.byteOffset, arr.byteLength);
-  })
+    device.queue.writeBuffer(
+      fragBufferDescriptor.buffer,
+      0,
+      arr.buffer,
+      arr.byteOffset,
+      arr.byteLength
+    );
+  });
   gui.add(settings, 'clampMax', 0.0, 1.0).onChange(() => {
     const arr = new Float32Array([settings.clampMax]);
-    device.queue.writeBuffer(fragBufferDescriptor.buffer, 4, arr.buffer, arr.byteOffset, arr.byteLength);
-  })
+    device.queue.writeBuffer(
+      fragBufferDescriptor.buffer,
+      4,
+      arr.buffer,
+      arr.byteOffset,
+      arr.byteLength
+    );
+  });
+  gui.add(settings, 'lineWidth', 1.0, 8.0).step(0.1);
+  gui.add(settings, 'pulseWidth', 2.0, 9.0).step(0.1);
+  gui.add(settings, 'pulseLine');
 
   const gridRenderer = new GridRenderer(
     device,
@@ -129,9 +143,27 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     renderPassDescriptor
   );
 
+  let lastTime = performance.now();
+  let timeElapsed = 0;
+
   function frame() {
     // Sample is no longer the active page.
     if (!pageState.active) return;
+    const currentTime = performance.now();
+
+    timeElapsed += Math.min(1 / 60, (currentTime - lastTime) / 1000);
+
+    const dtArr = new Float32Array([timeElapsed]);
+
+    lastTime = currentTime;
+
+    device.queue.writeBuffer(
+      fragBufferDescriptor.buffer,
+      8,
+      dtArr.buffer,
+      dtArr.byteOffset,
+      dtArr.byteLength
+    );
 
     renderPassDescriptor.colorAttachments[0].view = context
       .getCurrentTexture()
@@ -145,6 +177,13 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
             gridDimensions: settings.gridDimensions,
             cellOriginX: settings.cellOriginX,
             cellOriginY: settings.cellOriginY,
+            lineWidth: settings.pulseLine
+              ? cosineInterpolate(
+                  settings.lineWidth,
+                  settings.pulseWidth,
+                  timeElapsed - timeElapsed / 10
+                )
+              : settings.lineWidth,
           });
         }
         break;
@@ -154,7 +193,10 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
           const passEncoder =
             commandEncoder.beginRenderPass(renderPassDescriptor);
           passEncoder.setPipeline(pipeline);
-          passEncoder.setBindGroup(0, fragmentBindGroupDescriptor.groups[0]);
+          passEncoder.setBindGroup(
+            0,
+            fragmentBindGroupDescriptor.bindGroups[0]
+          );
           passEncoder.draw(6, 1, 0, 0);
           passEncoder.end();
         }

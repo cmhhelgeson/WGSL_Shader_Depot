@@ -21,20 +21,26 @@ import {
 } from './shaders/vertex/shader';
 
 import debugOutputFragmentWGSL from './shaders/fragment/debugOutput.frag.wgsl';
+import { 
+  BindGroupDescriptor, 
+  createBindGroupDescriptor
+} from '../../utils/bindGroup';
+import { 
+  create2DRenderPipelineDescriptor, 
+  RenderPipelineDescriptor 
+} from '../../utils/renderProgram';
+import { 
+  writeToF32Buffer 
+} from '../../utils/buffer';
 
 import {
-  BindGroupDescriptor,
   calculateDeltaTime,
   correctRadius,
-  create2DRenderPipelineDescriptor,
-  createBindGroupDescriptor,
   defaultConfig,
   getResolution,
   initDebugGui,
   initGuiConstants,
-  RenderPipelineDescriptor,
   scaleByPixelRatio,
-  writeToF32Buffer,
 } from './utils';
 import {
   updatePointerDownData,
@@ -47,7 +53,7 @@ import {
 import {
   createNSTextures
 } from './texture';
-import { createUniformDescriptor } from '../uniform';
+import { createUniformDescriptor } from '../../utils/uniform';
 
 const standardClear: Omit<GPURenderPassColorAttachment, 'view'> = {
   clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
@@ -62,8 +68,8 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
 
   device.features.entries;
   if (!pageState.active) return;
-  const context = canvas.getContext('webgpu') as GPUCanvasContext;
-
+  const context = canvas.getContext('webgpu', {alpha: true}) as GPUCanvasContext;
+  context
   const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
 
   const devicePixelRatio = window.devicePixelRatio || 1;
