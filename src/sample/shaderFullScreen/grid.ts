@@ -142,7 +142,7 @@ export default class GridRenderer {
     );
     passEncoder.setPipeline(this.pipeline);
     passEncoder.setBindGroup(0, this.bindGroup);
-    passEncoder.draw(8, 1, 0, 0);
+    passEncoder.draw(6, 1, 0, 0);
     passEncoder.end();
   }
 }

@@ -43,8 +43,6 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4<f32> {
   var yAxis: f32 = smoothstep(0.0, 0.005, abs(input.v_uv.x - 0.5));
 
   color = vec3f(ceilLine);
-  color = mix(red, color, xAxis);
-  color = mix(blue, color, yAxis);
   
   return vec4f(color, 1.0);
 }

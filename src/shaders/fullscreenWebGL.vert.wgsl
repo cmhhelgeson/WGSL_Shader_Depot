@@ -17,15 +17,6 @@ fn vertexMain(
     vec2(-1.0,  1.0),
   );
 
-  /*const uv = array(
-    vec2(1.0, 0.0),
-    vec2(1.0, 1.0),
-    vec2(0.0, 1.0),
-    vec2(1.0, 0.0),
-    vec2(0.0, 1.0),
-    vec2(0.0, 0.0),
-  ); */
-
   //Calculates uvs with y direction up, as is the case for WebGL I believe
   const uv = array(
     pos[0] * 0.5 + 0.5,

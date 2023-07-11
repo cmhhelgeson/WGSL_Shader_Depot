@@ -1,5 +1,5 @@
+/* eslint-disable prettier/prettier */
 import { makeSample, SampleInit } from '../../components/SampleLayout';
-
 import fullscreenVertWGSL from '../../shaders/fullscreenWebGL.vert.wgsl';
 import fullscreenFragWGSL from './fullscreen.frag.wgsl';
 import { createBindGroupDescriptor } from '../../utils/bindGroup';
@@ -7,6 +7,8 @@ import { createBindGroupDescriptor } from '../../utils/bindGroup';
 import GridRenderer from './grid';
 import { createUniformDescriptor } from '../../utils/uniform';
 import { cosineInterpolate } from '../../utils/interpolate';
+import CRTRenderer from './crt';
+import { createTextureFromImage } from '../../utils/texture';
 
 const init: SampleInit = async ({ canvas, pageState, gui }) => {
   //Normal setup
@@ -38,6 +40,8 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     lineWidth: 1.0,
     pulseWidth: 2.0,
     pulseLine: true,
+    pulseSpeed: 0,
+    textureName: 'dog',
   };
 
   const fragBufferDescriptor = createUniformDescriptor(
@@ -105,7 +109,7 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     cellOriginY.setValue(settings.cellOrigin);
   };
 
-  gui.add(settings, 'shaderType', ['grid', 'step mix']);
+  gui.add(settings, 'shaderType', ['grid', 'step mix', 'crt']);
   gui.add(settings, 'gridDimensions', 1.0, 100.0).step(1.0);
   const cellOriginX = gui.add(settings, 'cellOriginX', -1.0, 1.0).step(0.1);
   const cellOriginY = gui.add(settings, 'cellOriginY', -1.0, 1.0).step(0.1);
@@ -136,11 +140,36 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
   gui.add(settings, 'lineWidth', 1.0, 8.0).step(0.1);
   gui.add(settings, 'pulseWidth', 2.0, 9.0).step(0.1);
   gui.add(settings, 'pulseLine');
+  gui.add(settings, 'pulseSpeed', 0, 100).step(10);
+  gui.add(settings, 'textureName', ['dog', 'cat'])
 
   const gridRenderer = new GridRenderer(
     device,
     presentationFormat,
     renderPassDescriptor
+  );
+
+  
+  let dogTexture: GPUTexture 
+  {
+    const response = await fetch(new URL('../../../assets/img/dog.jpg', import.meta.url).toString());
+    const bitmap = await createImageBitmap(await response.blob());
+    dogTexture = createTextureFromImage(device, bitmap)
+  }
+  let catTexture: GPUTexture;
+  {
+    const response = await fetch(new URL('../../../assets/img/cat.jpg', import.meta.url).toString());
+    const bitmap = await createImageBitmap(await response.blob());
+    catTexture = createTextureFromImage(device, bitmap);
+  }
+
+  const crtRenderer = new CRTRenderer(
+    device,
+    presentationFormat,
+    renderPassDescriptor,
+    ['dog', 'cat'],
+    [dogTexture, catTexture],
+    'CRT'
   );
 
   let lastTime = performance.now();
@@ -181,13 +210,20 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
               ? cosineInterpolate(
                   settings.lineWidth,
                   settings.pulseWidth,
-                  timeElapsed - timeElapsed / 10
+                  timeElapsed - (timeElapsed / 10) * (settings.pulseSpeed + 10)
                 )
               : settings.lineWidth,
           });
         }
         break;
-
+      case 'crt': 
+        {
+          crtRenderer.run(commandEncoder, {
+            time: timeElapsed,
+            textureName: settings.textureName
+          });
+        } 
+        break;
       case 'step mix':
         {
           const passEncoder =

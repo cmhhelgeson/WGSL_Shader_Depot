@@ -1,9 +1,11 @@
-import fullscreenVertWGSL from '../../shaders/fullscreenWebGL.vert.wgsl';
+import fullscreenVertWebGLWGSL from '../../shaders/fullscreenWebGL.vert.wgsl';
+import fullscreenVertWebGPUWGSL from '../../shaders/fullscreenWebGPU.vert.wgsl';
 import { createBindGroupDescriptor } from '../../utils/bindGroup';
-import gridFragWGSL from './grid.frag.wgsl';
+import crtFragWGSL from './crt.frag.wgsl';
 
-type CRTArguments = {
-  time: number,
+type CRTRendererArgs = {
+  time: number;
+  textureName: string;
 };
 
 export default class CRTRenderer {
@@ -14,9 +16,11 @@ export default class CRTRenderer {
 
   private readonly renderPassDescriptor: GPURenderPassDescriptor;
   private readonly pipeline: GPURenderPipeline;
-  private readonly bindGroupMap: Record<string, GPUBindGroup>[];
-
+  private readonly bindGroupMap: Record<string, GPUBindGroup>;
+  private readonly setTime: (time: number) => void;
+  private readonly switchBindGroup: (name: string) => void;
   private currentBindGroup: GPUBindGroup;
+  private currentBindGroupName: string;
 
   constructor(
     device: GPUDevice,
@@ -28,25 +32,37 @@ export default class CRTRenderer {
   ) {
     this.renderPassDescriptor = renderPassDescriptor;
 
-    const uniformBufferSize = Float32Array.BYTES_PER_ELEMENT * 2;
+    const uniformBufferSize = Float32Array.BYTES_PER_ELEMENT * 1;
     const uniformBuffer = device.createBuffer({
       size: uniformBufferSize,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
-    const resourceArr = textures.map((texture) => {
-      return [{ buffer: uniformBuffer }, texture.createView()];
+    const sampler = device.createSampler({
+      minFilter: 'linear',
+      magFilter: 'linear',
     });
 
+    const resourceArr = textures.map((texture) => {
+      return [{ buffer: uniformBuffer }, sampler, texture.createView()];
+    });
+
+    console.log(resourceArr);
+
     const bgDescript = createBindGroupDescriptor(
-      [0, 1],
+      [0, 1, 2],
       [GPUShaderStage.FRAGMENT],
-      ['buffer', 'texture'],
-      [{ type: 'uniform' }, { sampleType: 'float' }],
+      ['buffer', 'sampler', 'texture'],
+      [{ type: 'uniform' }, { type: 'filtering' }, { sampleType: 'float' }],
       resourceArr,
       label,
       device
     );
+
+    this.currentBindGroup = bgDescript.bindGroups[0];
+    this.currentBindGroupName = bindGroupNames[0];
+
+    this.bindGroupMap = {};
 
     bgDescript.bindGroups.forEach((bg, idx) => {
       this.bindGroupMap[bindGroupNames[idx]] = bg;
@@ -61,13 +77,13 @@ export default class CRTRenderer {
       }),
       vertex: {
         module: device.createShaderModule({
-          code: fullscreenVertWGSL,
+          code: fullscreenVertWebGPUWGSL,
         }),
         entryPoint: 'vertexMain',
       },
       fragment: {
         module: device.createShaderModule({
-          code: gridFragWGSL,
+          code: crtFragWGSL,
         }),
         entryPoint: 'fragmentMain',
         targets: [
@@ -81,13 +97,22 @@ export default class CRTRenderer {
         cullMode: 'none',
       },
     });
+
+    this.setTime = (time: number) => {
+      device.queue.writeBuffer(uniformBuffer, 0, new Float32Array([time]));
+    };
+
+    this.switchBindGroup = (name: string) => {
+      this.currentBindGroup = this.bindGroupMap[name];
+      this.currentBindGroupName = name;
+    };
   }
 
-  switchToBindGroup(name: string) {
-    this.currentBindGroup = this.bindGroupMap[name];
-  }
-
-  run(commandEncoder: GPUCommandEncoder) {
+  run(commandEncoder: GPUCommandEncoder, args: CRTRendererArgs) {
+    this.setTime(args.time);
+    if (args.textureName !== this.currentBindGroupName) {
+      this.switchBindGroup(args.textureName);
+    }
     const passEncoder = commandEncoder.beginRenderPass(
       this.renderPassDescriptor
     );
