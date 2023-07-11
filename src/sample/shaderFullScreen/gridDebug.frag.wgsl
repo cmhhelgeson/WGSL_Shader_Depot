@@ -8,6 +8,7 @@ struct Uniforms {
   cellOriginX: f32,
   cellOriginY: f32,
   lineWidth: f32,
+  debugStep: f32,
 }
 
 const red: vec3f = vec3f(1.0, 0.0, 0.0);
