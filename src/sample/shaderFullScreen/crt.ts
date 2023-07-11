@@ -2,10 +2,12 @@ import fullscreenVertWebGLWGSL from '../../shaders/fullscreenWebGL.vert.wgsl';
 import fullscreenVertWebGPUWGSL from '../../shaders/fullscreenWebGPU.vert.wgsl';
 import { createBindGroupDescriptor } from '../../utils/bindGroup';
 import crtFragWGSL from './crt.frag.wgsl';
+import crtDebugFragWGSL from './crtDebug.frag.wgsl';
 
 type CRTRendererArgs = {
   time: number;
   textureName: string;
+  debugStep: number;
 };
 
 export default class CRTRenderer {
@@ -21,6 +23,7 @@ export default class CRTRenderer {
   private readonly switchBindGroup: (name: string) => void;
   private currentBindGroup: GPUBindGroup;
   private currentBindGroupName: string;
+  private setDebugStep: (step: number) => void;
 
   constructor(
     device: GPUDevice,
@@ -28,11 +31,16 @@ export default class CRTRenderer {
     renderPassDescriptor: GPURenderPassDescriptor,
     bindGroupNames: string[],
     textures: GPUTexture[],
-    label: string
+    label: string,
+    debug = false
   ) {
     this.renderPassDescriptor = renderPassDescriptor;
+    let uniformElements = 1;
+    if (debug) {
+      uniformElements += 1;
+    }
 
-    const uniformBufferSize = Float32Array.BYTES_PER_ELEMENT * 1;
+    const uniformBufferSize = Float32Array.BYTES_PER_ELEMENT * uniformElements;
     const uniformBuffer = device.createBuffer({
       size: uniformBufferSize,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
@@ -46,7 +54,6 @@ export default class CRTRenderer {
     const resourceArr = textures.map((texture) => {
       return [{ buffer: uniformBuffer }, sampler, texture.createView()];
     });
-
     console.log(resourceArr);
 
     const bgDescript = createBindGroupDescriptor(
@@ -71,7 +78,7 @@ export default class CRTRenderer {
     console.log(this.bindGroupMap);
 
     this.pipeline = device.createRenderPipeline({
-      label: 'GridRenderer.pipeline',
+      label: 'CRTRenderer.pipeline',
       layout: device.createPipelineLayout({
         bindGroupLayouts: [bgDescript.bindGroupLayout],
       }),
@@ -83,7 +90,7 @@ export default class CRTRenderer {
       },
       fragment: {
         module: device.createShaderModule({
-          code: crtFragWGSL,
+          code: debug ? crtDebugFragWGSL : crtFragWGSL,
         }),
         entryPoint: 'fragmentMain',
         targets: [
@@ -102,6 +109,21 @@ export default class CRTRenderer {
       device.queue.writeBuffer(uniformBuffer, 0, new Float32Array([time]));
     };
 
+    if (debug) {
+      this.setDebugStep = (step: number) => {
+        const offset = (uniformElements - 1) * Float32Array.BYTES_PER_ELEMENT;
+        device.queue.writeBuffer(
+          uniformBuffer,
+          offset,
+          new Float32Array([step])
+        );
+      };
+    } else {
+      this.setDebugStep = (step: number) => {
+        return;
+      };
+    }
+
     this.switchBindGroup = (name: string) => {
       this.currentBindGroup = this.bindGroupMap[name];
       this.currentBindGroupName = name;
@@ -110,6 +132,7 @@ export default class CRTRenderer {
 
   run(commandEncoder: GPUCommandEncoder, args: CRTRendererArgs) {
     this.setTime(args.time);
+    this.setDebugStep(args.debugStep);
     if (args.textureName !== this.currentBindGroupName) {
       this.switchBindGroup(args.textureName);
     }
@@ -118,7 +141,7 @@ export default class CRTRenderer {
     );
     passEncoder.setPipeline(this.pipeline);
     passEncoder.setBindGroup(0, this.currentBindGroup);
-    passEncoder.draw(8, 1, 0, 0);
+    passEncoder.draw(6, 1, 0, 0);
     passEncoder.end();
   }
 }

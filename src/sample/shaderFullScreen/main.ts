@@ -30,7 +30,7 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
   });
 
   const settings = {
-    shaderType: 'step mix',
+    shaderType: 'crt',
     gridDimensions: 10.0,
     cellOriginX: 0.0,
     cellOriginY: 0.0,
@@ -169,7 +169,8 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     renderPassDescriptor,
     ['dog', 'cat'],
     [dogTexture, catTexture],
-    'CRT'
+    'CRT',
+    true,
   );
 
   let lastTime = performance.now();
@@ -220,7 +221,8 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
         {
           crtRenderer.run(commandEncoder, {
             time: timeElapsed,
-            textureName: settings.textureName
+            textureName: settings.textureName,
+            debugStep: 1,
           });
         } 
         break;
