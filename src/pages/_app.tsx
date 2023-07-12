@@ -3,6 +3,8 @@ import { AppProps } from 'next/app';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useState } from 'react';
+import type { AppProps } from 'next/app';
+import { wrapper } from '../features/store';
 
 import './styles.css';
 import styles from './MainLayout.module.css';
@@ -26,6 +28,7 @@ const MainLayout: React.FunctionComponent<AppProps> = ({
     router.replace(`/samples/${slug}`);
     return <></>;
   }
+
 
   return (
     <>
@@ -88,10 +91,15 @@ const MainLayout: React.FunctionComponent<AppProps> = ({
             </ul>
           </div>
         </nav>
+        <div>
+          <button onClick={() => setListExpanded(!listExpanded)}>
+            Expand list
+          </button>
+        </div>
         <Component {...pageProps} />
       </div>
     </>
   );
 };
 
-export default MainLayout;
+export default wrapper.withRedux(MainLayout);

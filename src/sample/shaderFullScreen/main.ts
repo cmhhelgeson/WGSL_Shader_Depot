@@ -42,6 +42,7 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
     pulseLine: true,
     pulseSpeed: 0,
     textureName: 'dog',
+    debugStep: 0
   };
 
   const fragBufferDescriptor = createUniformDescriptor(
@@ -142,6 +143,7 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
   gui.add(settings, 'pulseLine');
   gui.add(settings, 'pulseSpeed', 0, 100).step(10);
   gui.add(settings, 'textureName', ['dog', 'cat'])
+  gui.add(settings, 'debugStep', 0, 2).step(1)
 
   const gridRenderer = new GridRenderer(
     device,

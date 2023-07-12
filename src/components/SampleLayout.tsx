@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 import type { GUI } from 'dat.gui';
 import type { Stats } from 'stats-js';
+import { motion } from 'framer-motion';
 import type { Editor, EditorConfiguration } from 'codemirror';
 interface CodeMirrorEditor extends Editor {
   updatedSource: (source: string) => void;
@@ -68,6 +69,8 @@ const SampleLayout: React.FunctionComponent<
   React.PropsWithChildren<{
     name: string;
     description: string;
+    forSetToDebug?: () => void;
+    forIncrementDebug?: () => void;
     originTrial?: string;
     filename: string;
     gui?: boolean;
@@ -84,6 +87,12 @@ const SampleLayout: React.FunctionComponent<
       }),
     props.sources
   );
+
+  const debugExplanations: string[] = [
+    'Get the sin of each uv coordinate going down from 0 to 1',
+    'Scale the operation to create multiple lines that go from black to white',
+    'Offset the position of each bar by the elapsed time',
+  ];
 
   const guiParentRef = useRef<HTMLDivElement | null>(null);
   const gui: GUI | undefined = useMemo(() => {
@@ -109,6 +118,24 @@ const SampleLayout: React.FunctionComponent<
   const currentHash = router.asPath.match(/#([a-zA-Z0-9\.\/]+)/);
 
   const [error, setError] = useState<unknown | null>(null);
+  const [debugStep, setDebugStep] = useState<number>(0);
+  const [hideDebug, setHideDebug] = useState<boolean>(false);
+
+  const onIncrementDebugStep = () => {
+    if (debugStep === debugExplanations.length - 1) {
+      return;
+    } else {
+      setDebugStep(debugStep + 1);
+    }
+  };
+
+  const onDecrementDebugStep = () => {
+    if (debugStep === 0) {
+      return;
+    } else {
+      setDebugStep(debugStep - 1);
+    }
+  };
 
   const [activeHash, setActiveHash] = useState<string | null>(null);
   useEffect(() => {
@@ -195,7 +222,7 @@ const SampleLayout: React.FunctionComponent<
           </>
         ) : null}
       </div>
-      <div className={styles.canvasContainer}>
+      <motion.div className={styles.canvasContainer}>
         <div
           style={{
             position: 'absolute',
@@ -211,6 +238,40 @@ const SampleLayout: React.FunctionComponent<
           ref={guiParentRef}
         ></div>
         <canvas ref={canvasRef}></canvas>
+      </motion.div>
+      <div
+        style={{
+          display: 'flex',
+          backgroundColor: 'darkblue',
+          width: 'auto',
+          textAlign: 'center',
+          justifyContent: 'space-between',
+          marginTop: '10px',
+          height: '30px',
+          fontSize: '20px',
+        }}
+      >
+        <button
+          style={{
+            borderTopLeftRadius: '15%',
+            marginLeft: '2px',
+          }}
+          onClick={onDecrementDebugStep}
+        >{`<`}</button>
+        <motion.div
+          style={{
+            alignItems: 'center',
+            marginTop: '4px',
+            textShadow: '2px 2px 2px 2px black',
+            marginRight: '2px',
+          }}
+        >
+          {debugExplanations[debugStep]}
+        </motion.div>
+        <button
+          style={{ borderTopRightRadius: '25%' }}
+          onClick={onIncrementDebugStep}
+        >{`>`}</button>
       </div>
       <div>
         <nav className={styles.sourceFileNav}>

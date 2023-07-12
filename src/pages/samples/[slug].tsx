@@ -18,7 +18,7 @@ export const pages = {
   rainbowFluids: dynamic(() => import('../../sample/rainbowFluids/main')),
 };
 
-function Page({ slug }: Props): JSX.Element {
+function Page({ slug, }: Props): JSX.Element {
   const PageComponent = pages[slug];
   return <PageComponent />;
 }
