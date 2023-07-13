@@ -1,5 +1,13 @@
 import fullscreenWebGLVertShader from '../shaders/fullscreenWebGL.vert.wgsl';
 
+export interface BaseRenderer {
+  readonly renderPassDescriptor: GPURenderPassDescriptor;
+  readonly pipeline: GPURenderPipeline;
+  readonly bindGroupMap: Record<string, GPUBindGroup>;
+  currentBindGroup: GPUBindGroup;
+  currentBindGroupName: string;
+}
+
 export type RenderPipelineDescriptor = {
   pipelines: GPURenderPipeline[];
   renderDescriptors: GPURenderPassDescriptor[];

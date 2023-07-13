@@ -1,6 +1,8 @@
+/* eslint-disable prettier/prettier */
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { MutableRefObject, useEffect, useMemo, useRef, useState } from 'react';
+import { Subject, BehaviorSubject, Subscription } from 'rxjs';
 
 import type { GUI } from 'dat.gui';
 import type { Stats } from 'stats-js';
@@ -23,6 +25,7 @@ export type SampleInit = (params: {
   pageState: { active: boolean };
   gui?: GUI;
   stats?: Stats;
+  debugValueRef: MutableRefObject<number>,
 }) => void | Promise<void>;
 
 if (process.browser) {
@@ -69,8 +72,6 @@ const SampleLayout: React.FunctionComponent<
   React.PropsWithChildren<{
     name: string;
     description: string;
-    forSetToDebug?: () => void;
-    forIncrementDebug?: () => void;
     originTrial?: string;
     filename: string;
     gui?: boolean;
@@ -119,13 +120,17 @@ const SampleLayout: React.FunctionComponent<
 
   const [error, setError] = useState<unknown | null>(null);
   const [debugStep, setDebugStep] = useState<number>(0);
-  const [hideDebug, setHideDebug] = useState<boolean>(false);
+  const debugLeftButtonRef = useRef<HTMLButtonElement>(null);
+  const debugRightButtonRef = useRef<HTMLButtonElement>(null);
+  const debugValueRef = useRef<number>(0);
+
 
   const onIncrementDebugStep = () => {
     if (debugStep === debugExplanations.length - 1) {
       return;
     } else {
       setDebugStep(debugStep + 1);
+      debugValueRef.current += 1;
     }
   };
 
@@ -134,10 +139,12 @@ const SampleLayout: React.FunctionComponent<
       return;
     } else {
       setDebugStep(debugStep - 1);
+      debugValueRef.current -= 1;
     }
   };
 
   const [activeHash, setActiveHash] = useState<string | null>(null);
+
   useEffect(() => {
     if (currentHash) {
       setActiveHash(currentHash[1]);
@@ -158,9 +165,6 @@ const SampleLayout: React.FunctionComponent<
     const pageState = {
       active: true,
     };
-    const cleanup = () => {
-      pageState.active = false;
-    };
     try {
       const canvas = canvasRef.current;
       const p = props.init({
@@ -168,7 +172,9 @@ const SampleLayout: React.FunctionComponent<
         pageState,
         gui,
         stats,
+        debugValueRef,
       });
+    
 
       if (p instanceof Promise) {
         p.catch((err: Error) => {
@@ -180,7 +186,9 @@ const SampleLayout: React.FunctionComponent<
       console.error(err);
       setError(err);
     }
-    return cleanup;
+    return () => {
+      pageState.active = false;
+    };
   }, []);
 
   return (
@@ -251,7 +259,7 @@ const SampleLayout: React.FunctionComponent<
           fontSize: '20px',
         }}
       >
-        <button
+        <button ref={debugLeftButtonRef}
           style={{
             borderTopLeftRadius: '15%',
             marginLeft: '2px',
@@ -268,7 +276,7 @@ const SampleLayout: React.FunctionComponent<
         >
           {debugExplanations[debugStep]}
         </motion.div>
-        <button
+        <button ref={debugRightButtonRef}
           style={{ borderTopRightRadius: '25%' }}
           onClick={onIncrementDebugStep}
         >{`>`}</button>

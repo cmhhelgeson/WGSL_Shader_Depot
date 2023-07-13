@@ -3,6 +3,7 @@ import fullscreenVertWebGPUWGSL from '../../shaders/fullscreenWebGPU.vert.wgsl';
 import { createBindGroupDescriptor } from '../../utils/bindGroup';
 import crtFragWGSL from './crt.frag.wgsl';
 import crtDebugFragWGSL from './crtDebug.frag.wgsl';
+import { BaseRenderer } from '../../utils/renderProgram';
 
 type CRTRendererArgs = {
   time: number;
@@ -10,19 +11,19 @@ type CRTRendererArgs = {
   debugStep: number;
 };
 
-export default class CRTRenderer {
+export default class CRTRenderer implements BaseRenderer {
   static sourceInfo = {
     name: __filename.substring(__dirname.length + 1),
     contents: __SOURCE__,
   };
 
-  private readonly renderPassDescriptor: GPURenderPassDescriptor;
-  private readonly pipeline: GPURenderPipeline;
-  private readonly bindGroupMap: Record<string, GPUBindGroup>;
+  readonly renderPassDescriptor: GPURenderPassDescriptor;
+  readonly pipeline: GPURenderPipeline;
+  readonly bindGroupMap: Record<string, GPUBindGroup>;
+  currentBindGroup: GPUBindGroup;
+  currentBindGroupName: string;
   private readonly setTime: (time: number) => void;
   private readonly switchBindGroup: (name: string) => void;
-  private currentBindGroup: GPUBindGroup;
-  private currentBindGroupName: string;
   private setDebugStep: (step: number) => void;
 
   constructor(

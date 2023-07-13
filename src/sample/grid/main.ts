@@ -7,7 +7,7 @@ import { createBindGroupDescriptor } from '../../utils/bindGroup';
 import GridRenderer from './grid';
 import { createUniformDescriptor } from '../../utils/uniform';
 import { cosineInterpolate } from '../../utils/interpolate';
-import CRTRenderer from '../crt/crt';
+import CRTRenderer from './crt';
 import { createTextureFromImage } from '../../utils/texture';
 
 const init: SampleInit = async ({ canvas, pageState, gui, debugValueRef}) => {
@@ -30,65 +30,16 @@ const init: SampleInit = async ({ canvas, pageState, gui, debugValueRef}) => {
   });
 
   const settings = {
-    shaderType: 'crt',
     gridDimensions: 10.0,
     cellOriginX: 0.0,
     cellOriginY: 0.0,
     cellOrigin: 0.0,
-    clampMin: 0.25,
-    clampMax: 0.75,
     lineWidth: 1.0,
     pulseWidth: 2.0,
     pulseLine: true,
     pulseSpeed: 0,
-    textureName: 'dog',
-    debugStep: 0
   };
 
-  const fragBufferDescriptor = createUniformDescriptor(
-    'Fragment_Buffer',
-    4,
-    [settings.clampMin, settings.clampMax, 0, 1.0 / canvas.width],
-    device
-  );
-
-  const fragmentBindGroupDescriptor = createBindGroupDescriptor(
-    [0],
-    [GPUShaderStage.FRAGMENT],
-    ['buffer'],
-    [{ type: 'uniform' }],
-    [[{ buffer: fragBufferDescriptor.buffer }]],
-    'StandardFragment',
-    device
-  );
-
-  //Create the render pipeline
-  const pipeline = device.createRenderPipeline({
-    layout: device.createPipelineLayout({
-      bindGroupLayouts: [fragmentBindGroupDescriptor.bindGroupLayout],
-    }),
-    vertex: {
-      module: device.createShaderModule({
-        code: fullscreenVertWGSL,
-      }),
-      entryPoint: 'vertexMain',
-    },
-    fragment: {
-      module: device.createShaderModule({
-        code: fullscreenFragWGSL,
-      }),
-      entryPoint: 'fragmentMain',
-      targets: [
-        {
-          format: presentationFormat,
-        },
-      ],
-    },
-    primitive: {
-      topology: 'triangle-list',
-      cullMode: 'none',
-    },
-  });
 
   console.log(presentationFormat);
 
@@ -111,7 +62,6 @@ const init: SampleInit = async ({ canvas, pageState, gui, debugValueRef}) => {
   };
 
 
-  gui.add(settings, 'shaderType', ['grid', 'step mix', 'crt']);
   gui.add(settings, 'gridDimensions', 1.0, 100.0).step(1.0);
   const cellOriginX = gui.add(settings, 'cellOriginX', -1.0, 1.0).step(0.1);
   const cellOriginY = gui.add(settings, 'cellOriginY', -1.0, 1.0).step(0.1);
@@ -119,59 +69,15 @@ const init: SampleInit = async ({ canvas, pageState, gui, debugValueRef}) => {
     .add(settings, 'cellOrigin', -1.0, 1.0)
     .step(0.1)
     .onChange(changeCellOriginUniform);
-  gui.add(settings, 'clampMin', 0.0, 1.0).onChange(() => {
-    const arr = new Float32Array([settings.clampMin]);
-    device.queue.writeBuffer(
-      fragBufferDescriptor.buffer,
-      0,
-      arr.buffer,
-      arr.byteOffset,
-      arr.byteLength
-    );
-  });
-  gui.add(settings, 'clampMax', 0.0, 1.0).onChange(() => {
-    const arr = new Float32Array([settings.clampMax]);
-    device.queue.writeBuffer(
-      fragBufferDescriptor.buffer,
-      4,
-      arr.buffer,
-      arr.byteOffset,
-      arr.byteLength
-    );
-  });
   gui.add(settings, 'lineWidth', 1.0, 8.0).step(0.1);
   gui.add(settings, 'pulseWidth', 2.0, 9.0).step(0.1);
   gui.add(settings, 'pulseLine');
   gui.add(settings, 'pulseSpeed', 0, 100).step(10);
-  gui.add(settings, 'textureName', ['dog', 'cat'])
 
   const gridRenderer = new GridRenderer(
     device,
     presentationFormat,
     renderPassDescriptor
-  );
-
-  let dogTexture: GPUTexture 
-  {
-    const response = await fetch(new URL('../../../assets/img/dog.jpg', import.meta.url).toString());
-    const bitmap = await createImageBitmap(await response.blob());
-    dogTexture = createTextureFromImage(device, bitmap)
-  }
-  let catTexture: GPUTexture;
-  {
-    const response = await fetch(new URL('../../../assets/img/cat.jpg', import.meta.url).toString());
-    const bitmap = await createImageBitmap(await response.blob());
-    catTexture = createTextureFromImage(device, bitmap);
-  }
-
-  const crtRenderer = new CRTRenderer(
-    device,
-    presentationFormat,
-    renderPassDescriptor,
-    ['dog', 'cat'],
-    [dogTexture, catTexture],
-    'CRT',
-    true,
   );
 
   let lastTime = performance.now();
@@ -188,13 +94,6 @@ const init: SampleInit = async ({ canvas, pageState, gui, debugValueRef}) => {
 
     lastTime = currentTime;
 
-    device.queue.writeBuffer(
-      fragBufferDescriptor.buffer,
-      8,
-      dtArr.buffer,
-      dtArr.byteOffset,
-      dtArr.byteLength
-    );
 
     renderPassDescriptor.colorAttachments[0].view = context
       .getCurrentTexture()
