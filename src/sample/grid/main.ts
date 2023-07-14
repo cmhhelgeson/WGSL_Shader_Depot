@@ -6,7 +6,7 @@ import gridFragWGSL from './grid.frag.wgsl';
 import GridRenderer from './grid';
 import { cosineInterpolate } from '../../utils/interpolate';
 
-const init: SampleInit = async ({ canvas, pageState, gui, debugValueRef, debugOnRef}) => {
+const init: SampleInit = async ({ canvas, pageState, gui, debugValueRef, debugOnRef, canvasRef}) => {
   //Normal setup
   const adapter = await navigator.gpu.requestAdapter();
   const device = await adapter.requestDevice();
@@ -34,10 +34,10 @@ const init: SampleInit = async ({ canvas, pageState, gui, debugValueRef, debugOn
     pulseWidth: 2.0,
     pulseLine: true,
     pulseSpeed: 0,
+    hoveredCell: '0, 0',
   };
   
 
-  console.log(presentationFormat);
 
   const renderPassDescriptor: GPURenderPassDescriptor = {
     colorAttachments: [
@@ -69,6 +69,8 @@ const init: SampleInit = async ({ canvas, pageState, gui, debugValueRef, debugOn
   gui.add(settings, 'pulseWidth', 2.0, 9.0).step(0.1);
   gui.add(settings, 'pulseLine');
   gui.add(settings, 'pulseSpeed', 0, 100).step(10);
+  const hoveredCell = gui.add(settings, 'hoveredCell')
+  hoveredCell.domElement.style.pointerEvents = "none";
 
   const gridRenderer = new GridRenderer(
     device,
@@ -90,6 +92,14 @@ const init: SampleInit = async ({ canvas, pageState, gui, debugValueRef, debugOn
   let lastTime = performance.now();
   let timeElapsed = 0;
 
+  canvas.addEventListener('mousemove', (event) => {
+    const currWidth = canvasRef.current.getBoundingClientRect().width;
+    const currHeight = canvasRef.current.getBoundingClientRect().height;
+    const cellSize: [number, number] = [currWidth / settings.gridDimensions, currHeight / settings.gridDimensions]
+    const xIndex = Math.floor(event.offsetX / cellSize[0]);
+    const yIndex = Math.floor(event.offsetY / cellSize[1])
+    hoveredCell.setValue(`${xIndex}, ${yIndex}`);
+  })
   function frame() {
     // Sample is no longer the active page.
     if (!pageState.active) return;
@@ -152,8 +162,8 @@ const init: SampleInit = async ({ canvas, pageState, gui, debugValueRef, debugOn
 
 const shaderFullScreen: () => JSX.Element = () =>
   makeSample({
-    name: 'Fullscreen Shader',
-    description: 'Shader examples',
+    name: 'Grid Shader',
+    description: 'A shader that renders a basic, graph style grid.',
     init,
     gui: true,
     sources: [

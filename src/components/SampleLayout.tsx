@@ -176,6 +176,7 @@ const SampleLayout: React.FunctionComponent<
         stats,
         debugValueRef,
         debugOnRef,
+        canvasRef,
       });
 
       if (p instanceof Promise) {
