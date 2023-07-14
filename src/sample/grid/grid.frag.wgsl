@@ -21,26 +21,19 @@ const yellow = vec3f(1.0, 1.0, 0.0);
 
 @fragment
 fn fragmentMain(input: VertexOutput) -> @location(0) vec4<f32> {
-
   var color = vec3f(0.75);
-  var cell: vec2f = fract(input.v_uv * uniforms.gridDimensions);
+  var scaledCell = input.v_uv * uniforms.gridDimensions;
+  //Get index of cell in which fragment is contained
+  let rowIndex = floor(input.v_uv.x);
+  let columnIndex = floor(input.v_uv.y);
+  var cell: vec2f = fract(scaledCell);
   cell = vec2f(abs(cell.x - uniforms.cellOriginX - 0.5), abs(cell.y - uniforms.cellOriginY - 0.5));
-
-  //Represent the currrent distance to the origin of the cell
-  //Wherever that may be.
-  //cellOrigin: 0.5 -> origin is in center
-  //cellOrigin: the origin
-  //lineWidth from 1.0 to 5.0 0.0 -> origin in upper left
-  //cell's origin will be black
 
   //Scale and invert the distance from
   var scaledDist: f32 = 1.0 - (1.0 + uniforms.lineWidth) * max(cell.x, cell.y);
 
   //Anything even a little bit white will be scaled along the smoothstep to 1.0
   var ceilLine: f32 = smoothstep(0.0, 0.05, scaledDist);
-
-  var xAxis: f32 = smoothstep(0.0, 0.005, abs(input.v_uv.y - 0.5));
-  var yAxis: f32 = smoothstep(0.0, 0.005, abs(input.v_uv.x - 0.5));
 
   color = vec3f(ceilLine);
   

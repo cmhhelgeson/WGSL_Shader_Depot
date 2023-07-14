@@ -93,11 +93,6 @@ const MainLayout: React.FunctionComponent<AppProps> = ({
               </ul>
             </div>
           </nav>
-          <div>
-            <button onClick={() => setListExpanded(!listExpanded)}>
-              Expand list
-            </button>
-          </div>
           <Component {...pageProps} />
         </div>
       </>

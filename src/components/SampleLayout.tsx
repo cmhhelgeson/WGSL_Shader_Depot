@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { MutableRefObject, useEffect, useMemo, useRef, useState } from 'react';
@@ -28,7 +27,8 @@ export type SampleInit = (params: {
   pageState: { active: boolean };
   gui?: GUI;
   stats?: Stats;
-  debugValueRef: MutableRefObject<number>,
+  debugValueRef: MutableRefObject<number>;
+  debugOnRef: MutableRefObject<boolean>;
 }) => void | Promise<void> | Promise<string[]>;
 
 if (process.browser) {
@@ -93,8 +93,9 @@ const SampleLayout: React.FunctionComponent<
   );
 
   const dispatch = useAppDispatch();
-  const debugExplanations = useAppSelector(state => state.debugInfo.debugExplanations);
-
+  const debugExplanations = useAppSelector(
+    (state) => state.debugInfo.debugExplanations
+  );
 
   const guiParentRef = useRef<HTMLDivElement | null>(null);
   const gui: GUI | undefined = useMemo(() => {
@@ -122,7 +123,9 @@ const SampleLayout: React.FunctionComponent<
   const [error, setError] = useState<unknown | null>(null);
   const [debugStep, setDebugStep] = useState<number>(0);
   const debugValueRef = useRef<number>(0);
-
+  const [debugOn, setDebugOn] = useState<boolean>(false);
+  const debugOnRef = useRef<boolean>(false);
+  const [hoverDebug, setHoverDebug] = useState<boolean>(false); 
 
   const onIncrementDebugStep = () => {
     if (debugStep === debugExplanations.length - 1) {
@@ -172,18 +175,22 @@ const SampleLayout: React.FunctionComponent<
         gui,
         stats,
         debugValueRef,
+        debugOnRef,
       });
-    
+
       if (p instanceof Promise) {
         p.catch((err: Error) => {
           console.error(err);
           setError(err);
         });
         p.then((result) => {
-          if (Array.isArray(result) && result.every(item => typeof item === 'string')) {
-            dispatch(changeDebugExplanations({newExplanations: result}));
+          if (
+            Array.isArray(result) &&
+            result.every((item) => typeof item === 'string')
+          ) {
+            dispatch(changeDebugExplanations({ newExplanations: result }));
           }
-        })
+        });
       }
     } catch (err) {
       console.error(err);
@@ -250,40 +257,80 @@ const SampleLayout: React.FunctionComponent<
         ></div>
         <canvas ref={canvasRef}></canvas>
       </div>
-      <div
-        style={{
-          display: 'flex',
-          backgroundColor: 'darkblue',
-          width: 'auto',
-          textAlign: 'center',
-          justifyContent: 'space-between',
-          marginTop: '10px',
-          height: '30px',
-          fontSize: '20px',
-        }}
-      >
-        <button
+      {debugOn ? (
+        <div
           style={{
-            borderTopLeftRadius: '15%',
-            marginLeft: '2px',
-          }}
-          onClick={onDecrementDebugStep}
-        >{`<`}</button>
-        <motion.div
-          style={{
-            alignItems: 'center',
-            marginTop: '4px',
-            textShadow: '2px 2px 2px 2px black',
-            marginRight: '2px',
+            display: 'flex',
+            backgroundColor: 'darkblue',
+            width: 'auto',
+            textAlign: 'center',
+            justifyContent: 'space-between',
+            marginTop: '10px',
+            fontSize: '20px',
+            height: 'auto',
           }}
         >
-          {debugExplanations[debugStep]}
-        </motion.div> 
-        <button
-          style={{ borderTopRightRadius: '25%' }}
-          onClick={onIncrementDebugStep}
-        >{`>`}</button>
-      </div>
+          <button
+            style={{
+              borderTopLeftRadius: '15%',
+              marginLeft: '2px',
+            }}
+            onClick={onDecrementDebugStep}
+          >{`<`}</button>
+          <motion.div
+            style={{
+              alignItems: 'center',
+              marginTop: '4px',
+              textShadow: '2px 2px 2px 2px black',
+              marginRight: '2px',
+              height: 'auto',
+            }}
+          >
+            {debugExplanations[debugStep]}
+          </motion.div>
+          <button
+            style={{ borderTopRightRadius: '25%' }}
+            onClick={onIncrementDebugStep}
+          >{`>`}</button>
+        </div>
+      ) : (
+        <div
+          style={{
+            display: 'flex',
+            backgroundColor: 'darkblue',
+            width: 'auto',
+            textAlign: 'center',
+            justifyContent: 'center',
+            marginTop: '10px',
+            fontSize: '20px',
+            height: 'auto',
+          }}
+        >
+          <motion.div
+            style={{
+              alignItems: 'center',
+              marginTop: '4px',
+              textShadow: '2px 2px 2px 2px black',
+              marginRight: '2px',
+              height: 'auto',
+              textDecoration: `${hoverDebug ? 'underline' : 'none'}`,
+              cursor: 'pointer',
+            }}
+            onHoverStart={() => {
+              setHoverDebug(true);
+            }}
+            onHoverEnd={() => {
+              setHoverDebug(false);
+            }}
+            onClick={() => {
+              setDebugOn(true);
+              debugOnRef.current = true;
+            }}
+          >
+            {'(Open Debug)'}
+          </motion.div>
+        </div>
+      )}
       <div>
         <nav className={styles.sourceFileNav}>
           <ul>
@@ -305,7 +352,7 @@ const SampleLayout: React.FunctionComponent<
           </ul>
         </nav>
         {sources.map((src, i) => {
-          console.log(src)
+          console.log(src);
           return (
             <src.Container
               className={styles.sourceFileContainer}

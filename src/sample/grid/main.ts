@@ -6,7 +6,7 @@ import gridFragWGSL from './grid.frag.wgsl';
 import GridRenderer from './grid';
 import { cosineInterpolate } from '../../utils/interpolate';
 
-const init: SampleInit = async ({ canvas, pageState, gui, debugValueRef}) => {
+const init: SampleInit = async ({ canvas, pageState, gui, debugValueRef, debugOnRef}) => {
   //Normal setup
   const adapter = await navigator.gpu.requestAdapter();
   const device = await adapter.requestDevice();
@@ -76,6 +76,14 @@ const init: SampleInit = async ({ canvas, pageState, gui, debugValueRef}) => {
     renderPassDescriptor,
     ["grid"],
     "Grid",
+  );
+
+  const gridRendererDebug = new GridRenderer(
+    device,
+    presentationFormat,
+    renderPassDescriptor,
+    ["grid"],
+    "Grid",
     true
   );
 
@@ -97,19 +105,35 @@ const init: SampleInit = async ({ canvas, pageState, gui, debugValueRef}) => {
       .createView();
 
     const commandEncoder = device.createCommandEncoder();
-    gridRenderer.run(commandEncoder, {
-      gridDimensions: settings.gridDimensions,
-      cellOriginX: settings.cellOriginX,
-      cellOriginY: settings.cellOriginY,
-      lineWidth: settings.pulseLine
-        ? cosineInterpolate(
-          settings.lineWidth,
-          settings.pulseWidth,
-          timeElapsed - (timeElapsed / 10) * (settings.pulseSpeed + 10)
-        )
-        : settings.lineWidth,
-      debugStep: debugValueRef.current,
+    if (debugOnRef.current) {
+      gridRendererDebug.run(commandEncoder, {
+        gridDimensions: settings.gridDimensions,
+        cellOriginX: settings.cellOriginX,
+        cellOriginY: settings.cellOriginY,
+        lineWidth: settings.pulseLine
+          ? cosineInterpolate(
+            settings.lineWidth,
+            settings.pulseWidth,
+            timeElapsed - (timeElapsed / 10) * (settings.pulseSpeed + 10)
+          )
+          : settings.lineWidth,
+        debugStep: debugValueRef.current,
       });
+    } else {
+      gridRenderer.run(commandEncoder, {
+        gridDimensions: settings.gridDimensions,
+        cellOriginX: settings.cellOriginX,
+        cellOriginY: settings.cellOriginY,
+        lineWidth: settings.pulseLine
+          ? cosineInterpolate(
+            settings.lineWidth,
+            settings.pulseWidth,
+            timeElapsed - (timeElapsed / 10) * (settings.pulseSpeed + 10)
+          )
+          : settings.lineWidth,
+        debugStep: debugValueRef.current,
+        });
+    }
 
     device.queue.submit([commandEncoder.finish()]);
 
@@ -120,7 +144,9 @@ const init: SampleInit = async ({ canvas, pageState, gui, debugValueRef}) => {
     "Set fragments to texture uvs (red as x goes right to 1, green as y goes up to 1).", 
     "Multiply the UVs by the Grid Dimensions, creating a small cell in the lower left side of the screen. Values beyond 1 become yellow",
     "Repeat the cells across the screen by outputing the fractional component of the operation above",
-    "Shift the origin of each cell (the black area where both x and y are 0) by 0.5 + cellOrigin"
+    "Shift the origin of each cell (the black area where both x and y are 0) by 0.5 + cellOrigin",
+    "Output the scaled distance away from the center of the cell (note how cell origin is white)",
+    "Interpolate the output for values between 0.0 and 0.05 (0.0 returns 0, 0.025 returns 0.5, 0.05 returns 1)",
   ];
 };
 
