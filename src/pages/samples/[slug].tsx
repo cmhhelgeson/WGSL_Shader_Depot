@@ -16,6 +16,8 @@ export const pages = {
   comanche: dynamic(() => import('../../sample/comancheVoxel/main')),
   fullscreenShader: dynamic(() => import('../../sample/shaderFullScreen/main')),
   rainbowFluids: dynamic(() => import('../../sample/rainbowFluids/main')),
+  CRT: dynamic(() => import('../../sample/crt/main')),
+  grid: dynamic(() => import('../../sample/grid/main')),
 };
 
 function Page({ slug, }: Props): JSX.Element {

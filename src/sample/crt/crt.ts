@@ -1,4 +1,3 @@
-import fullscreenVertWebGLWGSL from '../../shaders/fullscreenWebGL.vert.wgsl';
 import fullscreenVertWebGPUWGSL from '../../shaders/fullscreenWebGPU.vert.wgsl';
 import { createBindGroupDescriptor } from '../../utils/bindGroup';
 import crtFragWGSL from './crt.frag.wgsl';

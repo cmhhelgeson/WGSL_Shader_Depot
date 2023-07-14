@@ -1,12 +1,8 @@
 /* eslint-disable prettier/prettier */
 import { makeSample, SampleInit } from '../../components/SampleLayout';
-import fullscreenVertWGSL from '../../shaders/fullscreenWebGL.vert.wgsl';
-import fullscreenFragWGSL from './fullscreen.frag.wgsl';
-import { createBindGroupDescriptor } from '../../utils/bindGroup';
+import fullscreenVertWebGPU from '../../shaders/fullscreenWebGPU.vert.wgsl';
+import crtFragShader from './crt.frag.wgsl';
 
-import GridRenderer from '../shaderFullScreen/grid';
-import { createUniformDescriptor } from '../../utils/uniform';
-import { cosineInterpolate } from '../../utils/interpolate';
 import CRTRenderer from './crt';
 import { createTextureFromImage } from '../../utils/texture';
 
@@ -84,7 +80,7 @@ const init: SampleInit = async ({ canvas, pageState, gui, debugValueRef}) => {
 
     timeElapsed += Math.min(1 / 60, (currentTime - lastTime) / 1000);
 
-    const dtArr = new Float32Array([timeElapsed]);
+    //const dtArr = new Float32Array([timeElapsed]);
 
     lastTime = currentTime;
 
@@ -108,8 +104,8 @@ const init: SampleInit = async ({ canvas, pageState, gui, debugValueRef}) => {
 
 const shaderFullScreen: () => JSX.Element = () =>
   makeSample({
-    name: 'Fullscreen Shader',
-    description: 'Shader examples',
+    name: 'CRT Shader',
+    description: 'A basic shader emulating a CRT-style effect',
     init,
     gui: true,
     sources: [
@@ -118,13 +114,13 @@ const shaderFullScreen: () => JSX.Element = () =>
         contents: __SOURCE__,
       },
       {
-        name: '../../shaders/fullscreen.vert.wgsl',
-        contents: fullscreenVertWGSL,
+        name: '../../shaders/fullscreenWebGPU.vert.wgsl',
+        contents: fullscreenVertWebGPU,
         editable: true,
       },
       {
-        name: './fullscreen.frag.wgsl',
-        contents: fullscreenFragWGSL,
+        name: './crt.frag.wgsl',
+        contents: crtFragShader,
         editable: true,
       },
     ],

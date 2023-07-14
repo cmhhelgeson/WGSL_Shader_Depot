@@ -24,16 +24,23 @@ const yellow = vec3f(1.0, 1.0, 0.0);
 fn fragmentMain(input: VertexOutput) -> @location(0) vec4<f32> {
 
   var color = vec3f(0.75);
-  var cell: vec2f = fract(input.v_uv * uniforms.gridDimensions);
-  cell = vec2f(abs(cell.x - uniforms.cellOriginX - 0.5), abs(cell.y - uniforms.cellOriginY - 0.5));
+  var cellBeforeMultiply: vec2f = input.v_uv * uniforms.gridDimensions;
+  var cellBeforeOriginShift: vec2f = fract(input.v_uv * uniforms.gridDimensions);
+  var cell = vec2f(abs(cellBeforeOriginShift.x - uniforms.cellOriginX - 0.5), abs(cellBeforeOriginShift.y - uniforms.cellOriginY - 0.5));
 
   if (uniforms.debugStep == 0) {
-    return vec4<f32>(input.v_uv.x, input.v_uv.y);
+    return vec4<f32>(input.v_uv.x, input.v_uv.y, 0.0, 1.0);
   }
 
   if (uniforms.debugStep == 1) {
-    return vec4<f32>(cell.x, cell.y, 0.0, 1.0);
+    return vec4<f32>(cellBeforeMultiply.x, cellBeforeMultiply.y, 0.0, 1.0);
+  }
+  if (uniforms.debugStep == 2) {
+    return vec4<f32>(cellBeforeOriginShift.x, cellBeforeOriginShift.y, 0.0, 1.0);
+  }
 
+  if (uniforms.debugStep == 3) {
+    return vec4<f32>(cell.x, cell.y, 0.0, 1.0);
   }
 
   //Scale and invert the distance from

@@ -2,12 +2,14 @@ import fullscreenVertWGSL from '../../shaders/fullscreenWebGL.vert.wgsl';
 import { createBindGroupDescriptor } from '../../utils/bindGroup';
 import { BaseRenderer } from '../../utils/renderProgram';
 import gridFragWGSL from './grid.frag.wgsl';
+import gridDebugFragWGSL from './gridDebug.frag.wgsl';
 
 type GridRendererArgumentsType = {
   gridDimensions: number;
   cellOriginX: number;
   cellOriginY: number;
   lineWidth: number;
+  debugStep: number;
 };
 
 export default class GridRenderer implements BaseRenderer {
@@ -29,16 +31,22 @@ export default class GridRenderer implements BaseRenderer {
   private readonly changeCellOriginX: (offset: number) => void;
   private readonly changeCellOriginY: (offset: number) => void;
   private readonly changeLineWidth: (offset: number) => void;
+  private changeDebugStep: (step: number) => void;d
 
   constructor(
     device: GPUDevice,
     presentationFormat: GPUTextureFormat,
     renderPassDescriptor: GPURenderPassDescriptor,
+    bindGroupNames: string[],
+    label: string,
     debug = false
   ) {
     this.renderPassDescriptor = renderPassDescriptor;
 
-    const bufferElements = 4 * (debug ? 1 : 0);
+    let bufferElements = 4;
+    if (debug) {
+      bufferElements += 1;
+    }
 
     const uniformBufferSize = Float32Array.BYTES_PER_ELEMENT * bufferElements;
     const uniformBuffer = device.createBuffer({
@@ -57,6 +65,12 @@ export default class GridRenderer implements BaseRenderer {
     );
 
     this.currentBindGroup = bgDescript.bindGroups[0];
+    this.currentBindGroupName = bindGroupNames[0];
+
+    this.bindGroupMap = {};
+    bgDescript.bindGroups.forEach((bg, idx) => {
+      this.bindGroupMap[bindGroupNames[idx]] = bg;
+    });
 
     this.pipeline = device.createRenderPipeline({
       label: 'GridRenderer.pipeline',
@@ -71,7 +85,7 @@ export default class GridRenderer implements BaseRenderer {
       },
       fragment: {
         module: device.createShaderModule({
-          code: gridFragWGSL,
+          code: debug ? gridDebugFragWGSL : gridFragWGSL,
         }),
         entryPoint: 'fragmentMain',
         targets: [
@@ -121,6 +135,12 @@ export default class GridRenderer implements BaseRenderer {
         this.lineWidth = newWidth;
       }
     };
+
+    this.changeDebugStep = (step: number) => {
+      if (debug) {
+        device.queue.writeBuffer(uniformBuffer, 16, new Float32Array([step]));
+      }
+    };
   }
 
   run(commandEncoder: GPUCommandEncoder, args: GridRendererArgumentsType) {
@@ -128,11 +148,12 @@ export default class GridRenderer implements BaseRenderer {
     this.changeCellOriginX(args.cellOriginX);
     this.changeCellOriginY(args.cellOriginY);
     this.changeLineWidth(args.lineWidth);
+    this.changeDebugStep(args.debugStep);
     const passEncoder = commandEncoder.beginRenderPass(
       this.renderPassDescriptor
     );
     passEncoder.setPipeline(this.pipeline);
-    passEncoder.setBindGroup(0, this.bindGroup);
+    passEncoder.setBindGroup(0, this.currentBindGroup);
     passEncoder.draw(6, 1, 0, 0);
     passEncoder.end();
   }

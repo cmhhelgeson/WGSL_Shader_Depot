@@ -4,12 +4,13 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useState } from 'react';
 import type { AppProps } from 'next/app';
-import { wrapper } from '../features/store';
+import { appStore, wrapper } from '../features/store';
 
 import './styles.css';
 import styles from './MainLayout.module.css';
 
 import { pages } from './samples/[slug]';
+import { Provider } from 'react-redux';
 
 const title = 'WGSL Shader Depot';
 
@@ -19,6 +20,7 @@ const MainLayout: React.FunctionComponent<AppProps> = ({
 }) => {
   const router = useRouter();
   const samplesNames = Object.keys(pages);
+  const { store, props } = wrapper.useWrappedStore(appStore);
 
   const [listExpanded, setListExpanded] = useState<boolean>(false);
 
@@ -29,77 +31,78 @@ const MainLayout: React.FunctionComponent<AppProps> = ({
     return <></>;
   }
 
-
   return (
-    <>
-      <Head>
-        <title>{title}</title>
-        <meta
-          name="description"
-          content="The WebGPU Samples are a set of samples demonstrating the use of the WebGPU API."
-        />
-        <meta
-          name="viewport"
-          content="width=device-width, initial-scale=1, shrink-to-fit=no"
-        />
-      </Head>
-      <div className={styles.wrapper}>
-        <nav
-          className={`${styles.panel} ${styles.container}`}
-          data-expanded={listExpanded}
-        >
-          <h1>
-            <Link href="/">{title}</Link>
-            <div
-              className={styles.expand}
-              onClick={() => {
-                setListExpanded(!listExpanded);
-              }}
-            ></div>
-          </h1>
-          <div className={styles.panelContents}>
-            <a href={`https://github.com/${process.env.REPOSITORY_NAME}`}>
-              Github
-            </a>
-            <hr />
-            <ul className={styles.exampleList}>
-              {samplesNames.map((slug) => {
-                const className =
-                  router.pathname === `/samples/[slug]` &&
-                  router.query['slug'] === slug
-                    ? styles.selected
-                    : undefined;
-                return (
-                  <li
-                    key={slug}
-                    className={className}
-                    onMouseOver={() => {
-                      pages[slug].render.preload();
-                    }}
-                  >
-                    <Link
-                      href={`/samples/${slug}`}
-                      onClick={() => {
-                        setListExpanded(false);
+    <Provider store={store}>
+      <>
+        <Head>
+          <title>{title}</title>
+          <meta
+            name="description"
+            content="The WebGPU Samples are a set of samples demonstrating the use of the WebGPU API."
+          />
+          <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1, shrink-to-fit=no"
+          />
+        </Head>
+        <div className={styles.wrapper}>
+          <nav
+            className={`${styles.panel} ${styles.container}`}
+            data-expanded={listExpanded}
+          >
+            <h1>
+              <Link href="/">{title}</Link>
+              <div
+                className={styles.expand}
+                onClick={() => {
+                  setListExpanded(!listExpanded);
+                }}
+              ></div>
+            </h1>
+            <div className={styles.panelContents}>
+              <a href={`https://github.com/${process.env.REPOSITORY_NAME}`}>
+                Github
+              </a>
+              <hr />
+              <ul className={styles.exampleList}>
+                {samplesNames.map((slug) => {
+                  const className =
+                    router.pathname === `/samples/[slug]` &&
+                    router.query['slug'] === slug
+                      ? styles.selected
+                      : undefined;
+                  return (
+                    <li
+                      key={slug}
+                      className={className}
+                      onMouseOver={() => {
+                        pages[slug].render.preload();
                       }}
                     >
-                      {slug}
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
+                      <Link
+                        href={`/samples/${slug}`}
+                        onClick={() => {
+                          setListExpanded(false);
+                        }}
+                      >
+                        {slug}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          </nav>
+          <div>
+            <button onClick={() => setListExpanded(!listExpanded)}>
+              Expand list
+            </button>
           </div>
-        </nav>
-        <div>
-          <button onClick={() => setListExpanded(!listExpanded)}>
-            Expand list
-          </button>
+          <Component {...pageProps} />
         </div>
-        <Component {...pageProps} />
-      </div>
-    </>
+      </>
+    </Provider>
   );
 };
 
-export default wrapper.withRedux(MainLayout);
+export default MainLayout;

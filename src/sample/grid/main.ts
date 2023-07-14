@@ -1,14 +1,10 @@
 /* eslint-disable prettier/prettier */
 import { makeSample, SampleInit } from '../../components/SampleLayout';
-import fullscreenVertWGSL from '../../shaders/fullscreenWebGL.vert.wgsl';
-import fullscreenFragWGSL from './fullscreen.frag.wgsl';
-import { createBindGroupDescriptor } from '../../utils/bindGroup';
+import fullscreenVertWebGLWGSL from '../../shaders/fullscreenWebGL.vert.wgsl';
+import gridFragWGSL from './grid.frag.wgsl';
 
 import GridRenderer from './grid';
-import { createUniformDescriptor } from '../../utils/uniform';
 import { cosineInterpolate } from '../../utils/interpolate';
-import CRTRenderer from './crt';
-import { createTextureFromImage } from '../../utils/texture';
 
 const init: SampleInit = async ({ canvas, pageState, gui, debugValueRef}) => {
   //Normal setup
@@ -39,7 +35,7 @@ const init: SampleInit = async ({ canvas, pageState, gui, debugValueRef}) => {
     pulseLine: true,
     pulseSpeed: 0,
   };
-
+  
 
   console.log(presentationFormat);
 
@@ -77,7 +73,10 @@ const init: SampleInit = async ({ canvas, pageState, gui, debugValueRef}) => {
   const gridRenderer = new GridRenderer(
     device,
     presentationFormat,
-    renderPassDescriptor
+    renderPassDescriptor,
+    ["grid"],
+    "Grid",
+    true
   );
 
   let lastTime = performance.now();
@@ -90,8 +89,6 @@ const init: SampleInit = async ({ canvas, pageState, gui, debugValueRef}) => {
 
     timeElapsed += Math.min(1 / 60, (currentTime - lastTime) / 1000);
 
-    const dtArr = new Float32Array([timeElapsed]);
-
     lastTime = currentTime;
 
 
@@ -100,52 +97,31 @@ const init: SampleInit = async ({ canvas, pageState, gui, debugValueRef}) => {
       .createView();
 
     const commandEncoder = device.createCommandEncoder();
-    switch (settings.shaderType) {
-      case 'grid':
-        {
-          gridRenderer.run(commandEncoder, {
-            gridDimensions: settings.gridDimensions,
-            cellOriginX: settings.cellOriginX,
-            cellOriginY: settings.cellOriginY,
-            lineWidth: settings.pulseLine
-              ? cosineInterpolate(
-                  settings.lineWidth,
-                  settings.pulseWidth,
-                  timeElapsed - (timeElapsed / 10) * (settings.pulseSpeed + 10)
-                )
-              : settings.lineWidth,
-          });
-        }
-        break;
-      case 'crt': 
-        {
-          crtRenderer.run(commandEncoder, {
-            time: timeElapsed,
-            textureName: settings.textureName,
-            debugStep: debugValueRef.current,
-          });
-        } 
-        break;
-      case 'step mix':
-        {
-          const passEncoder =
-            commandEncoder.beginRenderPass(renderPassDescriptor);
-          passEncoder.setPipeline(pipeline);
-          passEncoder.setBindGroup(
-            0,
-            fragmentBindGroupDescriptor.bindGroups[0]
-          );
-          passEncoder.draw(6, 1, 0, 0);
-          passEncoder.end();
-        }
-        break;
-    }
+    gridRenderer.run(commandEncoder, {
+      gridDimensions: settings.gridDimensions,
+      cellOriginX: settings.cellOriginX,
+      cellOriginY: settings.cellOriginY,
+      lineWidth: settings.pulseLine
+        ? cosineInterpolate(
+          settings.lineWidth,
+          settings.pulseWidth,
+          timeElapsed - (timeElapsed / 10) * (settings.pulseSpeed + 10)
+        )
+        : settings.lineWidth,
+      debugStep: debugValueRef.current,
+      });
 
     device.queue.submit([commandEncoder.finish()]);
 
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
+  return [
+    "Set fragments to texture uvs (red as x goes right to 1, green as y goes up to 1).", 
+    "Multiply the UVs by the Grid Dimensions, creating a small cell in the lower left side of the screen. Values beyond 1 become yellow",
+    "Repeat the cells across the screen by outputing the fractional component of the operation above",
+    "Shift the origin of each cell (the black area where both x and y are 0) by 0.5 + cellOrigin"
+  ];
 };
 
 const shaderFullScreen: () => JSX.Element = () =>
@@ -161,12 +137,12 @@ const shaderFullScreen: () => JSX.Element = () =>
       },
       {
         name: '../../shaders/fullscreen.vert.wgsl',
-        contents: fullscreenVertWGSL,
+        contents: fullscreenVertWebGLWGSL,
         editable: true,
       },
       {
         name: './fullscreen.frag.wgsl',
-        contents: fullscreenFragWGSL,
+        contents: gridFragWGSL,
         editable: true,
       },
     ],

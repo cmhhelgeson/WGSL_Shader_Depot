@@ -13,6 +13,9 @@ interface CodeMirrorEditor extends Editor {
 }
 
 import styles from './SampleLayout.module.css';
+import { useAppDispatch, useAppSelector } from '../features/store';
+import { changeDebugExplanations } from '../features/debugInfo/debugInfoSlice';
+import { useSelector } from 'react-redux';
 
 type SourceFileInfo = {
   name: string;
@@ -26,7 +29,7 @@ export type SampleInit = (params: {
   gui?: GUI;
   stats?: Stats;
   debugValueRef: MutableRefObject<number>,
-}) => void | Promise<void>;
+}) => void | Promise<void> | Promise<string[]>;
 
 if (process.browser) {
   require('codemirror/mode/javascript/javascript');
@@ -89,11 +92,9 @@ const SampleLayout: React.FunctionComponent<
     props.sources
   );
 
-  const debugExplanations: string[] = [
-    'Get the sin of each uv coordinate going down from 0 to 1',
-    'Scale the operation to create multiple lines that go from black to white',
-    'Offset the position of each bar by the elapsed time',
-  ];
+  const dispatch = useAppDispatch();
+  const debugExplanations = useAppSelector(state => state.debugInfo.debugExplanations);
+
 
   const guiParentRef = useRef<HTMLDivElement | null>(null);
   const gui: GUI | undefined = useMemo(() => {
@@ -120,8 +121,6 @@ const SampleLayout: React.FunctionComponent<
 
   const [error, setError] = useState<unknown | null>(null);
   const [debugStep, setDebugStep] = useState<number>(0);
-  const debugLeftButtonRef = useRef<HTMLButtonElement>(null);
-  const debugRightButtonRef = useRef<HTMLButtonElement>(null);
   const debugValueRef = useRef<number>(0);
 
 
@@ -175,12 +174,16 @@ const SampleLayout: React.FunctionComponent<
         debugValueRef,
       });
     
-
       if (p instanceof Promise) {
         p.catch((err: Error) => {
           console.error(err);
           setError(err);
         });
+        p.then((result) => {
+          if (Array.isArray(result) && result.every(item => typeof item === 'string')) {
+            dispatch(changeDebugExplanations({newExplanations: result}));
+          }
+        })
       }
     } catch (err) {
       console.error(err);
@@ -209,7 +212,7 @@ const SampleLayout: React.FunctionComponent<
           `,
           }}
         />
-        <title>{`${props.name} - WebGPU Samples`}</title>
+        <title>{`${props.name} - WGSL Shader Depot`}</title>
         <meta name="description" content={props.description} />
         <meta httpEquiv="origin-trial" content={props.originTrial} />
       </Head>
@@ -230,7 +233,7 @@ const SampleLayout: React.FunctionComponent<
           </>
         ) : null}
       </div>
-      <motion.div className={styles.canvasContainer}>
+      <div className={styles.canvasContainer}>
         <div
           style={{
             position: 'absolute',
@@ -246,7 +249,7 @@ const SampleLayout: React.FunctionComponent<
           ref={guiParentRef}
         ></div>
         <canvas ref={canvasRef}></canvas>
-      </motion.div>
+      </div>
       <div
         style={{
           display: 'flex',
@@ -259,7 +262,7 @@ const SampleLayout: React.FunctionComponent<
           fontSize: '20px',
         }}
       >
-        <button ref={debugLeftButtonRef}
+        <button
           style={{
             borderTopLeftRadius: '15%',
             marginLeft: '2px',
@@ -275,8 +278,8 @@ const SampleLayout: React.FunctionComponent<
           }}
         >
           {debugExplanations[debugStep]}
-        </motion.div>
-        <button ref={debugRightButtonRef}
+        </motion.div> 
+        <button
           style={{ borderTopRightRadius: '25%' }}
           onClick={onIncrementDebugStep}
         >{`>`}</button>
@@ -302,6 +305,7 @@ const SampleLayout: React.FunctionComponent<
           </ul>
         </nav>
         {sources.map((src, i) => {
+          console.log(src)
           return (
             <src.Container
               className={styles.sourceFileContainer}

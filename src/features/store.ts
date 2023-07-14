@@ -19,15 +19,18 @@ export type RootState = {
 };
 
 
-export const createStore = () =>
-  configureStore({
-    reducer: {
-      debugInfo: debugInfoReducer
-    },
-    devTools: true,
-  });
+export const appStore = configureStore({
+  reducer: {
+    debugInfo: debugInfoReducer
+  },
+  devTools: true,
+});
+
+export const createStore = () => {return appStore};
 
 export type AppStore = ReturnType<typeof createStore>;
 export const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
+export type AppDispatch = typeof appStore.dispatch;
+export const useAppDispatch: () => AppDispatch = useDispatch
 
 export const wrapper = createWrapper<AppStore>(createStore);
