@@ -1,7 +1,6 @@
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { MutableRefObject, useEffect, useMemo, useRef, useState } from 'react';
-import { Subject, BehaviorSubject, Subscription } from 'rxjs';
 
 import type { GUI } from 'dat.gui';
 import type { Stats } from 'stats-js';
@@ -14,7 +13,6 @@ interface CodeMirrorEditor extends Editor {
 import styles from './SampleLayout.module.css';
 import { useAppDispatch, useAppSelector } from '../features/store';
 import { changeDebugExplanations } from '../features/debugInfo/debugInfoSlice';
-import { useSelector } from 'react-redux';
 
 type SourceFileInfo = {
   name: string;
@@ -29,6 +27,7 @@ export type SampleInit = (params: {
   stats?: Stats;
   debugValueRef: MutableRefObject<number>;
   debugOnRef: MutableRefObject<boolean>;
+  canvasRef: MutableRefObject<HTMLCanvasElement>,
 }) => void | Promise<void> | Promise<string[]>;
 
 if (process.browser) {

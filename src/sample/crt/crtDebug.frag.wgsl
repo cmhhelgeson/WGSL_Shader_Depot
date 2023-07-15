@@ -67,18 +67,10 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4<f32> {
     return vec4<f32>(color, 1.0);
   }
   if (uniforms.debugStep == 3) {
-    var color = vec3<f32>(t1);
-    return vec4<f32>(color, 1.0);
-  }
-  if (uniforms.debugStep == 4) {
-    var color = vec3<f32>(t2BeforeTimeOffset);
-    return vec4<f32>(color, 1.0);
-  }
-  if (uniforms.debugStep == 5) {
     var color = vec3<f32>(t2BeforeRemap);
     return vec4<f32>(color, 1.0);
   }
-  if (uniforms.debugStep == 6) {
+  if (uniforms.debugStep == 4) {
     var color = vec3<f32>(t2);
     return vec4<f32>(color, 1.0);
   }

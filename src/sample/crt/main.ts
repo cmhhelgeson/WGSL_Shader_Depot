@@ -100,6 +100,14 @@ const init: SampleInit = async ({ canvas, pageState, gui, debugValueRef}) => {
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
+  return [
+    'Set output to the sin of input.uv.y.',
+    'Scale input.uv.y to create an alternating pattern.',
+    'Offset the alternating pattern by the time elapsed.',
+    'Perform the prior operations again, only scale by a different factor and offset in the negative direction.',
+    'Remap the values of your alternating pattern to exist within a range of 0.9 to 1.',
+    'Return the sampled texture mixed with your two alternating patterns.'
+  ];
 };
 
 const shaderFullScreen: () => JSX.Element = () =>
