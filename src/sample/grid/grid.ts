@@ -1,6 +1,6 @@
 import fullscreenVertWGSL from '../../shaders/fullscreenWebGL.vert.wgsl';
 import { createBindGroupDescriptor } from '../../utils/bindGroup';
-import { BaseRenderer } from '../../utils/renderProgram';
+import { Base2DRendererClass, BaseRenderer } from '../../utils/renderProgram';
 import gridFragWGSL from './grid.frag.wgsl';
 import gridDebugFragWGSL from './gridDebug.frag.wgsl';
 
@@ -12,7 +12,10 @@ type GridRendererArgumentsType = {
   debugStep: number;
 };
 
-export default class GridRenderer implements BaseRenderer {
+export default class GridRenderer
+  extends Base2DRendererClass
+  implements BaseRenderer
+{
   static sourceInfo = {
     name: __filename.substring(__dirname.length + 1),
     contents: __SOURCE__,
@@ -31,7 +34,7 @@ export default class GridRenderer implements BaseRenderer {
   private readonly changeCellOriginX: (offset: number) => void;
   private readonly changeCellOriginY: (offset: number) => void;
   private readonly changeLineWidth: (offset: number) => void;
-  private changeDebugStep: (step: number) => void;d
+  changeDebugStep: (step: number) => void;
 
   constructor(
     device: GPUDevice,
@@ -41,6 +44,7 @@ export default class GridRenderer implements BaseRenderer {
     label: string,
     debug = false
   ) {
+    super();
     this.renderPassDescriptor = renderPassDescriptor;
 
     let bufferElements = 4;
@@ -143,18 +147,14 @@ export default class GridRenderer implements BaseRenderer {
     };
   }
 
-  run(commandEncoder: GPUCommandEncoder, args: GridRendererArgumentsType) {
+  startRun(commandEncoder: GPUCommandEncoder, args: GridRendererArgumentsType) {
     this.changeDimensions(args.gridDimensions);
     this.changeCellOriginX(args.cellOriginX);
     this.changeCellOriginY(args.cellOriginY);
     this.changeLineWidth(args.lineWidth);
     this.changeDebugStep(args.debugStep);
-    const passEncoder = commandEncoder.beginRenderPass(
-      this.renderPassDescriptor
-    );
-    passEncoder.setPipeline(this.pipeline);
-    passEncoder.setBindGroup(0, this.currentBindGroup);
-    passEncoder.draw(6, 1, 0, 0);
-    passEncoder.end();
+    super.executeRun(commandEncoder, this.renderPassDescriptor, this.pipeline, [
+      this.currentBindGroup,
+    ]);
   }
 }

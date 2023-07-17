@@ -1,7 +1,9 @@
+import fullscreenVertWebGPUWGSL from '../../shaders/fullscreenWebGPU.vert.wgsl';
 import { createBindGroupDescriptor } from '../../utils/bindGroup';
 import crtFragWGSL from './crt.frag.wgsl';
 import crtDebugFragWGSL from './crtDebug.frag.wgsl';
-import { Base2DRendererClass, BaseRenderer } from '../../utils/renderProgram';
+import { BaseRenderer } from '../../utils/renderProgram';
+import { Base2DRendererClass } from '../../utils/renderProgram';
 
 type CRTRendererArgs = {
   time: number;
@@ -25,7 +27,7 @@ export default class CRTRenderer
   currentBindGroupName: string;
   private readonly setTime: (time: number) => void;
   private readonly switchBindGroup: (name: string) => void;
-  changeDebugStep: (step: number) => void;
+  private setDebugStep: (step: number) => void;
 
   constructor(
     device: GPUDevice,
@@ -81,11 +83,16 @@ export default class CRTRenderer
     console.log(this.bindGroupMap);
 
     this.pipeline = device.createRenderPipeline({
-      label: `${label}.pipeline`,
+      label: 'CRTRenderer.pipeline',
       layout: device.createPipelineLayout({
         bindGroupLayouts: [bgDescript.bindGroupLayout],
       }),
-      vertex: super.create2DVertexModule(device, 'WEBGPU'),
+      vertex: {
+        module: device.createShaderModule({
+          code: fullscreenVertWebGPUWGSL,
+        }),
+        entryPoint: 'vertexMain',
+      },
       fragment: {
         module: device.createShaderModule({
           code: debug ? crtDebugFragWGSL : crtFragWGSL,
@@ -103,39 +110,23 @@ export default class CRTRenderer
       },
     });
 
-    this.setTime = (time: number) => {
-      device.queue.writeBuffer(uniformBuffer, 0, new Float32Array([time]));
-    };
-
-    if (debug) {
-      this.changeDebugStep = (step: number) => {
-        const offset = (uniformElements - 1) * Float32Array.BYTES_PER_ELEMENT;
-        device.queue.writeBuffer(
-          uniformBuffer,
-          offset,
-          new Float32Array([step])
-        );
-      };
-    } else {
-      this.changeDebugStep = (step: number) => {
-        return;
-      };
-    }
-
     this.switchBindGroup = (name: string) => {
       this.currentBindGroup = this.bindGroupMap[name];
       this.currentBindGroupName = name;
     };
   }
 
-  startRun(commandEncoder: GPUCommandEncoder, args: CRTRendererArgs) {
-    this.setTime(args.time);
-    this.changeDebugStep(args.debugStep);
+  run(commandEncoder: GPUCommandEncoder, args: CRTRendererArgs) {
+    this.setDebugStep(args.debugStep);
     if (args.textureName !== this.currentBindGroupName) {
       this.switchBindGroup(args.textureName);
     }
-    super.executeRun(commandEncoder, this.renderPassDescriptor, this.pipeline, [
-      this.currentBindGroup,
-    ]);
+    const passEncoder = commandEncoder.beginRenderPass(
+      this.renderPassDescriptor
+    );
+    passEncoder.setPipeline(this.pipeline);
+    passEncoder.setBindGroup(0, this.currentBindGroup);
+    passEncoder.draw(6, 1, 0, 0);
+    passEncoder.end();
   }
 }

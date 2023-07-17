@@ -6,7 +6,7 @@ import crtFragShader from './crt.frag.wgsl';
 import CRTRenderer from './crt';
 import { createTextureFromImage } from '../../utils/texture';
 
-const init: SampleInit = async ({ canvas, pageState, gui, debugValueRef}) => {
+const init: SampleInit = async ({ canvas, pageState, gui, debugValueRef, debugOnRef}) => {
   //Normal setup
   const adapter = await navigator.gpu.requestAdapter();
   const device = await adapter.requestDevice();
@@ -67,8 +67,17 @@ const init: SampleInit = async ({ canvas, pageState, gui, debugValueRef}) => {
     ['dog', 'cat'],
     [dogTexture, catTexture],
     'CRT',
-    true,
   );
+
+  const crtDebugRenderer = new CRTRenderer(
+    device,
+    presentationFormat,
+    renderPassDescriptor,
+    ['dog', 'cat'],
+    [dogTexture, catTexture],
+    'CRT',
+    true
+  )
 
   let lastTime = performance.now();
   let timeElapsed = 0;
@@ -89,7 +98,20 @@ const init: SampleInit = async ({ canvas, pageState, gui, debugValueRef}) => {
       .createView();
 
     const commandEncoder = device.createCommandEncoder();
-    crtRenderer.run(commandEncoder, {
+    if (debugOnRef.current) {
+      crtDebugRenderer.startRun(commandEncoder, {
+        time: timeElapsed,
+        textureName: settings.textureName,
+        debugStep: debugValueRef.current,
+      });
+    } else {
+      crtRenderer.startRun(commandEncoder, {
+        time: timeElapsed,
+        textureName: settings.textureName,
+        debugStep: debugValueRef.current,
+      });
+    }
+    crtRenderer.startRun(commandEncoder, {
       time: timeElapsed,
       textureName: settings.textureName,
       debugStep: debugValueRef.current,

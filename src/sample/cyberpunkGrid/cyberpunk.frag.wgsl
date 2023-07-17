@@ -1,10 +1,14 @@
 
+struct VertexOutput {
+  @builtin(position) Position: vec4<f32>,
+  @location(0) v_uv: vec2<f32>
+}
+
 struct Uniforms {
   time: f32,
 }
 
 @group(0) @binding(0) var<uniform> uniforms: Uniforms;
-
 
 fn sun(
   uv: vec2<f32>, 
@@ -104,8 +108,8 @@ fn sdCloud(
 
 @fragment
 fn fragmentMain(input: VertexBaseInput) -> @location(0) vec4<f32> {
-  vec2 uv = (2.0 * fragCoord.xy - iResolution.xy)/iResolution.y;
-  float battery = 1.0;
+  var uv = input.v_uv;
+  var battery: f32 = 1.0;
   //if (iMouse.x > 1.0 && iMouse.y > 1.0) battery = iMouse.y / iResolution.y;
   //else battery = 0.8;
   // Grid

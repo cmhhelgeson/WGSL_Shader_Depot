@@ -116,7 +116,7 @@ const init: SampleInit = async ({ canvas, pageState, gui, debugValueRef, debugOn
 
     const commandEncoder = device.createCommandEncoder();
     if (debugOnRef.current) {
-      gridRendererDebug.run(commandEncoder, {
+      gridRendererDebug.startRun(commandEncoder, {
         gridDimensions: settings.gridDimensions,
         cellOriginX: settings.cellOriginX,
         cellOriginY: settings.cellOriginY,
@@ -130,7 +130,7 @@ const init: SampleInit = async ({ canvas, pageState, gui, debugValueRef, debugOn
         debugStep: debugValueRef.current,
       });
     } else {
-      gridRenderer.run(commandEncoder, {
+      gridRenderer.startRun(commandEncoder, {
         gridDimensions: settings.gridDimensions,
         cellOriginX: settings.cellOriginX,
         cellOriginY: settings.cellOriginY,

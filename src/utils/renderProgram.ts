@@ -1,4 +1,5 @@
 import fullscreenWebGLVertShader from '../shaders/fullscreenWebGL.vert.wgsl';
+import fullScreenWebGPUVertShader from '../shaders/fullscreenWebGPU.vert.wgsl';
 
 export interface BaseRenderer {
   readonly renderPassDescriptor: GPURenderPassDescriptor;
@@ -83,3 +84,38 @@ export const create2DRenderPipelineDescriptor = (
     renderDescriptors,
   };
 };
+
+export abstract class Base2DRendererClass {
+  abstract changeDebugStep(step: number): void;
+  abstract startRun(commandEncoder: GPUCommandEncoder, ...args: any[]): void;
+  create2DVertexModule(
+    device: GPUDevice,
+    uvOrder: 'WEBGPU' | 'WEBGL'
+  ): GPUVertexState {
+    const vertexState = {
+      module: device.createShaderModule({
+        code:
+          uvOrder === 'WEBGPU'
+            ? fullScreenWebGPUVertShader
+            : fullscreenWebGLVertShader,
+      }),
+      entryPoint: 'vertexMain',
+    };
+    return vertexState;
+  }
+
+  executeRun(
+    commandEncoder: GPUCommandEncoder,
+    renderPassDescriptor: GPURenderPassDescriptor,
+    pipeline: GPURenderPipeline,
+    bindGroups: GPUBindGroup[]
+  ) {
+    const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
+    passEncoder.setPipeline(pipeline);
+    for (let i = 0; i < bindGroups.length; i++) {
+      passEncoder.setBindGroup(i, bindGroups[i]);
+    }
+    passEncoder.draw(6, 1, 0, 0);
+    passEncoder.end();
+  }
+}
