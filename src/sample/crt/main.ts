@@ -111,11 +111,6 @@ const init: SampleInit = async ({ canvas, pageState, gui, debugValueRef, debugOn
         debugStep: debugValueRef.current,
       });
     }
-    crtRenderer.startRun(commandEncoder, {
-      time: timeElapsed,
-      textureName: settings.textureName,
-      debugStep: debugValueRef.current,
-    });
 
     device.queue.submit([commandEncoder.finish()]);
 
@@ -132,7 +127,7 @@ const init: SampleInit = async ({ canvas, pageState, gui, debugValueRef, debugOn
   ];
 };
 
-const shaderFullScreen: () => JSX.Element = () =>
+const crtExample: () => JSX.Element = () =>
   makeSample({
     name: 'CRT Shader',
     description: 'A basic shader emulating a CRT-style effect',
@@ -157,4 +152,4 @@ const shaderFullScreen: () => JSX.Element = () =>
     filename: __filename,
   });
 
-export default shaderFullScreen;
+export default crtExample;

@@ -33,8 +33,9 @@ const init: SampleInit = async ({ canvas, pageState, gui, debugValueRef, debugOn
     lineWidth: 1.0,
     pulseWidth: 2.0,
     pulseLine: true,
-    pulseSpeed: 0,
+    pulseSpeed: 10,
     hoveredCell: '0, 0',
+    resetValues: () => { return; }
   };
   
 
@@ -52,23 +53,34 @@ const init: SampleInit = async ({ canvas, pageState, gui, debugValueRef, debugOn
   };
 
   const changeCellOriginUniform = () => {
-    cellOriginX.setValue(settings.cellOrigin);
+    cellOriginXPad.setValue(settings.cellOrigin);
     //settings.cellOriginY = settings.cellOrigin;
-    cellOriginY.setValue(settings.cellOrigin);
+    cellOriginYPad.setValue(settings.cellOrigin);
   };
 
 
-  gui.add(settings, 'gridDimensions', 1.0, 100.0).step(1.0);
-  const cellOriginX = gui.add(settings, 'cellOriginX', -1.0, 1.0).step(0.1);
-  const cellOriginY = gui.add(settings, 'cellOriginY', -1.0, 1.0).step(0.1);
-  gui
+  const gridDimPad = gui.add(settings, 'gridDimensions', 1.0, 100.0).step(1.0);
+  const cellOriginXPad = gui.add(settings, 'cellOriginX', -1.0, 1.0).step(0.1);
+  const cellOriginYPad = gui.add(settings, 'cellOriginY', -1.0, 1.0).step(0.1);
+  const cellOriginPad = gui
     .add(settings, 'cellOrigin', -1.0, 1.0)
     .step(0.1)
     .onChange(changeCellOriginUniform);
-  gui.add(settings, 'lineWidth', 1.0, 8.0).step(0.1);
-  gui.add(settings, 'pulseWidth', 2.0, 9.0).step(0.1);
-  gui.add(settings, 'pulseLine');
-  gui.add(settings, 'pulseSpeed', 0, 100).step(10);
+  const lineWidthPad = gui.add(settings, 'lineWidth', 1.0, 8.0).step(0.1);
+  const pulseWidthPad = gui.add(settings, 'pulseWidth', 2.0, 9.0).step(0.1);
+  const pulseSpeedPad =  gui.add(settings, 'pulseSpeed', 0, 100).step(10);
+  const isPulsePad = gui.add(settings, 'pulseLine');
+  const resetValues = () => {
+    gridDimPad.setValue(10.0);
+    cellOriginXPad.setValue(0.0);
+    cellOriginYPad.setValue(0.0);
+    cellOriginPad.setValue(0.0);
+    lineWidthPad.setValue(1);
+    pulseWidthPad.setValue(2);
+    pulseSpeedPad.setValue(10);
+    isPulsePad.setValue(true);
+  }
+  gui.add(settings, 'resetValues').onChange(resetValues);
   const hoveredCell = gui.add(settings, 'hoveredCell')
   hoveredCell.domElement.style.pointerEvents = "none";
 
@@ -160,7 +172,7 @@ const init: SampleInit = async ({ canvas, pageState, gui, debugValueRef, debugOn
   ];
 };
 
-const shaderFullScreen: () => JSX.Element = () =>
+const gridExample: () => JSX.Element = () =>
   makeSample({
     name: 'Grid Shader',
     description: 'A shader that renders a basic, graph style grid.',
@@ -185,4 +197,4 @@ const shaderFullScreen: () => JSX.Element = () =>
     filename: __filename,
   });
 
-export default shaderFullScreen;
+export default gridExample;

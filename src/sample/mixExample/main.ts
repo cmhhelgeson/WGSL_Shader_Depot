@@ -1,16 +1,11 @@
 /* eslint-disable prettier/prettier */
 import { makeSample, SampleInit } from '../../components/SampleLayout';
 import fullscreenVertWGSL from '../../shaders/fullscreenWebGL.vert.wgsl';
-import fullscreenFragWGSL from './fullscreen.frag.wgsl';
+import mixFragWGSL from './mix.frag.wgsl';
 import { createBindGroupDescriptor } from '../../utils/bindGroup';
-
-import GridRenderer from './grid';
 import { createUniformDescriptor } from '../../utils/uniform';
-import { cosineInterpolate } from '../../utils/interpolate';
-import CRTRenderer from '../crt/crt';
-import { createTextureFromImage } from '../../utils/texture';
 
-const init: SampleInit = async ({ canvas, pageState, gui, debugValueRef}) => {
+const init: SampleInit = async ({ canvas, pageState, gui}) => {
   //Normal setup
   const adapter = await navigator.gpu.requestAdapter();
   const device = await adapter.requestDevice();
@@ -75,7 +70,7 @@ const init: SampleInit = async ({ canvas, pageState, gui, debugValueRef}) => {
     },
     fragment: {
       module: device.createShaderModule({
-        code: fullscreenFragWGSL,
+        code: mixFragWGSL,
       }),
       entryPoint: 'fragmentMain',
       targets: [
@@ -104,21 +99,7 @@ const init: SampleInit = async ({ canvas, pageState, gui, debugValueRef}) => {
     ],
   };
 
-  const changeCellOriginUniform = () => {
-    cellOriginX.setValue(settings.cellOrigin);
-    //settings.cellOriginY = settings.cellOrigin;
-    cellOriginY.setValue(settings.cellOrigin);
-  };
 
-
-  gui.add(settings, 'shaderType', ['grid', 'step mix', 'crt']);
-  gui.add(settings, 'gridDimensions', 1.0, 100.0).step(1.0);
-  const cellOriginX = gui.add(settings, 'cellOriginX', -1.0, 1.0).step(0.1);
-  const cellOriginY = gui.add(settings, 'cellOriginY', -1.0, 1.0).step(0.1);
-  gui
-    .add(settings, 'cellOrigin', -1.0, 1.0)
-    .step(0.1)
-    .onChange(changeCellOriginUniform);
   gui.add(settings, 'clampMin', 0.0, 1.0).onChange(() => {
     const arr = new Float32Array([settings.clampMin]);
     device.queue.writeBuffer(
@@ -139,40 +120,6 @@ const init: SampleInit = async ({ canvas, pageState, gui, debugValueRef}) => {
       arr.byteLength
     );
   });
-  gui.add(settings, 'lineWidth', 1.0, 8.0).step(0.1);
-  gui.add(settings, 'pulseWidth', 2.0, 9.0).step(0.1);
-  gui.add(settings, 'pulseLine');
-  gui.add(settings, 'pulseSpeed', 0, 100).step(10);
-  gui.add(settings, 'textureName', ['dog', 'cat'])
-
-  const gridRenderer = new GridRenderer(
-    device,
-    presentationFormat,
-    renderPassDescriptor
-  );
-
-  let dogTexture: GPUTexture 
-  {
-    const response = await fetch(new URL('../../../assets/img/dog.jpg', import.meta.url).toString());
-    const bitmap = await createImageBitmap(await response.blob());
-    dogTexture = createTextureFromImage(device, bitmap)
-  }
-  let catTexture: GPUTexture;
-  {
-    const response = await fetch(new URL('../../../assets/img/cat.jpg', import.meta.url).toString());
-    const bitmap = await createImageBitmap(await response.blob());
-    catTexture = createTextureFromImage(device, bitmap);
-  }
-
-  const crtRenderer = new CRTRenderer(
-    device,
-    presentationFormat,
-    renderPassDescriptor,
-    ['dog', 'cat'],
-    [dogTexture, catTexture],
-    'CRT',
-    true,
-  );
 
   let lastTime = performance.now();
   let timeElapsed = 0;
@@ -201,46 +148,14 @@ const init: SampleInit = async ({ canvas, pageState, gui, debugValueRef}) => {
       .createView();
 
     const commandEncoder = device.createCommandEncoder();
-    switch (settings.shaderType) {
-      case 'grid':
-        {
-          gridRenderer.run(commandEncoder, {
-            gridDimensions: settings.gridDimensions,
-            cellOriginX: settings.cellOriginX,
-            cellOriginY: settings.cellOriginY,
-            lineWidth: settings.pulseLine
-              ? cosineInterpolate(
-                  settings.lineWidth,
-                  settings.pulseWidth,
-                  timeElapsed - (timeElapsed / 10) * (settings.pulseSpeed + 10)
-                )
-              : settings.lineWidth,
-          });
-        }
-        break;
-      case 'crt': 
-        {
-          crtRenderer.run(commandEncoder, {
-            time: timeElapsed,
-            textureName: settings.textureName,
-            debugStep: debugValueRef.current,
-          });
-        } 
-        break;
-      case 'step mix':
-        {
-          const passEncoder =
-            commandEncoder.beginRenderPass(renderPassDescriptor);
-          passEncoder.setPipeline(pipeline);
-          passEncoder.setBindGroup(
-            0,
-            fragmentBindGroupDescriptor.bindGroups[0]
-          );
-          passEncoder.draw(6, 1, 0, 0);
-          passEncoder.end();
-        }
-        break;
-    }
+    const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
+    passEncoder.setPipeline(pipeline);
+    passEncoder.setBindGroup(
+      0,
+      fragmentBindGroupDescriptor.bindGroups[0]
+    );
+    passEncoder.draw(6, 1, 0, 0);
+    passEncoder.end();
 
     device.queue.submit([commandEncoder.finish()]);
 
@@ -249,7 +164,7 @@ const init: SampleInit = async ({ canvas, pageState, gui, debugValueRef}) => {
   requestAnimationFrame(frame);
 };
 
-const shaderFullScreen: () => JSX.Element = () =>
+const mixExample: () => JSX.Element = () =>
   makeSample({
     name: 'Fullscreen Shader',
     description: 'Shader examples',
@@ -261,17 +176,17 @@ const shaderFullScreen: () => JSX.Element = () =>
         contents: __SOURCE__,
       },
       {
-        name: '../../shaders/fullscreen.vert.wgsl',
+        name: '../../shaders/fullscreenWebGL.vert.wgsl',
         contents: fullscreenVertWGSL,
         editable: true,
       },
       {
         name: './fullscreen.frag.wgsl',
-        contents: fullscreenFragWGSL,
+        contents: mixFragWGSL,
         editable: true,
       },
     ],
     filename: __filename,
   });
 
-export default shaderFullScreen;
+export default mixExample;

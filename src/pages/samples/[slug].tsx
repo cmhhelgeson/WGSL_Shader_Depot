@@ -14,10 +14,11 @@ export const pages = {
   renderBundles: dynamic(() => import('../../sample/renderBundles/main')),
   normalMapping: dynamic(() => import('../../sample/normalMapping/main')),
   comanche: dynamic(() => import('../../sample/comancheVoxel/main')),
-  fullscreenShader: dynamic(() => import('../../sample/shaderFullScreen/main')),
+  mixExample: dynamic(() => import('../../sample/mixExample/main')),
   rainbowFluids: dynamic(() => import('../../sample/rainbowFluids/main')),
   CRT: dynamic(() => import('../../sample/crt/main')),
   grid: dynamic(() => import('../../sample/grid/main')),
+  cyberpunkGrid: dynamic(() => import('../../sample/cyberpunkGrid/main')),
 };
 
 function Page({ slug, }: Props): JSX.Element {
