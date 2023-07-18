@@ -117,21 +117,21 @@ fn sdCloud(
 
 @fragment
 fn fragmentMain(input: VertexOutput) -> @location(0) vec4<f32> {
-  var uv: vec2<f32> = (2.0 *
-    input.Position.xy - uniforms.resolution.xy
-  )/uniforms.resolution.y;
+  var uv: vec2<f32> = vec2<f32>(input.Position.x * 2 - uniforms.resolution.x, input.Position.y * 2 - uniforms.resolution.y)/uniforms.resolution.y;
   var battery: f32 = 1.0;
   var fog: f32 = smoothstep(0.1, -0.02, abs(uv.y + 0.2));
   var color: vec3<f32> = vec3(0.0, 0.1, 0.2);
+  var uvGridChange = uv;
   if (uv.y < -0.2) {
-    uv.y = 3.0 / (abs(uv.y + 0.2) + 0.05);
-    uv.x *= uv.y * 1.0;
-    var gridVal = grid(uv, battery, uniforms.time);
+    uvGridChange = vec2<f32>(uv.y * 1.0, 3.0 / (abs(uv.y + 0.2) + 0.05));
+    var gridVal = grid(uvGridChange, battery, uniforms.time);
     color = mix(color, vec3(1.0, 0.5, 1.0), gridVal);
   }
 
   color += fog * fog * fog;
   color = mix(vec3f(color.r, color.r, color.r) * 0.5, color, battery * 0.7);
 
-  return vec4<f32>(color, 1.0);
+  //input.Position.xy * 2.0 - 1.0 
+
+  return vec4<f32>(uvGridChange, 0.0, 1.0);
 }

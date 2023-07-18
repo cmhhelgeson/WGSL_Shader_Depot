@@ -1,5 +1,6 @@
 import fullscreenWebGLVertShader from '../shaders/fullscreenWebGL.vert.wgsl';
 import fullScreenWebGPUVertShader from '../shaders/fullscreenWebGPU.vert.wgsl';
+import fullScreenNDCVertShader from '../shaders/fullscreenNDC.vert.wgsl';
 
 export interface BaseRenderer {
   readonly renderPassDescriptor: GPURenderPassDescriptor;
@@ -14,7 +15,10 @@ export type RenderPipelineDescriptor = {
   renderDescriptors: GPURenderPassDescriptor[];
 };
 
+type FullScreenVertexShaderType = 'WEBGPU' | 'WEBGL' | 'NDC';
+
 export const create2DRenderPipelineDescriptor = (
+  vertexShaderType: FullScreenVertexShaderType,
   fragmentShader: string,
   bindGroupLayouts: GPUBindGroupLayout[],
   targetGroups: GPUTexture[][],
@@ -39,12 +43,7 @@ export const create2DRenderPipelineDescriptor = (
         label: `${label}.pipelineLayout${idx}`,
         bindGroupLayouts: bindGroupLayouts,
       }),
-      vertex: {
-        module: device.createShaderModule({
-          code: fullscreenWebGLVertShader,
-        }),
-        entryPoint: 'vertexMain',
-      },
+      vertex: create2DVertexModule(device, 'WEBGL'),
       fragment: {
         module: device.createShaderModule({
           code: fragmentShader,
@@ -85,24 +84,40 @@ export const create2DRenderPipelineDescriptor = (
   };
 };
 
+export const create2DVertexModule = (
+  device: GPUDevice,
+  uvOrder: FullScreenVertexShaderType
+): GPUVertexState => {
+  let vertexCode = fullScreenWebGPUVertShader;
+  switch (uvOrder) {
+    case 'WEBGPU':
+      {
+        vertexCode = fullScreenWebGPUVertShader;
+      }
+      break;
+    case 'WEBGL':
+      {
+        vertexCode = fullscreenWebGLVertShader;
+      }
+      break;
+    case 'NDC':
+      {
+        vertexCode = fullScreenNDCVertShader;
+      }
+      break;
+  }
+  const vertexState = {
+    module: device.createShaderModule({
+      code: vertexCode,
+    }),
+    entryPoint: 'vertexMain',
+  };
+  return vertexState;
+};
+
 export abstract class Base2DRendererClass {
   abstract changeDebugStep(step: number): void;
   abstract startRun(commandEncoder: GPUCommandEncoder, ...args: any[]): void;
-  create2DVertexModule(
-    device: GPUDevice,
-    uvOrder: 'WEBGPU' | 'WEBGL'
-  ): GPUVertexState {
-    const vertexState = {
-      module: device.createShaderModule({
-        code:
-          uvOrder === 'WEBGPU'
-            ? fullScreenWebGPUVertShader
-            : fullscreenWebGLVertShader,
-      }),
-      entryPoint: 'vertexMain',
-    };
-    return vertexState;
-  }
 
   executeRun(
     commandEncoder: GPUCommandEncoder,

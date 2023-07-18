@@ -1,5 +1,5 @@
 import { createBindGroupDescriptor } from '../../utils/bindGroup';
-import { BaseRenderer } from '../../utils/renderProgram';
+import { BaseRenderer, create2DVertexModule } from '../../utils/renderProgram';
 import { Base2DRendererClass } from '../../utils/renderProgram';
 import CyberpunkGridFragWGSL from './cyberpunk.frag.wgsl';
 
@@ -76,7 +76,7 @@ export default class CyberpunkGridRenderer
       layout: device.createPipelineLayout({
         bindGroupLayouts: [bgDescript.bindGroupLayout],
       }),
-      vertex: super.create2DVertexModule(device, 'WEBGL'),
+      vertex: create2DVertexModule(device, 'NDC'),
       fragment: {
         module: device.createShaderModule({
           code: debug ? CyberpunkGridFragWGSL : CyberpunkGridFragWGSL,

@@ -4,6 +4,7 @@ import fullscreenVertWGSL from '../../shaders/fullscreenWebGL.vert.wgsl';
 import mixFragWGSL from './mix.frag.wgsl';
 import { createBindGroupDescriptor } from '../../utils/bindGroup';
 import { createUniformDescriptor } from '../../utils/uniform';
+import { create2DVertexModule } from '../../utils/renderProgram';
 
 const init: SampleInit = async ({ canvas, pageState, gui}) => {
   //Normal setup
@@ -62,12 +63,7 @@ const init: SampleInit = async ({ canvas, pageState, gui}) => {
     layout: device.createPipelineLayout({
       bindGroupLayouts: [fragmentBindGroupDescriptor.bindGroupLayout],
     }),
-    vertex: {
-      module: device.createShaderModule({
-        code: fullscreenVertWGSL,
-      }),
-      entryPoint: 'vertexMain',
-    },
+    vertex: create2DVertexModule(device, "WEBGL"),
     fragment: {
       module: device.createShaderModule({
         code: mixFragWGSL,
