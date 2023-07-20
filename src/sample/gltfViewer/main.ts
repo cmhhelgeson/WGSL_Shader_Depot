@@ -40,6 +40,8 @@ const init: SampleInit = async ({ canvas, pageState, debugValueRef, debugOnRef, 
     .then(res => res.arrayBuffer())
     .then(buffer => uploadGLB(buffer, device));
 
+    
+
 
   let lastTime = performance.now();
   let timeElapsed = 0;

@@ -1,6 +1,6 @@
 import { Accessor, BufferView, GlTf } from './gltf';
 
-enum GLTFRenderMode {
+export enum GLTFRenderMode {
   POINTS,
   LINE,
   LINE_LOOP,
@@ -10,7 +10,7 @@ enum GLTFRenderMode {
   TRIANGLE_FAN,
 }
 
-enum GLTFDataType {
+export enum GLTFDataType {
   BYTE = 5120,
   UNSIGNED_BYTE = 5121,
   SHORT = 5122,
@@ -21,7 +21,7 @@ enum GLTFDataType {
   DOUBLE = 5130,
 }
 
-enum GLTFStructType {
+export enum GLTFStructType {
   SCALAR,
   VEC2,
   VEC3,
@@ -39,20 +39,24 @@ export class GLTFBuffer {
 }
 
 export class GLTFBufferView {
-  length: number;
-  elementStride: number;
-  viewOffset: number;
+  byteLength: number;
+  byteStride: number;
+  byteOffset: number;
   view: Uint8Array;
   usage: number;
   needsUpload: boolean;
   gpuBuffer: GPUBuffer;
   constructor(buffer: GLTFBuffer, view: BufferView) {
-    this.length = view.byteLength;
-    this.elementStride = view.byteStride ? view.byteStride : 0;
-    this.viewOffset = view.byteOffset ? view.byteOffset : 0;
+    //The offset to start reading from within the buffer (often used for allignment)
+    this.byteOffset = view.byteOffset ? view.byteOffset : 0;
+    //The number of bytes being read from the buffer after byteOffset
+    this.byteLength = view.byteLength;
+    //The Bytes Per element, 3f32s, 6 f16s, etc
+    this.byteStride = view.byteStride ? view.byteStride : 0;
+
     this.view = buffer.buffer.subarray(
-      this.viewOffset,
-      this.viewOffset + this.length
+      this.byteOffset,
+      this.byteOffset + this.byteLength
     );
     this.usage = 0;
   }
@@ -71,15 +75,22 @@ export class GLTFAccessor {
   vertexType: GPUVertexFormat;
   byteStride: number;
   constructor(view: GLTFBufferView, accessor: Accessor) {
+    //How many data elements is the accessor...well...accessing?
     this.count = accessor.count;
+    //GL_FLOAT, GL_INT
     this.dataType = accessor.componentType;
-    console.log(accessor.type);
+    //VEC2, VEC3, MAT4
     this.structType = GLTFStructType[accessor.type];
     this.view = view;
+    //Byte Offset into view (start reading from view.byteOffset + accessor.byteOffset?)
     this.byteOffset = accessor.byteOffset ? accessor.byteOffset : 0;
     this.vertexType = getGLTFVertexType(this.dataType, this.structType);
-    const elementSize = getGLTFElementSize(this.dataType, this.structType);
-    this.byteStride = Math.max(elementSize, this.view.elementStride);
+    const elementByteLength = getGLTFElementSize(
+      this.dataType,
+      this.structType
+    );
+    //Change byteStride if necessary
+    this.byteStride = Math.max(elementByteLength, this.view.byteStride);
   }
 }
 
@@ -170,7 +181,7 @@ export const buildMeshRenderPipelines = (
   fragmentShaderModule: GPUShaderModule,
   colorFormat: GPUTextureFormat,
   depthFormat: GPUTextureFormat,
-  bgls: GPUBindGroupLayout[],
+  bgls: GPUBindGroupLayout[]
 ) => {
   for (let i = 0; i < mesh.primitives.length; i++) {
     buildPrimitiveRenderPipeline(
@@ -185,7 +196,7 @@ export const buildMeshRenderPipelines = (
   }
 };
 
-const buildPrimitiveRenderPipeline = (
+export const buildPrimitiveRenderPipeline = (
   device: GPUDevice,
   primitive: GLTFPrimitive,
   vertexShaderModule: GPUShaderModule,
@@ -228,10 +239,10 @@ const buildPrimitiveRenderPipeline = (
   });
 };
 
-const renderGLTFPrimitive = (
+export const renderGLTFPrimitive = (
   primitive: GLTFPrimitive,
   passEncoder: GPURenderPassEncoder,
-  bindGroups: GPUBindGroup[],
+  bindGroups: GPUBindGroup[]
 ) => {
   passEncoder.setPipeline(primitive.renderPipeline);
   for (let i = 0; i < bindGroups.length; i++) {
@@ -241,7 +252,7 @@ const renderGLTFPrimitive = (
     0,
     primitive.positionsAccesor.view.gpuBuffer,
     primitive.positionsAccesor.byteOffset,
-    primitive.positionsAccesor.view.length,
+    primitive.positionsAccesor.view.byteLength
   );
 
   if (primitive.indicesAccessor) {
@@ -249,7 +260,7 @@ const renderGLTFPrimitive = (
       primitive.indicesAccessor.view.gpuBuffer,
       primitive.indicesAccessor.vertexType.split('x')[0] as GPUIndexFormat,
       primitive.indicesAccessor.byteOffset,
-      primitive.indicesAccessor.view.length,
+      primitive.indicesAccessor.view.byteLength
     );
     passEncoder.drawIndexed(primitive.indicesAccessor.count);
   } else {
@@ -265,9 +276,9 @@ export const renderGLTFMesh = (
   for (let i = 0; i < mesh.primitives.length; i++) {
     renderGLTFPrimitive(mesh.primitives[i], passEncoder, bindGroups);
   }
-}
+};
 
-const getNumComponentsOfGLTFStructType = (type: GLTFStructType) => {
+export const getNumComponentsOfGLTFStructType = (type: GLTFStructType) => {
   switch (type) {
     case GLTFStructType.SCALAR:
       {
@@ -308,7 +319,7 @@ const getNumComponentsOfGLTFStructType = (type: GLTFStructType) => {
   }
 };
 
-const getGLTFVertexType = (
+export const getGLTFVertexType = (
   dataType: GLTFDataType,
   structType: GLTFStructType
 ): GPUVertexFormat => {
@@ -385,42 +396,26 @@ const getGLTFVertexType = (
   }
 };
 
-const getGLTFElementSize = (
+export const getGLTFElementSize = (
   dataType: GLTFDataType,
   structType: GLTFStructType
 ) => {
   let size = 0;
   switch (dataType) {
     case GLTFDataType.BYTE:
-      {
-        size = 1;
-      }
-      break;
     case GLTFDataType.UNSIGNED_BYTE:
       {
         size = 1;
       }
       break;
     case GLTFDataType.SHORT:
-      {
-        size = 2;
-      }
-      break;
     case GLTFDataType.UNSIGNED_SHORT:
       {
         size = 2;
       }
       break;
     case GLTFDataType.INT:
-      {
-        size = 4;
-      }
-      break;
     case GLTFDataType.UNSIGNED_INT:
-      {
-        size = 4;
-      }
-      break;
     case GLTFDataType.FLOAT:
       {
         size = 4;
@@ -499,8 +494,8 @@ export const uploadGLB = (buffer: ArrayBuffer, device: GPUDevice) => {
   const binaryDataOffset = 20 + jsonChunkLength + 8;
 
   const binaryData = new GLTFBuffer(buffer, binaryDataOffset, binaryHeader[0]);
-  console.log;
   const bufferViews: GLTFBufferView[] = [];
+  //NOTE: Make u
   for (let i = 0; i < jsonData.bufferViews.length; i++) {
     bufferViews.push(new GLTFBufferView(binaryData, jsonData.bufferViews[i]));
   }
@@ -536,8 +531,6 @@ export const uploadGLB = (buffer: ArrayBuffer, device: GPUDevice) => {
       new GLTFPrimitive(positionsAccessor, indicesAccessor, renderMode)
     );
   }
-
-  ///....
 
   for (let i = 0; i < bufferViews.length; i++) {
     if (bufferViews[i].needsUpload) {
