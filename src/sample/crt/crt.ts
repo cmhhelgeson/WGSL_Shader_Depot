@@ -1,7 +1,7 @@
 import { createBindGroupDescriptor } from '../../utils/bindGroup';
 import crtFragWGSL from './crt.frag.wgsl';
 import crtDebugFragWGSL from './crtDebug.frag.wgsl';
-import { Base2DRendererClass, BaseRenderer } from '../../utils/renderProgram';
+import { Base2DRendererClass, BaseRenderer, create2DVertexModule } from '../../utils/renderProgram';
 
 type CRTRendererArgs = {
   time: number;
@@ -85,7 +85,7 @@ export default class CRTRenderer
       layout: device.createPipelineLayout({
         bindGroupLayouts: [bgDescript.bindGroupLayout],
       }),
-      vertex: super.create2DVertexModule(device, 'WEBGPU'),
+      vertex: create2DVertexModule(device, 'WEBGPU'),
       fragment: {
         module: device.createShaderModule({
           code: debug ? crtDebugFragWGSL : crtFragWGSL,

@@ -25,7 +25,7 @@ export default class CyberpunkGridRenderer
   currentBindGroup: GPUBindGroup;
   currentBindGroupName: string;
   private readonly setTime: (time: number) => void;
-  private readonly switchBindGroup: (name: string) => void;
+  switchBindGroup: (name: string) => void;
   prevDebugStep: number;
   changeCanvasWidth: (width: number) => void;
   changeCanvasHeight: (height: number) => void;
@@ -76,7 +76,7 @@ export default class CyberpunkGridRenderer
       layout: device.createPipelineLayout({
         bindGroupLayouts: [bgDescript.bindGroupLayout],
       }),
-      vertex: create2DVertexModule(device, 'NDC'),
+      vertex: create2DVertexModule(device, 'WEBGL'),
       fragment: {
         module: device.createShaderModule({
           code: debug ? CyberpunkGridFragWGSL : CyberpunkGridFragWGSL,
