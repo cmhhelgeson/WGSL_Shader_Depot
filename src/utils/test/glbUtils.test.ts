@@ -4,11 +4,15 @@ import {
   GLTFStructType,
   getGLTFElementSize,
   getGLTFVertexType,
+  uploadGLB,
 } from '../glbUtils';
+import { GlTf } from '../gltf';
+import fs from 'fs';
+import path from 'path';
 
 const structTypeByteValues = [1, 2, 3, 4, 4, 9, 16];
 
-describe('GLTF Loader Utils tests', () => {
+describe('GLTF Element Parsing tests', () => {
   test('if getGLTFElementSize gets proper values: BYTE', () => {
     const dataType = GLTFDataType['BYTE'];
     expect(dataType).toBe(5120);
@@ -278,5 +282,56 @@ describe('GLTF Loader Utils tests', () => {
     expect(getGLTFElementSize(dataType, GLTFStructType['MAT4'])).toBe(
       structTypeByteValues[6] * 8
     );
+  });
+});
+
+describe('GLB Parsing Tests', () => {
+
+  test('upload from binary .glb returns same JSON as upload from JSON file', async () => {
+  
+    const fp = path.resolve('./public/gltf/Box.glb');
+    const data = fs.readFileSync(fp);
+    //Access underlying ArrayBuffer
+    //ArrayBuffer may be sized differently than buffer object, so we
+    //need to get the exact underlying data as an ArrayBuffer
+    const binaryBuffer = data.buffer.slice(
+      data.byteOffset,
+      data.byteOffset + data.byteLength
+    );
+    //0: Length 1: Type 2: Data
+    const jsonChunkOffset = 12;
+    const jsonDataOffset = 20;
+    const jsonHeader = new Uint32Array(binaryBuffer, jsonChunkOffset, 2);
+    console.log(jsonHeader[1]);
+
+    //Validate JSON Chunk Type
+    if (jsonHeader[1] != 0x4e4f534a) {
+      throw Error(
+        'Invalid glB: The first chunk of the glB file is not a JSON chunk!'
+      );
+    }
+
+    const jsonChunkLength = jsonHeader[0];
+    const jsonDataBinary: GlTf = JSON.parse(
+      new TextDecoder('utf-8').decode(
+        new Uint8Array(binaryBuffer, jsonDataOffset, jsonChunkLength)
+      )
+    );
+
+    const jsfp = path.resolve('./public/gltf/Box.gltf');
+    const jsd = fs.readFileSync(jsfp);
+    const jsonBuffer = jsd.buffer.slice(
+      jsd.byteOffset, 
+      jsd.byteOffset + jsd.byteLength
+    );
+    const jsonDataJSON: GlTf = JSON.parse(
+      new TextDecoder('utf-8').decode(
+        new Uint8Array(jsonBuffer)
+      )
+    );
+    //No uri since all data is packed
+    delete jsonDataJSON.buffers[0].uri;
+    console.log(jsonDataBinary);
+    expect(jsonDataBinary).toEqual(jsonDataJSON);
   });
 });

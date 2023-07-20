@@ -2,17 +2,13 @@
 import { makeSample, SampleInit } from '../../components/SampleLayout';
 import { createBindGroupDescriptor } from '../../utils/bindGroup';
 import { buildMeshRenderPipeline, renderGLTFMesh, uploadGLB } from '../../utils/glbUtils';
-import AvocadoModel from '../../../assets/gltf/Avocado.glb';
 import gltfVertWGSL from './gltf.vert.wgsl';
 import gltfFragWGSL from './gltf.frag.wgsl';
-import { mat4, vec2, vec3 } from 'wgpu-matrix';
+import { mat4, vec3 } from 'wgpu-matrix';
 
 const init: SampleInit = async ({
   canvas,
   pageState,
-  debugValueRef,
-  debugOnRef,
-  canvasRef,
 }) => {
   //Normal setup
   const adapter = await navigator.gpu.requestAdapter();
@@ -40,7 +36,7 @@ const init: SampleInit = async ({
   });
 
   const cameraBuffer = device.createBuffer({
-    size: Float32Array.BYTES_PER_ELEMENT * 16,
+    size: 64 * 3,
     usage: GPUBufferUsage.UNIFORM,
   })
 
@@ -54,7 +50,7 @@ const init: SampleInit = async ({
     device
   );
 
-  const mesh = await fetch(AvocadoModel)
+  const mesh = await fetch('/gltf/Box.glb')
     .then((res) => res.arrayBuffer())
     .then((buffer) => uploadGLB(buffer, device));
 

@@ -38,6 +38,18 @@ export enum GLTFStructType {
   MAT4,
 }
 
+//Example arg 1: 258, arg2: 4
+export const allignTo = (bytesToRead: number, allign: number): number => {
+  //Number of bytes read + allignment - 1
+  //Read 258 bytes + 4 - 1 = 261
+  const lastAllignedByte = bytesToRead + allign - 1;
+  //261 / 4 = 65.25 -> 65 elements
+  const elementsInArea = Math.floor(lastAllignedByte / allign);
+  //65 elements * 4 = 260. Although we are only reading 258 bytes of data
+  //Our buffer needs to be alligned on increments of 4
+  return elementsInArea * allign;
+};
+
 class GLTFBuffer {
   buffer: Uint8Array;
   constructor(buffer: ArrayBuffer, offset: number, size: number) {
@@ -135,8 +147,8 @@ export class GLTFMesh {
 }
 
 abstract class GLTFCamera {
-  abstract xfar: number;
-  abstract xnear: number;
+  abstract zfar: number;
+  abstract znear: number;
   abstract type: string;
 }
 
@@ -153,10 +165,6 @@ class GLTFPerspectiveCamera extends GLTFCamera {
     this.znear = camera.xnear;
     this.type = 'perspective';
   }
-}
-
-class GLTFOrthographicCamera extends GLTFCamera {
-
 }
 
 export const getPrimitiveStateFromRenderMode = (
@@ -478,7 +486,8 @@ export const uploadBufferViewToDevice = (
   view: GLTFBufferView
 ) => {
   const gpuBuffer = device.createBuffer({
-    size: 0,
+    //Number of bytes being read in an allignment of 4 bytes
+    size: allignTo(view.byteLength, 4),
     usage: view.usage,
     mappedAtCreation: true,
   });
@@ -529,6 +538,8 @@ export const uploadGLB = (buffer: ArrayBuffer, device: GPUDevice) => {
     )
   );
 
+  console.log(jsonData);
+
   const binaryDataOffset = 20 + jsonChunkLength + 8;
 
   const binaryData = new GLTFBuffer(buffer, binaryDataOffset, binaryHeader[0]);
@@ -572,6 +583,9 @@ export const uploadGLB = (buffer: ArrayBuffer, device: GPUDevice) => {
       new GLTFPrimitive(positionsAccessor, indicesAccessor, renderMode)
     );
   }
+
+  console.log(meshPrimitives);
+  console.log(bufferViews);
 
   for (let i = 0; i < bufferViews.length; i++) {
     if (bufferViews[i].needsUpload) {

@@ -1,10 +1,10 @@
 struct VertexInput {
-  @location(0) position: vec3<f32>
+  @location(0) position: vec3<f32>,
 }
 
 struct VertexOutput {
-  @builtin(position) Position: vec4<f32>;
-  @location(0) world_pos: vec3<f32>;
+  @builtin(position) Position: vec4<f32>,
+  @location(0) world_pos: vec3<f32>,
 }
 
 struct Uniforms {
