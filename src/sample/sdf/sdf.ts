@@ -116,7 +116,7 @@ export default class CyberpunkGridRenderer
   }
 
   startRun(commandEncoder: GPUCommandEncoder, args: SDFRendererArgs) {
-    this.changeCanvasWidth(args.canvasWidth);
+    this.changeCanvasWidth(args.);
     this.changeCanvasHeight(args.canvasHeight);
     this.changeTime(args.time);
     if (args.debugStep !== this.prevDebugStep) {
