@@ -1,4 +1,11 @@
-import { Accessor, BufferView, GlTf } from './gltf';
+import {
+  Accessor,
+  BufferView,
+  Camera,
+  CameraOrthographic,
+  CameraPerspective,
+  GlTf,
+} from './gltf';
 
 export enum GLTFRenderMode {
   POINTS,
@@ -31,14 +38,14 @@ export enum GLTFStructType {
   MAT4,
 }
 
-export class GLTFBuffer {
+class GLTFBuffer {
   buffer: Uint8Array;
   constructor(buffer: ArrayBuffer, offset: number, size: number) {
     this.buffer = new Uint8Array(buffer, offset, size);
   }
 }
 
-export class GLTFBufferView {
+class GLTFBufferView {
   byteLength: number;
   byteStride: number;
   byteOffset: number;
@@ -66,7 +73,7 @@ export class GLTFBufferView {
   }
 }
 
-export class GLTFAccessor {
+class GLTFAccessor {
   count: number;
   dataType: GLTFDataType;
   structType: GLTFStructType;
@@ -94,7 +101,7 @@ export class GLTFAccessor {
   }
 }
 
-export class GLTFPrimitive {
+class GLTFPrimitive {
   mode: GLTFRenderMode;
   positionsAccesor: GLTFAccessor;
   indicesAccessor: GLTFAccessor | null;
@@ -125,6 +132,31 @@ export class GLTFMesh {
     this.name = name;
     this.primitives = primitives;
   }
+}
+
+abstract class GLTFCamera {
+  abstract xfar: number;
+  abstract xnear: number;
+  abstract type: string;
+}
+
+class GLTFPerspectiveCamera extends GLTFCamera {
+  type: string;
+  zfar: number;
+  znear: number;
+  aspectRatio: number;
+
+  constructor(camera: CameraPerspective) {
+    super();
+    this.aspectRatio = camera.aspectRatio;
+    this.zfar = camera.xfar;
+    this.znear = camera.xnear;
+    this.type = 'perspective';
+  }
+}
+
+class GLTFOrthographicCamera extends GLTFCamera {
+
 }
 
 export const getPrimitiveStateFromRenderMode = (
@@ -174,15 +206,21 @@ export const getPrimitiveStateFromRenderMode = (
   return primitiveState;
 };
 
-export const buildMeshRenderPipelines = (
+export const buildMeshRenderPipeline = (
   device: GPUDevice,
   mesh: GLTFMesh,
-  vertexShaderModule: GPUShaderModule,
-  fragmentShaderModule: GPUShaderModule,
+  vertexShader: string,
+  fragmentShader: string,
   colorFormat: GPUTextureFormat,
   depthFormat: GPUTextureFormat,
   bgls: GPUBindGroupLayout[]
 ) => {
+  const vertexShaderModule = device.createShaderModule({
+    code: vertexShader,
+  });
+  const fragmentShaderModule = device.createShaderModule({
+    code: fragmentShader,
+  });
   for (let i = 0; i < mesh.primitives.length; i++) {
     buildPrimitiveRenderPipeline(
       device,
@@ -196,7 +234,7 @@ export const buildMeshRenderPipelines = (
   }
 };
 
-export const buildPrimitiveRenderPipeline = (
+const buildPrimitiveRenderPipeline = (
   device: GPUDevice,
   primitive: GLTFPrimitive,
   vertexShaderModule: GPUShaderModule,
@@ -495,12 +533,14 @@ export const uploadGLB = (buffer: ArrayBuffer, device: GPUDevice) => {
 
   const binaryData = new GLTFBuffer(buffer, binaryDataOffset, binaryHeader[0]);
   const bufferViews: GLTFBufferView[] = [];
+  console.log(`Reading ${jsonData.bufferViews.length} bufferViews...`);
   //NOTE: Make u
   for (let i = 0; i < jsonData.bufferViews.length; i++) {
     bufferViews.push(new GLTFBufferView(binaryData, jsonData.bufferViews[i]));
   }
 
   const accessors: GLTFAccessor[] = [];
+  console.log(`Reading ${jsonData.accessors.length} accessors...`);
   for (let i = 0; i < jsonData.accessors.length; i++) {
     const accessorData = jsonData.accessors[i];
     const id = accessorData.bufferView;
@@ -509,6 +549,7 @@ export const uploadGLB = (buffer: ArrayBuffer, device: GPUDevice) => {
 
   const mesh = jsonData.meshes[0];
   const meshPrimitives: GLTFPrimitive[] = [];
+  console.log(`Reading ${mesh.primitives.length} primitives on mesh 0`);
   for (let i = 0; i < mesh.primitives.length; i++) {
     const currentPrimitive = mesh.primitives[i];
     const renderMode = currentPrimitive.mode

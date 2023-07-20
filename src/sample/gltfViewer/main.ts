@@ -1,10 +1,19 @@
 /* eslint-disable prettier/prettier */
 import { makeSample, SampleInit } from '../../components/SampleLayout';
-import { uploadGLB } from '../../utils/glbUtils';
-import AvocadoModel from './Avocado.glb';
+import { createBindGroupDescriptor } from '../../utils/bindGroup';
+import { buildMeshRenderPipeline, renderGLTFMesh, uploadGLB } from '../../utils/glbUtils';
+import AvocadoModel from '../../../assets/gltf/Avocado.glb';
+import gltfVertWGSL from './gltf.vert.wgsl';
+import gltfFragWGSL from './gltf.frag.wgsl';
+import { mat4, vec2, vec3 } from 'wgpu-matrix';
 
-
-const init: SampleInit = async ({ canvas, pageState, debugValueRef, debugOnRef, canvasRef}) => {
+const init: SampleInit = async ({
+  canvas,
+  pageState,
+  debugValueRef,
+  debugOnRef,
+  canvasRef,
+}) => {
   //Normal setup
   const adapter = await navigator.gpu.requestAdapter();
   const device = await adapter.requestDevice();
@@ -23,7 +32,67 @@ const init: SampleInit = async ({ canvas, pageState, debugValueRef, debugOnRef, 
     format: presentationFormat,
     alphaMode: 'premultiplied',
   });
-  
+
+  const depthTexture = device.createTexture({
+    size: [canvas.width, canvas.height],
+    format: "depth24plus",
+    usage: GPUTextureUsage.RENDER_ATTACHMENT,
+  });
+
+  const cameraBuffer = device.createBuffer({
+    size: Float32Array.BYTES_PER_ELEMENT * 16,
+    usage: GPUBufferUsage.UNIFORM,
+  })
+
+  const bgDescriptor = createBindGroupDescriptor(
+    [0],
+    [GPUShaderStage.VERTEX],
+    ['buffer'],
+    [{ type: 'uniform' }],
+    [[{ buffer: cameraBuffer }]],
+    'Camera',
+    device
+  );
+
+  const mesh = await fetch(AvocadoModel)
+    .then((res) => res.arrayBuffer())
+    .then((buffer) => uploadGLB(buffer, device));
+
+  buildMeshRenderPipeline(
+    device,
+    mesh,
+    gltfVertWGSL,
+    gltfFragWGSL,
+    presentationFormat,
+    "depth24plus",
+    [bgDescriptor.bindGroupLayout]
+  );
+
+  const aspect = canvas.width / canvas.height;
+  const projectionMatrix = mat4.perspective(
+    (2 * Math.PI) / 5,
+    aspect,
+    1,
+    100.0
+  ) as Float32Array;
+
+  function getViewMatrix() {
+    const viewMatrix = mat4.identity();
+    mat4.translate(viewMatrix, vec3.fromValues(0, 0, -2), viewMatrix);
+    return viewMatrix;
+  }
+
+  function getModelMatrix() {
+    const modelMatrix = mat4.create();
+    mat4.identity(modelMatrix);
+    mat4.rotateX(modelMatrix, 10, modelMatrix);
+    const now = Date.now() / 1000;
+    mat4.rotateY(modelMatrix, now * -0.5, modelMatrix);
+    return modelMatrix;
+  }
+
+
+
   const renderPassDescriptor: GPURenderPassDescriptor = {
     colorAttachments: [
       {
@@ -34,34 +103,55 @@ const init: SampleInit = async ({ canvas, pageState, debugValueRef, debugOnRef, 
         storeOp: 'store',
       },
     ],
+    depthStencilAttachment: {
+      view: depthTexture.createView(),
+
+      depthClearValue: 1.0,
+      depthLoadOp: 'clear',
+      depthStoreOp: 'store',
+    },
   };
 
-  const mesh = await fetch(AvocadoModel)
-    .then(res => res.arrayBuffer())
-    .then(buffer => uploadGLB(buffer, device));
+  device.queue.writeBuffer(
+    cameraBuffer,
+    0,
+    projectionMatrix.buffer,
+    projectionMatrix.byteOffset,
+    projectionMatrix.length,
+  );
 
-    
+  const vmt = getViewMatrix();
+  const vm = vmt as Float32Array;
 
-
-  let lastTime = performance.now();
-  let timeElapsed = 0;
+  device.queue.writeBuffer(
+    cameraBuffer,
+    64,
+    vm.buffer,
+    vm.byteOffset,
+    vm.length
+  );
 
   function frame() {
     // Sample is no longer the active page.
     if (!pageState.active) return;
-    const currentTime = performance.now();
 
-    timeElapsed += Math.min(1 / 60, (currentTime - lastTime) / 1000);
-
-    lastTime = currentTime;
-
-
+    const modelMatrix = getModelMatrix() as Float32Array;
+    device.queue.writeBuffer(
+      cameraBuffer,
+      128,
+      modelMatrix.buffer,
+      modelMatrix.byteOffset,
+      modelMatrix.length
+    );
+    
     renderPassDescriptor.colorAttachments[0].view = context
       .getCurrentTexture()
       .createView();
 
     const commandEncoder = device.createCommandEncoder();
-    
+    const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
+    renderGLTFMesh(mesh, passEncoder, [bgDescriptor.bindGroups[0]]);
+    passEncoder.end();
 
     device.queue.submit([commandEncoder.finish()]);
 
@@ -69,7 +159,7 @@ const init: SampleInit = async ({ canvas, pageState, debugValueRef, debugOnRef, 
   }
   requestAnimationFrame(frame);
   return [
-    "Set fragments to texture uvs (red as x goes right to 1, green as y goes up to 1).", 
+    'Set fragments to texture uvs (red as x goes right to 1, green as y goes up to 1).',
   ];
 };
 

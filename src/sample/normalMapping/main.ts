@@ -310,15 +310,6 @@ const init: SampleInit = async ({ canvas, pageState, gui }) => {
       case 'Normal':
         arr[0] = 1;
         break;
-      /*case 'Parallax':
-        arr[0] = 3;
-        break;
-      case 'Steep Parallax':
-        arr[0] = 4;
-        break;
-      case 'Parallax Occlusion':
-        arr[0] = 5;
-        break; */
     }
   };
 
