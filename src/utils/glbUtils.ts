@@ -1,11 +1,4 @@
-import {
-  Accessor,
-  BufferView,
-  Camera,
-  CameraOrthographic,
-  CameraPerspective,
-  GlTf,
-} from './gltf';
+import { Accessor, BufferView, CameraPerspective, GlTf } from './gltf';
 
 export enum GLTFRenderMode {
   POINTS,
@@ -50,14 +43,14 @@ export const allignTo = (bytesToRead: number, allign: number): number => {
   return elementsInArea * allign;
 };
 
-class GLTFBuffer {
+export class GLTFBuffer {
   buffer: Uint8Array;
   constructor(buffer: ArrayBuffer, offset: number, size: number) {
     this.buffer = new Uint8Array(buffer, offset, size);
   }
 }
 
-class GLTFBufferView {
+export class GLTFBufferView {
   byteLength: number;
   byteStride: number;
   byteOffset: number;
@@ -85,7 +78,7 @@ class GLTFBufferView {
   }
 }
 
-class GLTFAccessor {
+export class GLTFAccessor {
   count: number;
   dataType: GLTFDataType;
   structType: GLTFStructType;
@@ -108,12 +101,12 @@ class GLTFAccessor {
       this.dataType,
       this.structType
     );
-    //Change byteStride if necessary
+    //Change byteStride if necessary, especially if byteStride is 0
     this.byteStride = Math.max(elementByteLength, this.view.byteStride);
   }
 }
 
-class GLTFPrimitive {
+export class GLTFPrimitive {
   mode: GLTFRenderMode;
   positionsAccesor: GLTFAccessor;
   indicesAccessor: GLTFAccessor | null;
@@ -298,7 +291,7 @@ export const renderGLTFPrimitive = (
     0,
     primitive.positionsAccesor.view.gpuBuffer,
     primitive.positionsAccesor.byteOffset,
-    primitive.positionsAccesor.view.byteLength
+    primitive.positionsAccesor.view.byteLength,
   );
 
   if (primitive.indicesAccessor) {
@@ -557,10 +550,12 @@ export const uploadGLB = (buffer: ArrayBuffer, device: GPUDevice) => {
     const id = accessorData.bufferView;
     accessors.push(new GLTFAccessor(bufferViews[id], accessorData));
   }
+  console.log(accessors);
 
   const mesh = jsonData.meshes[0];
   const meshPrimitives: GLTFPrimitive[] = [];
   console.log(`Reading ${mesh.primitives.length} primitives on mesh 0`);
+  console.log(mesh.primitives);
   for (let i = 0; i < mesh.primitives.length; i++) {
     const currentPrimitive = mesh.primitives[i];
     const renderMode = currentPrimitive.mode

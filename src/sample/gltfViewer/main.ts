@@ -1,7 +1,7 @@
 /* eslint-disable prettier/prettier */
 import { makeSample, SampleInit } from '../../components/SampleLayout';
 import { createBindGroupDescriptor } from '../../utils/bindGroup';
-import { buildMeshRenderPipeline, renderGLTFMesh, uploadGLB } from '../../utils/glbUtils';
+import { buildMeshRenderPipeline, GLTFMesh, renderGLTFMesh, uploadGLB } from '../../utils/glbUtils';
 import gltfVertWGSL from './gltf.vert.wgsl';
 import gltfFragWGSL from './gltf.frag.wgsl';
 import { mat4, vec3 } from 'wgpu-matrix';
@@ -37,7 +37,7 @@ const init: SampleInit = async ({
 
   const cameraBuffer = device.createBuffer({
     size: 64 * 3,
-    usage: GPUBufferUsage.UNIFORM,
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   })
 
   const bgDescriptor = createBindGroupDescriptor(
@@ -50,7 +50,7 @@ const init: SampleInit = async ({
     device
   );
 
-  const mesh = await fetch('/gltf/Box.glb')
+  const mesh: GLTFMesh = await fetch('/gltf/Box.glb')
     .then((res) => res.arrayBuffer())
     .then((buffer) => uploadGLB(buffer, device));
 
@@ -61,7 +61,7 @@ const init: SampleInit = async ({
     gltfFragWGSL,
     presentationFormat,
     "depth24plus",
-    [bgDescriptor.bindGroupLayout]
+    [bgDescriptor.bindGroupLayout],
   );
 
   const aspect = canvas.width / canvas.height;

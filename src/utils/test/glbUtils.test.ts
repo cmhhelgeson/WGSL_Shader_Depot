@@ -1,10 +1,12 @@
 /* eslint-disable prettier/prettier */
 import {
+  GLTFAccessor,
+  GLTFBuffer,
+  GLTFBufferView,
   GLTFDataType,
   GLTFStructType,
   getGLTFElementSize,
   getGLTFVertexType,
-  uploadGLB,
 } from '../glbUtils';
 import { GlTf } from '../gltf';
 import fs from 'fs';
@@ -287,36 +289,59 @@ describe('GLTF Element Parsing tests', () => {
 
 describe('GLB Parsing Tests', () => {
 
+  const fp = path.resolve('./public/gltf/Box.glb');
+  const data = fs.readFileSync(fp);
+  //Access underlying ArrayBuffer
+  //ArrayBuffer may be sized differently than buffer object, so we
+  //need to get the exact underlying data as an ArrayBuffer
+  const binaryBuffer = data.buffer.slice(
+    data.byteOffset,
+    data.byteOffset + data.byteLength
+  );
+  //0: Magic 1: Version 2: Length
+  const glbChunkOffset = 0;
+  const glbHeader = new Uint32Array(binaryBuffer, glbChunkOffset, 3);
+  //Validate GLB
+  if (glbHeader[0] != 0x46546c67) {
+    throw Error('Provided file is not a GLB File');
+  } 
+  //Validate GLTF 2.0
+  if (glbHeader[1] != 2) {
+    throw Error('Provided file is not a GTLF 2.0 File');
+  }
+  //0: Length 1: Type 2: Data
+  const jsonChunkOffset = 12;
+  const jsonDataOffset = 20;
+  const jsonHeader = new Uint32Array(binaryBuffer, jsonChunkOffset, 2);
+
+  //Validate JSON Chunk Type
+  if (jsonHeader[1] != 0x4e4f534a) {
+    throw Error(
+      'Invalid glB: The first chunk of the glB file is not a JSON chunk!'
+    );
+  }
+
+  //0: Length 1: Type 2: Data
+  const binaryHeader = new Uint32Array(binaryBuffer, 20 + jsonHeader[0], 2);
+
+  //Validate binary chunk type
+  if (binaryHeader[1] != 0x004e4942) {
+    throw Error(
+      'Invalid glB: The second chunk of the glB file is not a binary chunk!'
+    );
+  }
+
+  const jsonChunkLength = jsonHeader[0];
+  const jsonDataBinary: GlTf = JSON.parse(
+    new TextDecoder('utf-8').decode(
+      new Uint8Array(binaryBuffer, jsonDataOffset, jsonChunkLength)
+    )
+  );
+
+  const binaryDataOffset = 20 + jsonChunkLength + 8;
+
+
   test('upload from binary .glb returns same JSON as upload from JSON file', async () => {
-  
-    const fp = path.resolve('./public/gltf/Box.glb');
-    const data = fs.readFileSync(fp);
-    //Access underlying ArrayBuffer
-    //ArrayBuffer may be sized differently than buffer object, so we
-    //need to get the exact underlying data as an ArrayBuffer
-    const binaryBuffer = data.buffer.slice(
-      data.byteOffset,
-      data.byteOffset + data.byteLength
-    );
-    //0: Length 1: Type 2: Data
-    const jsonChunkOffset = 12;
-    const jsonDataOffset = 20;
-    const jsonHeader = new Uint32Array(binaryBuffer, jsonChunkOffset, 2);
-    console.log(jsonHeader[1]);
-
-    //Validate JSON Chunk Type
-    if (jsonHeader[1] != 0x4e4f534a) {
-      throw Error(
-        'Invalid glB: The first chunk of the glB file is not a JSON chunk!'
-      );
-    }
-
-    const jsonChunkLength = jsonHeader[0];
-    const jsonDataBinary: GlTf = JSON.parse(
-      new TextDecoder('utf-8').decode(
-        new Uint8Array(binaryBuffer, jsonDataOffset, jsonChunkLength)
-      )
-    );
 
     const jsfp = path.resolve('./public/gltf/Box.gltf');
     const jsd = fs.readFileSync(jsfp);
@@ -334,4 +359,40 @@ describe('GLB Parsing Tests', () => {
     console.log(jsonDataBinary);
     expect(jsonDataBinary).toEqual(jsonDataJSON);
   });
+
+  test('glb bufferViews data translated to GLTFBufferView class', () => {
+    const binaryData = new GLTFBuffer(binaryBuffer, binaryDataOffset, binaryHeader[0]);
+    const bufferViews: GLTFBufferView[] = [];
+    console.log(`Reading ${jsonDataBinary.bufferViews.length} bufferViews...`);
+    expect(jsonDataBinary.bufferViews.length).toBe(2);
+    for (let i = 0; i < jsonDataBinary.bufferViews.length; i++) {
+      bufferViews.push(new GLTFBufferView(binaryData, jsonDataBinary.bufferViews[i]));
+    }
+    expect(bufferViews[0].byteOffset).toBe(576);
+    expect(bufferViews[0].byteLength).toBe(72);
+    expect(bufferViews[0].byteStride).toBe(0);
+
+    expect(bufferViews[1].byteStride).toBe(12);
+
+  })
+
+  test('GLTFAccessor ByteStride fixed when GLTFBufferView byteStride is 0', () => {
+    const binaryData = new GLTFBuffer(binaryBuffer, binaryDataOffset, binaryHeader[0]);
+    const bufferViews: GLTFBufferView[] = [];
+    console.log(`Reading ${jsonDataBinary.bufferViews.length} bufferViews...`);
+    for (let i = 0; i < jsonDataBinary.bufferViews.length; i++) {
+      bufferViews.push(new GLTFBufferView(binaryData, jsonDataBinary.bufferViews[i]));
+    }
+    const accessors: GLTFAccessor[] = [];
+    for (let i = 0; i < jsonDataBinary.accessors.length; i++) {
+      const accessorData = jsonDataBinary.accessors[i];
+      const id = accessorData.bufferView;
+      accessors.push(new GLTFAccessor(bufferViews[id], accessorData));
+    }
+    expect(accessors[0].vertexType).toBe('uint16');
+    expect(accessors[0].byteStride).toBe(2);
+    expect(accessors[1].byteStride).toBe(bufferViews[1].byteStride)
+    expect(accessors[2].byteStride).toBe(bufferViews[1].byteStride)
+
+  })
 });
