@@ -31,7 +31,7 @@ const init: SampleInit = async ({
 
   const depthTexture = device.createTexture({
     size: [canvas.width, canvas.height],
-    format: "depth24plus",
+    format: 'depth24plus-stencil8',
     usage: GPUTextureUsage.RENDER_ATTACHMENT,
   });
 
@@ -60,7 +60,7 @@ const init: SampleInit = async ({
     gltfVertWGSL,
     gltfFragWGSL,
     presentationFormat,
-    "depth24plus",
+    depthTexture.format,
     [bgDescriptor.bindGroupLayout],
   );
 
@@ -68,8 +68,8 @@ const init: SampleInit = async ({
   const projectionMatrix = mat4.perspective(
     (2 * Math.PI) / 5,
     aspect,
-    1,
-    100.0
+    0.1,
+    1000.0
   ) as Float32Array;
 
   function getViewMatrix() {
@@ -94,17 +94,19 @@ const init: SampleInit = async ({
       {
         view: undefined, // Assigned later
 
-        clearValue: { r: 0.1, g: 0.4, b: 0.5, a: 1.0 },
+        clearValue: { r: 0.3, g: 0.3, b: 0.3, a: 1.0 },
         loadOp: 'clear',
         storeOp: 'store',
       },
     ],
     depthStencilAttachment: {
       view: depthTexture.createView(),
-
+      depthLoadOp: "clear",
       depthClearValue: 1.0,
-      depthLoadOp: 'clear',
-      depthStoreOp: 'store',
+      depthStoreOp: "store",
+      stencilLoadOp: "clear",
+      stencilClearValue: 0,
+      stencilStoreOp: "store"
     },
   };
 

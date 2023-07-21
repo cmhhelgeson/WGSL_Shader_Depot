@@ -4,9 +4,11 @@ import {
   GLTFBuffer,
   GLTFBufferView,
   GLTFDataType,
+  GLTFRenderMode,
   GLTFStructType,
   getGLTFElementSize,
   getGLTFVertexType,
+  getPrimitiveStateFromRenderMode,
 } from '../glbUtils';
 import { GlTf } from '../gltf';
 import fs from 'fs';
@@ -285,6 +287,23 @@ describe('GLTF Element Parsing tests', () => {
       structTypeByteValues[6] * 8
     );
   });
+
+  test('if getPrimitiveStateFromRenderMode works correctly', () => {
+    let primitiveState = getPrimitiveStateFromRenderMode(GLTFRenderMode['LINE']);
+    expect(primitiveState.topology).toBe('line-list')
+    primitiveState = getPrimitiveStateFromRenderMode(GLTFRenderMode['LINE_LOOP']);
+    expect(primitiveState.topology).toBe('line-list')
+    primitiveState = getPrimitiveStateFromRenderMode(GLTFRenderMode['TRIANGLES']);
+    expect(primitiveState.topology).toBe('triangle-list')
+    primitiveState = getPrimitiveStateFromRenderMode(GLTFRenderMode['TRIANGLE_FAN']);
+    expect(primitiveState.topology).toBe('triangle-list');
+    primitiveState = getPrimitiveStateFromRenderMode(GLTFRenderMode['LINE_STRIP']);
+    expect(primitiveState.topology).toBe('line-strip');
+    primitiveState = getPrimitiveStateFromRenderMode(GLTFRenderMode['TRIANGLE_STRIP']);
+    expect(primitiveState.topology).toBe('triangle-strip');
+    primitiveState = getPrimitiveStateFromRenderMode(GLTFRenderMode['POINTS']);
+    expect(primitiveState.topology).toBe('point-list');
+  })
 });
 
 describe('GLB Parsing Tests', () => {

@@ -1,4 +1,6 @@
-import { Accessor, BufferView, CameraPerspective, GlTf } from './gltf';
+import { Accessor, BufferView, CameraPerspective, GlTf, Buffer } from './gltf';
+
+const GLB_MAGIC = 0x46546c67;
 
 export enum GLTFRenderMode {
   POINTS,
@@ -43,13 +45,6 @@ export const allignTo = (bytesToRead: number, allign: number): number => {
   return elementsInArea * allign;
 };
 
-export class GLTFBuffer {
-  buffer: Uint8Array;
-  constructor(buffer: ArrayBuffer, offset: number, size: number) {
-    this.buffer = new Uint8Array(buffer, offset, size);
-  }
-}
-
 export class GLTFBufferView {
   byteLength: number;
   byteStride: number;
@@ -58,7 +53,7 @@ export class GLTFBufferView {
   usage: number;
   needsUpload: boolean;
   gpuBuffer: GPUBuffer;
-  constructor(buffer: GLTFBuffer, view: BufferView) {
+  constructor(buffer: Uint8Array, view: BufferView) {
     //The offset to start reading from within the buffer (often used for allignment)
     this.byteOffset = view.byteOffset ? view.byteOffset : 0;
     //The number of bytes being read from the buffer after byteOffset
@@ -66,11 +61,12 @@ export class GLTFBufferView {
     //The Bytes Per element, 3f32s, 6 f16s, etc
     this.byteStride = view.byteStride ? view.byteStride : 0;
 
-    this.view = buffer.buffer.subarray(
+    this.view = buffer.subarray(
       this.byteOffset,
       this.byteOffset + this.byteLength
     );
     this.usage = 0;
+    this.gpuBuffer = null;
   }
 
   addUsage(usage: number) {
@@ -190,7 +186,7 @@ export const getPrimitiveStateFromRenderMode = (
       break;
     case GLTFRenderMode.TRIANGLE_STRIP:
       {
-        primitiveState.topology = 'line-strip';
+        primitiveState.topology = 'triangle-strip';
         if (indicesAccessor) {
           primitiveState.stripIndexFormat = indicesAccessor.vertexType.split(
             'x'
@@ -244,6 +240,7 @@ const buildPrimitiveRenderPipeline = (
   depthFormat: GPUTextureFormat,
   bgls: GPUBindGroupLayout[]
 ) => {
+  console.log(primitive.indicesAccessor);
   primitive.renderPipeline = device.createRenderPipeline({
     layout: device.createPipelineLayout({
       bindGroupLayouts: bgls,
@@ -269,7 +266,10 @@ const buildPrimitiveRenderPipeline = (
       entryPoint: 'fragmentMain',
       targets: [{ format: colorFormat }],
     },
-    primitive: getPrimitiveStateFromRenderMode(primitive.mode),
+    primitive: getPrimitiveStateFromRenderMode(
+      primitive.mode,
+      primitive.indicesAccessor
+    ),
     depthStencil: {
       format: depthFormat,
       depthWriteEnabled: true,
@@ -291,7 +291,7 @@ export const renderGLTFPrimitive = (
     0,
     primitive.positionsAccesor.view.gpuBuffer,
     primitive.positionsAccesor.byteOffset,
-    primitive.positionsAccesor.view.byteLength,
+    primitive.positionsAccesor.count * primitive.positionsAccesor.byteStride
   );
 
   if (primitive.indicesAccessor) {
@@ -299,7 +299,7 @@ export const renderGLTFPrimitive = (
       primitive.indicesAccessor.view.gpuBuffer,
       primitive.indicesAccessor.vertexType.split('x')[0] as GPUIndexFormat,
       primitive.indicesAccessor.byteOffset,
-      primitive.indicesAccessor.view.byteLength
+      primitive.indicesAccessor.count * primitive.indicesAccessor.byteStride
     );
     passEncoder.drawIndexed(primitive.indicesAccessor.count);
   } else {
@@ -491,66 +491,57 @@ export const uploadBufferViewToDevice = (
 };
 
 export const uploadGLB = (buffer: ArrayBuffer, device: GPUDevice) => {
-  //0: Magic 1: Version 2: Length
-  const glbChunkOffset = 0;
-  const glbHeader = new Uint32Array(buffer, glbChunkOffset, 3);
-  //Validate GLB
-  if (glbHeader[0] != 0x46546c67) {
-    throw Error('Provided file is not a GLB File');
+  const header = new Uint32Array(buffer, 0, 5);
+  if (header[0] != 0x46546c67) {
+    throw Error('Provided file is not a glB file');
   }
-  //Validate GLTF 2.0
-  if (glbHeader[1] != 2) {
-    throw Error('Provided file is not a GTLF 2.0 File');
+  if (header[1] != 2) {
+    throw Error('Provided file is glTF 2.0 file');
   }
-  //0: Length 1: Type 2: Data
-  const jsonChunkOffset = 12;
-  const jsonDataOffset = 20;
-  const jsonHeader = new Uint32Array(buffer, jsonChunkOffset, 2);
-
-  //Validate JSON Chunk Type
-  if (jsonHeader[1] != 0x4e4f534a) {
+  if (header[4] != 0x4e4f534a) {
     throw Error(
       'Invalid glB: The first chunk of the glB file is not a JSON chunk!'
     );
   }
 
-  //0: Length 1: Type 2: Data
-  const binaryHeader = new Uint32Array(buffer, 20 + jsonHeader[0], 2);
+  // Parse the JSON chunk of the glB file to a JSON object
+  const jsonData = JSON.parse(
+    new TextDecoder('utf-8').decode(new Uint8Array(buffer, 20, header[3]))
+  );
 
-  //Validate binary chunk type
+  // Read the binary chunk header
+  // - chunkLength: u32 (size of the chunk, in bytes)
+  // - chunkType: u32 (expect: 0x46546C67 for the binary chunk)
+  const binaryHeader = new Uint32Array(buffer, 20 + header[3], 2);
   if (binaryHeader[1] != 0x004e4942) {
     throw Error(
       'Invalid glB: The second chunk of the glB file is not a binary chunk!'
     );
   }
 
-  const jsonChunkLength = jsonHeader[0];
-  const jsonData: GlTf = JSON.parse(
-    new TextDecoder('utf-8').decode(
-      new Uint8Array(buffer, jsonDataOffset, jsonChunkLength)
-    )
-  );
-
+  const binaryData = new Uint8Array(buffer, 28 + header[3], binaryHeader[0]);
+  //const bufferViews: GLTFBufferView[] = [];
+  //Buffer Views
+  //console.log(`Reading ${jsonData.bufferViews.length} bufferViews...`);
+  for (let i = 0; i < jsonData.bufferViews.length; i++) {
+    jsonData.bufferViews[i].byteOffset ?? 0;
+    //bufferViews.push(new GLTFBufferView(binaryData, jsonData.bufferViews[i]));
+  }
+  //Accessors
+  for (let i = 0; i < jsonData.accessors.length; i++) {
+    jsonData.accessors[i].byteOffset ?? 0;
+    jsonData.accessors[i].normalized ?? false;
+  }
   console.log(jsonData);
 
-  const binaryDataOffset = 20 + jsonChunkLength + 8;
-
-  const binaryData = new GLTFBuffer(buffer, binaryDataOffset, binaryHeader[0]);
-  const bufferViews: GLTFBufferView[] = [];
-  console.log(`Reading ${jsonData.bufferViews.length} bufferViews...`);
-  //NOTE: Make u
-  for (let i = 0; i < jsonData.bufferViews.length; i++) {
-    bufferViews.push(new GLTFBufferView(binaryData, jsonData.bufferViews[i]));
-  }
-
-  const accessors: GLTFAccessor[] = [];
-  console.log(`Reading ${jsonData.accessors.length} accessors...`);
-  for (let i = 0; i < jsonData.accessors.length; i++) {
-    const accessorData = jsonData.accessors[i];
-    const id = accessorData.bufferView;
-    accessors.push(new GLTFAccessor(bufferViews[id], accessorData));
-  }
-  console.log(accessors);
+  //const accessors: GLTFAccessor[] = [];
+  //console.log(`Reading ${jsonData.accessors.length} accessors...`);
+  //for (let i = 0; i < jsonData.accessors.length; i++) {
+    //const accessorData = jsonData.accessors[i];
+    //const id = accessorData.bufferView;
+    //accessors.push(new GLTFAccessor(bufferViews[id], accessorData));
+  //}
+  //console.log(accessors);
 
   const mesh = jsonData.meshes[0];
   const meshPrimitives: GLTFPrimitive[] = [];
@@ -578,9 +569,6 @@ export const uploadGLB = (buffer: ArrayBuffer, device: GPUDevice) => {
       new GLTFPrimitive(positionsAccessor, indicesAccessor, renderMode)
     );
   }
-
-  console.log(meshPrimitives);
-  console.log(bufferViews);
 
   for (let i = 0; i < bufferViews.length; i++) {
     if (bufferViews[i].needsUpload) {
