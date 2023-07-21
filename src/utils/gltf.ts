@@ -240,6 +240,8 @@ export interface BufferView {
   extensions?: any;
   extras?: any;
   [k: string]: any;
+  /* Same as target, but different since target is rarely populated */
+  usage?: number;
 }
 /**
  * An orthographic camera containing properties to create an orthographic projection matrix.

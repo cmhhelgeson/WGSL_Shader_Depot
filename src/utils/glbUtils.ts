@@ -33,6 +33,24 @@ export enum GLTFStructType {
   MAT4,
 }
 
+export const createGPUBufferFromBufferView = (
+  device: GPUDevice,
+  bufferView: BufferView,
+  buffer: ArrayBuffer,
+) => {
+  const gpuBuffer = device.createBuffer({
+    label: bufferView.name,
+    size: Math.ceil(bufferView.byteLength / 4) * 4,
+    usage: bufferView.usage,
+    mappedAtCreation: true,
+  })
+  const gpuBufferArray = new Uint8Array(gpuBuffer.getMappedRange());
+  gpuBufferArray.set(new Uint8Array(buffer, bufferView.byteOffset, bufferView.byteLength));
+  gpuBuffer.unmap();
+
+  return gpuBuffer;
+}
+
 //Example arg 1: 258, arg2: 4
 export const allignTo = (bytesToRead: number, allign: number): number => {
   //Number of bytes read + allignment - 1
@@ -505,7 +523,7 @@ export const uploadGLB = (buffer: ArrayBuffer, device: GPUDevice) => {
   }
 
   // Parse the JSON chunk of the glB file to a JSON object
-  const jsonData = JSON.parse(
+  const jsonData: GlTf = JSON.parse(
     new TextDecoder('utf-8').decode(new Uint8Array(buffer, 20, header[3]))
   );
 
@@ -520,9 +538,6 @@ export const uploadGLB = (buffer: ArrayBuffer, device: GPUDevice) => {
   }
 
   const binaryData = new Uint8Array(buffer, 28 + header[3], binaryHeader[0]);
-  //const bufferViews: GLTFBufferView[] = [];
-  //Buffer Views
-  //console.log(`Reading ${jsonData.bufferViews.length} bufferViews...`);
   for (let i = 0; i < jsonData.bufferViews.length; i++) {
     jsonData.bufferViews[i].byteOffset ?? 0;
     //bufferViews.push(new GLTFBufferView(binaryData, jsonData.bufferViews[i]));
@@ -532,49 +547,34 @@ export const uploadGLB = (buffer: ArrayBuffer, device: GPUDevice) => {
     jsonData.accessors[i].byteOffset ?? 0;
     jsonData.accessors[i].normalized ?? false;
   }
-  console.log(jsonData);
 
-  //const accessors: GLTFAccessor[] = [];
-  //console.log(`Reading ${jsonData.accessors.length} accessors...`);
-  //for (let i = 0; i < jsonData.accessors.length; i++) {
-    //const accessorData = jsonData.accessors[i];
-    //const id = accessorData.bufferView;
-    //accessors.push(new GLTFAccessor(bufferViews[id], accessorData));
-  //}
-  //console.log(accessors);
-
-  const mesh = jsonData.meshes[0];
-  const meshPrimitives: GLTFPrimitive[] = [];
-  console.log(`Reading ${mesh.primitives.length} primitives on mesh 0`);
-  console.log(mesh.primitives);
-  for (let i = 0; i < mesh.primitives.length; i++) {
-    const currentPrimitive = mesh.primitives[i];
-    const renderMode = currentPrimitive.mode
-      ? currentPrimitive.mode
-      : GLTFRenderMode.TRIANGLES;
-    //Indices is a misnomer, just finds the index of the accessor with the indices
-    const indicesAccessor = jsonData.accessors[currentPrimitive.indices]
-      ? accessors[currentPrimitive.indices]
-      : null;
-    //Find the location of the position attribute in the buffer
-    let positionsAccessor: GLTFAccessor = null;
-    for (const attr in currentPrimitive.attributes) {
-      const attributeLocation = currentPrimitive.attributes[attr];
-      const currentAccessor = accessors[attributeLocation];
-      if (attr === 'POSITION') {
-        positionsAccessor = currentAccessor;
+  for (let i = 0; i < jsonData.meshes.length; i++) {
+    for (let j = 0; j < jsonData.meshes[i].primitives.length; j++) {
+      const primitive = jsonData.meshes[i].primitives[j];
+      //Primitive.indices points to the index of the accessor we use for our indices
+      if ('indices' in primitive) {
+        //Through accessor indicated by primitive to the bufView indicated by accessor
+        jsonData.bufferViews[
+          jsonData.accessors[primitive.indices].bufferView
+        ].usage |= GPUBufferUsage.INDEX;
+      }
+      for (const attribute of Object.values(primitive.attributes)) {
+        //Attribute represents the accessor of each primitive element
+        //POSITION: 0 -> Accessor at index 0
+        //TEX_COORD: 1 -> UVs at index 1
+        //All need to be passed into the vertex buffer
+        jsonData.bufferViews[jsonData.accessors[attribute].bufferView].usage |=
+          GPUBufferUsage.VERTEX;
       }
     }
-    meshPrimitives.push(
-      new GLTFPrimitive(positionsAccessor, indicesAccessor, renderMode)
-    );
   }
 
-  for (let i = 0; i < bufferViews.length; i++) {
-    if (bufferViews[i].needsUpload) {
-      uploadBufferViewToDevice(device, bufferViews[i]);
-    }
+  const gpuBuffers: Uint8Array[] = [];
+  for (const [index, bufferView] of Object.entries(jsonData.bufferViews)) {
+    gpuBuffers.push(
+      createGPUBufferFromBufferView(device, bufferView, buffer);
+    )
   }
 
-  return new GLTFMesh(mesh['name'], meshPrimitives);
+
 };
