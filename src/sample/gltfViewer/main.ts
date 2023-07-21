@@ -1,7 +1,7 @@
 /* eslint-disable prettier/prettier */
 import { makeSample, SampleInit } from '../../components/SampleLayout';
 import { createBindGroupDescriptor } from '../../utils/bindGroup';
-import { buildMeshRenderPipeline, GLTFMesh, renderGLTFMesh, uploadGLB } from '../../utils/glbUtils';
+import { GLTFMesh, uploadGLB } from '../../utils/glbUtils';
 import gltfVertWGSL from './gltf.vert.wgsl';
 import gltfFragWGSL from './gltf.frag.wgsl';
 import { mat4, vec3 } from 'wgpu-matrix';
@@ -36,7 +36,7 @@ const init: SampleInit = async ({
   });
 
   const cameraBuffer = device.createBuffer({
-    size: 64 * 3,
+    size: 64 * 1,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   })
 
@@ -54,21 +54,24 @@ const init: SampleInit = async ({
     .then((res) => res.arrayBuffer())
     .then((buffer) => uploadGLB(buffer, device));
 
-  buildMeshRenderPipeline(
+  mesh.buildRenderPipeline(
     device,
-    mesh,
-    gltfVertWGSL,
-    gltfFragWGSL,
+    device.createShaderModule({
+      code: gltfVertWGSL
+    }),
+    device.createShaderModule({
+      code: gltfFragWGSL
+    }),
     presentationFormat,
     depthTexture.format,
-    [bgDescriptor.bindGroupLayout],
-  );
+    bgDescriptor.bindGroupLayout
+  )
 
   const aspect = canvas.width / canvas.height;
   const projectionMatrix = mat4.perspective(
-    (2 * Math.PI) / 5,
+    (50 * Math.PI) / 180.0,
     aspect,
-    0.1,
+    0.01,
     1000.0
   ) as Float32Array;
 
@@ -86,6 +89,8 @@ const init: SampleInit = async ({
     mat4.rotateY(modelMatrix, now * -0.5, modelMatrix);
     return modelMatrix;
   }
+
+  const projView = mat4.create();
 
 
 
@@ -110,36 +115,19 @@ const init: SampleInit = async ({
     },
   };
 
-  device.queue.writeBuffer(
-    cameraBuffer,
-    0,
-    projectionMatrix.buffer,
-    projectionMatrix.byteOffset,
-    projectionMatrix.length,
-  );
-
-  const vmt = getViewMatrix();
-  const vm = vmt as Float32Array;
-
-  device.queue.writeBuffer(
-    cameraBuffer,
-    64,
-    vm.buffer,
-    vm.byteOffset,
-    vm.length
-  );
 
   function frame() {
     // Sample is no longer the active page.
     if (!pageState.active) return;
 
-    const modelMatrix = getModelMatrix() as Float32Array;
+    const camera = mat4.create();
+    mat4.mul(projView, projectionMatrix, camera);
     device.queue.writeBuffer(
       cameraBuffer,
-      128,
-      modelMatrix.buffer,
-      modelMatrix.byteOffset,
-      modelMatrix.length
+      0,
+      camera.buffer,
+      camera.byteOffset,
+      camera.length
     );
     
     renderPassDescriptor.colorAttachments[0].view = context
@@ -148,7 +136,7 @@ const init: SampleInit = async ({
 
     const commandEncoder = device.createCommandEncoder();
     const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
-    renderGLTFMesh(mesh, passEncoder, [bgDescriptor.bindGroups[0]]);
+    mesh.render(passEncoder, bgDescriptor.bindGroups[0]);
     passEncoder.end();
 
     device.queue.submit([commandEncoder.finish()]);

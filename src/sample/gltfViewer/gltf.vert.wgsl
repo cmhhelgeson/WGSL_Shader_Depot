@@ -8,9 +8,7 @@ struct VertexOutput {
 }
 
 struct Uniforms {
-  projMatrix: mat4x4f,
-  viewMatrix: mat4x4f,
-  modelMatrix: mat4x4f,
+  projViewMatrix: mat4x4f,
 }
 
 @group(0) @binding(0) var<uniform> uniforms: Uniforms;
@@ -18,9 +16,7 @@ struct Uniforms {
 @vertex
 fn vertexMain(input: VertexInput) -> VertexOutput {
   var output: VertexOutput;
-  output.Position = 
-    uniforms.projMatrix * uniforms.viewMatrix * 
-    uniforms.modelMatrix * vec4<f32>(input.position, 1.0);
+  output.Position = uniforms.projViewMatrix * vec4<f32>(input.position, 1.0);
   //Get unadjusted world coordinates
   output.world_pos = input.position.xyz;
   return output;
