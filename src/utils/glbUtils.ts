@@ -395,36 +395,46 @@ export class GLTFMesh {
   }
 }
 
-// Upload a GLB model and return it
-export const uploadGLB = (buffer: ArrayBuffer, device: GPUDevice) => {
-  const header = new Uint32Array(buffer, 0, 5);
-  if (header[0] != 0x46546c67) {
+export const validateGLBHeader = (header: DataView) => {
+  if (header.getUint32(0, true) != 0x46546c67) {
     throw Error('Provided file is not a glB file');
   }
   if (header[1] != 2) {
     throw Error('Provided file is glTF 2.0 file');
   }
-  if (header[4] != 0x4e4f534a) {
-    throw Error(
-      'Invalid glB: The first chunk of the glB file is not a JSON chunk!'
-    );
-  }
+};
 
-  // Parse the JSON chunk of the glB file to a JSON object
-  const jsonChunk: GlTf = JSON.parse(
-    new TextDecoder('utf-8').decode(new Uint8Array(buffer, 20, header[3]))
-  );
-
-  const binaryHeader = new Uint32Array(buffer, 20 + header[3], 2);
-  if (binaryHeader[1] != 0x004e4942) {
+export const validateBinaryHeader = (header: Uint32Array) => {
+  if (header[1] != 0x004e4942) {
     throw Error(
       'Invalid glB: The second chunk of the glB file is not a binary chunk!'
     );
   }
-  // Make a GLTFBuffer that is a view of the entire binary chunk's data,
-  // we'll use this to create buffer views within the chunk for memory referenced
-  // by objects in the glTF scene
-  const binaryChunk = new GLTFBuffer(buffer, 28 + header[3], binaryHeader[0]);
+};
+
+// Upload a GLB model and return it
+export const convertGLBToJSONAndBinary = async (
+  buffer: ArrayBuffer,
+  device: GPUDevice
+) => {
+  const jsonHeader = new DataView(buffer, 0, 12);
+  validateGLBHeader(jsonHeader);
+
+  // Parse the JSON chunk of the glB file to a JSON object
+  const jsonChunk: GlTf = JSON.parse(
+    new TextDecoder('utf-8').decode(new Uint8Array(buffer, 20, jsonHeader[3]))
+  );
+
+  console.log(jsonChunk);
+
+  const binaryHeader = new Uint32Array(buffer, 20 + jsonHeader[3], 2);
+  validateBinaryHeader(binaryHeader);
+
+  const binaryChunk = new GLTFBuffer(
+    buffer,
+    28 + jsonHeader[3],
+    binaryHeader[0]
+  );
 
   // Create GLTFBufferView objects for all the buffer views in the glTF file
   const bufferViews: GLTFBufferView[] = [];
@@ -432,10 +442,6 @@ export const uploadGLB = (buffer: ArrayBuffer, device: GPUDevice) => {
     bufferViews.push(new GLTFBufferView(binaryChunk, jsonChunk.bufferViews[i]));
   }
 
-  // Create GLTFAccessor objects for the accessors in the glTF file
-  // We need to handle possible errors being thrown here if a model is using
-  // accessors for types we don't support yet. For example, a model with animation
-  // may have a MAT4 accessor, which we currently don't support.
   const accessors: GLTFAccessor[] = [];
   for (let i = 0; i < jsonChunk.accessors.length; ++i) {
     const accessorInfo = jsonChunk.accessors[i];

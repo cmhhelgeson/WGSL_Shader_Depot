@@ -1,7 +1,7 @@
 /* eslint-disable prettier/prettier */
 import { makeSample, SampleInit } from '../../components/SampleLayout';
 import { createBindGroupDescriptor } from '../../utils/bindGroup';
-import { GLTFMesh, uploadGLB } from '../../utils/glbUtils';
+import { convertGLBToJSONAndBinary, GLTFMesh, uploadGLB } from '../../utils/glbUtils';
 import gltfVertWGSL from './gltf.vert.wgsl';
 import gltfFragWGSL from './gltf.frag.wgsl';
 import { mat4, vec3 } from 'wgpu-matrix';
@@ -50,9 +50,9 @@ const init: SampleInit = async ({
     device
   );
 
-  const mesh: GLTFMesh = await fetch('/gltf/Box.glb')
+  const mesh: GLTFMesh = await fetch('/gltf/Avocado.glb')
     .then((res) => res.arrayBuffer())
-    .then((buffer) => uploadGLB(buffer, device));
+    .then((buffer) => convertGLBToJSONAndBinary(buffer, device));
 
   mesh.buildRenderPipeline(
     device,
@@ -75,20 +75,6 @@ const init: SampleInit = async ({
     1000.0
   ) as Float32Array;
 
-  function getViewMatrix() {
-    const viewMatrix = mat4.identity();
-    mat4.translate(viewMatrix, vec3.fromValues(0, 0, -2), viewMatrix);
-    return viewMatrix;
-  }
-
-  function getModelMatrix() {
-    const modelMatrix = mat4.create();
-    mat4.identity(modelMatrix);
-    mat4.rotateX(modelMatrix, 10, modelMatrix);
-    const now = Date.now() / 1000;
-    mat4.rotateY(modelMatrix, now * -0.5, modelMatrix);
-    return modelMatrix;
-  }
 
   const projView = mat4.create();
 
