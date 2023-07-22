@@ -10,16 +10,13 @@ type Props = {
 };
 
 export const pages = {
-  resizeCanvas: dynamic(() => import('../../sample/resizeCanvas/main')),
   renderBundles: dynamic(() => import('../../sample/renderBundles/main')),
   normalMapping: dynamic(() => import('../../sample/normalMapping/main')),
   comanche: dynamic(() => import('../../sample/comancheVoxel/main')),
   mixExample: dynamic(() => import('../../sample/mixExample/main')),
-  rainbowFluids: dynamic(() => import('../../sample/rainbowFluids/main')),
   CRT: dynamic(() => import('../../sample/crt/main')),
   grid: dynamic(() => import('../../sample/grid/main')),
   cyberpunkGrid: dynamic(() => import('../../sample/cyberpunkGrid/main')),
-  gltfViewer: dynamic(() => import('../../sample/gltfViewer/main')),
 };
 
 function Page({ slug, }: Props): JSX.Element {

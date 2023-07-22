@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import { mat4, vec3 } from 'wgpu-matrix';
 import { makeSample, SampleInit } from '../../components/SampleLayout';
 import { createSphereMesh, SphereLayout } from '../../meshes/sphere';
@@ -112,6 +113,12 @@ const init: SampleInit = async ({ canvas, pageState, gui, stats }) => {
   const uniformBufferSize = 4 * 16; // 4x4 matrix
   const uniformBuffer = device.createBuffer({
     size: uniformBufferSize,
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+  });
+
+  const timeSize = 4; 
+  const timeBuffer = device.createBuffer({
+    size: timeSize,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
 
@@ -233,6 +240,12 @@ const init: SampleInit = async ({ canvas, pageState, gui, stats }) => {
           binding: 2,
           resource: texture.createView(),
         },
+        {
+          binding: 3,
+          resource: {
+            buffer: timeBuffer,
+          },
+        },
       ],
     });
 
@@ -246,36 +259,10 @@ const init: SampleInit = async ({ canvas, pageState, gui, stats }) => {
   const planet = createSphereRenderable(1.0);
   planet.bindGroup = createSphereBindGroup(planetTexture, transform);
 
-  const asteroids = [
-    createSphereRenderable(0.01, 8, 6, 0.15),
-    createSphereRenderable(0.013, 8, 6, 0.15),
-    createSphereRenderable(0.017, 8, 6, 0.15),
-    createSphereRenderable(0.02, 8, 6, 0.15),
-    createSphereRenderable(0.03, 16, 8, 0.15),
-  ];
 
   const renderables = [planet];
 
-  function ensureEnoughAsteroids() {
-    for (let i = renderables.length; i <= settings.asteroidCount; ++i) {
-      // Place copies of the asteroid in a ring.
-      const radius = Math.random() * 1.7 + 1.25;
-      const angle = Math.random() * Math.PI * 2;
-      const x = Math.sin(angle) * radius;
-      const y = (Math.random() - 0.5) * 0.015;
-      const z = Math.cos(angle) * radius;
-
-      mat4.identity(transform);
-      mat4.translate(transform, [x, y, z], transform);
-      mat4.rotateX(transform, Math.random() * Math.PI, transform);
-      mat4.rotateY(transform, Math.random() * Math.PI, transform);
-      renderables.push({
-        ...asteroids[i % asteroids.length],
-        bindGroup: createSphereBindGroup(moonTexture, transform),
-      });
-    }
-  }
-  ensureEnoughAsteroids();
+  //ensureEnoughAsteroids();
 
   const renderPassDescriptor: GPURenderPassDescriptor = {
     colorAttachments: [
@@ -381,9 +368,14 @@ const init: SampleInit = async ({ canvas, pageState, gui, stats }) => {
   }
   updateRenderBundle();
 
+  let lastTime = performance.now();
+  let timeElapsed = 0;
+
   function frame() {
     // Sample is no longer the active page.
     if (!pageState.active) return;
+
+    const currentTime = performance.now();
 
     stats.begin();
 
@@ -395,6 +387,16 @@ const init: SampleInit = async ({ canvas, pageState, gui, stats }) => {
       transformationMatrix.byteOffset,
       transformationMatrix.byteLength
     );
+
+    timeElapsed += Math.min(1 / 60, (currentTime - lastTime) / 1000);
+    lastTime = currentTime;
+
+    device.queue.writeBuffer(
+      timeBuffer,
+      0,
+      new Float32Array([timeElapsed])
+    );
+
     renderPassDescriptor.colorAttachments[0].view = context
       .getCurrentTexture()
       .createView();

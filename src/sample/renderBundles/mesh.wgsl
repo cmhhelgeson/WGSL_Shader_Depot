@@ -1,10 +1,30 @@
 struct Uniforms {
-  viewProjectionMatrix : mat4x4f
+  viewProjectionMatrix : mat4x4f,
+}
+
+fn inverseLerp(
+  val: f32,
+  minVal: f32,
+  maxVal: f32
+) -> f32 {
+  return (val - minVal) / (maxVal - minVal);
+}
+
+fn remap(
+  val: f32,
+  inMin: f32,
+  inMax: f32,
+  outMin: f32,
+  outMax: f32,
+) -> f32 {
+  var t: f32 = inverseLerp(val, inMin, inMax);
+  return mix(outMin, outMax, t);
 }
 
 @group(0) @binding(0) var<uniform> uniforms : Uniforms;
 
 @group(1) @binding(0) var<uniform> modelMatrix : mat4x4f;
+@group(1) @binding(3) var<uniform> time: f32;
 
 struct VertexInput {
   @location(0) position : vec4f,
@@ -21,7 +41,11 @@ struct VertexOutput {
 @vertex
 fn vertexMain(input: VertexInput) -> VertexOutput {
   var output : VertexOutput;
-  output.position = uniforms.viewProjectionMatrix * modelMatrix * input.position;
+  var local_pos = input.position;
+  var t = sin(local_pos.y * 20.0 + time * -5.0);
+  t = remap(t, -1.0, 1.0, 0.0, 0.2);
+  local_pos += vec4<f32>(input.normal * t, 0.0);
+  output.position = uniforms.viewProjectionMatrix * modelMatrix * local_pos;
   output.normal = normalize((modelMatrix * vec4(input.normal, 0)).xyz);
   output.uv = input.uv;
   return output;
