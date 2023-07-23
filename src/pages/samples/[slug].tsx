@@ -17,6 +17,7 @@ export const pages = {
   CRT: dynamic(() => import('../../sample/crt/main')),
   grid: dynamic(() => import('../../sample/grid/main')),
   cyberpunkGrid: dynamic(() => import('../../sample/cyberpunkGrid/main')),
+  gltf: dynamic(() => import('../../sample/gltfViewer/main')),
 };
 
 function Page({ slug, }: Props): JSX.Element {

@@ -137,8 +137,8 @@ const init: SampleInit = async ({
 
 const gltfViewerExample: () => JSX.Element = () =>
   makeSample({
-    name: 'Grid Shader',
-    description: 'A shader that renders a basic, graph style grid.',
+    name: 'GLTF Viewer',
+    description: 'Naive viwere for gltf models',
     init,
     gui: true,
     sources: [

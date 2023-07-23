@@ -3,12 +3,16 @@ import { BaseRenderer, create2DVertexModule } from '../../utils/renderProgram';
 import { Base2DRendererClass } from '../../utils/renderProgram';
 import CyberpunkGridFragWGSL from './cyberpunk.frag.wgsl';
 import CyberpunkGridDebugFragWGSL from './cyberpunkDebug.frag.wgsl';
+import CyberpunkCommonsWGSL from './cyberpunk_commons.wgsl';
 
 type CyberpunkGridRenderArgs = {
   time: number;
   canvasWidth: number;
   canvasHeight: number;
   debugStep: number;
+  fog: number;
+  lineSize: number;
+  lineGlow: number;
 };
 
 export default class CyberpunkGridRenderer
@@ -34,6 +38,8 @@ export default class CyberpunkGridRenderer
   changeDebugStep: (step: number) => void;
   changeGridLineColor: (r: number, g: number, b: number) => void;
   changeFog: (fog: number) => void;
+  changeLineSize: (lineSize: number) => void;
+  changeLineGlow: (lineGlow: number) => void;
 
   constructor(
     device: GPUDevice,
@@ -82,7 +88,9 @@ export default class CyberpunkGridRenderer
       vertex: create2DVertexModule(device, 'WEBGL'),
       fragment: {
         module: device.createShaderModule({
-          code: debug ? CyberpunkGridDebugFragWGSL : CyberpunkGridFragWGSL,
+          code: debug
+            ? CyberpunkGridDebugFragWGSL + CyberpunkCommonsWGSL
+            : CyberpunkGridFragWGSL + CyberpunkCommonsWGSL,
         }),
         entryPoint: 'fragmentMain',
         targets: [
@@ -120,10 +128,18 @@ export default class CyberpunkGridRenderer
 
     this.changeFog = (fog: number) => {
       device.queue.writeBuffer(uniformBuffer, 24, new Float32Array([fog]));
-    }
+    };
+
+    this.changeLineSize = (lineSize: number) => {
+      device.queue.writeBuffer(uniformBuffer, 28, new Float32Array([lineSize]));
+    };
+
+    this.changeLineGlow = (lineGlow: number) => {
+      device.queue.writeBuffer(uniformBuffer, 32, new Float32Array([lineGlow]));
+    };
 
     this.changeDebugStep = (step: number) => {
-      device.queue.writeBuffer(uniformBuffer, 28, new Float32Array([step]));
+      device.queue.writeBuffer(uniformBuffer, 36, new Float32Array([step]));
     };
   }
 
@@ -132,7 +148,9 @@ export default class CyberpunkGridRenderer
     this.changeCanvasWidth(args.canvasWidth);
     this.changeCanvasHeight(args.canvasHeight);
     this.changeTime(args.time);
-    this.changeFog(0.2);
+    this.changeFog(args.fog);
+    this.changeLineSize(args.lineSize);
+    this.changeLineGlow(args.lineGlow);
     if (args.debugStep !== this.prevDebugStep) {
       this.changeDebugStep(args.debugStep);
       this.prevDebugStep = args.debugStep;

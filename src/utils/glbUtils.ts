@@ -399,7 +399,7 @@ export const validateGLBHeader = (header: DataView) => {
   if (header.getUint32(0, true) != 0x46546c67) {
     throw Error('Provided file is not a glB file');
   }
-  if (header[1] != 2) {
+  if (header.getUint32(4, true) != 2) {
     throw Error('Provided file is glTF 2.0 file');
   }
 };
@@ -417,17 +417,23 @@ export const convertGLBToJSONAndBinary = async (
   buffer: ArrayBuffer,
   device: GPUDevice
 ) => {
-  const jsonHeader = new DataView(buffer, 0, 12);
+  const jsonHeader = new DataView(buffer, 0, 20);
   validateGLBHeader(jsonHeader);
 
   // Parse the JSON chunk of the glB file to a JSON object
   const jsonChunk: GlTf = JSON.parse(
-    new TextDecoder('utf-8').decode(new Uint8Array(buffer, 20, jsonHeader[3]))
+    new TextDecoder('utf-8').decode(
+      new Uint8Array(buffer, 20, jsonHeader.getUint32(12, true))
+    )
   );
 
   console.log(jsonChunk);
 
-  const binaryHeader = new Uint32Array(buffer, 20 + jsonHeader[3], 2);
+  const binaryHeader = new Uint32Array(
+    buffer,
+    20 + jsonHeader.getUint32(12, true),
+    2
+  );
   validateBinaryHeader(binaryHeader);
 
   const binaryChunk = new GLTFBuffer(

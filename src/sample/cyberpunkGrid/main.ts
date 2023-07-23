@@ -4,7 +4,7 @@ import CyberpunkGridRenderer from './cyberpunkGrid';
 import CyberpunkGridFragWGSL from './cyberpunk.frag.wgsl';
 
 
-const init: SampleInit = async ({ canvas, pageState, debugValueRef, debugOnRef, canvasRef}) => {
+const init: SampleInit = async ({ canvas, pageState, gui, debugValueRef, debugOnRef, canvasRef}) => {
   //Normal setup
   const adapter = await navigator.gpu.requestAdapter();
   const device = await adapter.requestDevice();
@@ -23,6 +23,12 @@ const init: SampleInit = async ({ canvas, pageState, debugValueRef, debugOnRef, 
     format: presentationFormat,
     alphaMode: 'premultiplied',
   });
+
+  const settings = {
+    lineSize: 0.2,
+    lineGlow: 0.01,
+    fog: 0.2,
+  };
   
   const renderPassDescriptor: GPURenderPassDescriptor = {
     colorAttachments: [
@@ -35,6 +41,11 @@ const init: SampleInit = async ({ canvas, pageState, debugValueRef, debugOnRef, 
       },
     ],
   };
+
+  gui.add(settings, 'lineSize', 0.1, 1.0).step(0.1)
+  gui.add(settings, 'lineGlow', 0.01, 0.1).step(0.01);
+  gui.add(settings, 'fog', 0.1, 1.0).step(0.1);
+  
 
   const renderer = new CyberpunkGridRenderer(
     device,
@@ -78,7 +89,10 @@ const init: SampleInit = async ({ canvas, pageState, debugValueRef, debugOnRef, 
         time: timeElapsed,
         canvasWidth: canvasRef.current.width * devicePixelRatio,
         canvasHeight: canvasRef.current.height * devicePixelRatio,
-        debugStep: debugValueRef.current
+        debugStep: debugValueRef.current,
+        lineSize: settings.lineSize,
+        lineGlow: settings.lineGlow,
+        fog: settings.fog
       });
     } else {
       renderer.startRun(commandEncoder, {
@@ -86,6 +100,9 @@ const init: SampleInit = async ({ canvas, pageState, debugValueRef, debugOnRef, 
         debugStep: debugValueRef.current,
         canvasWidth: canvasRef.current.width * devicePixelRatio,
         canvasHeight: canvasRef.current.height * devicePixelRatio,
+        lineSize: settings.lineSize,
+        lineGlow: settings.lineGlow,
+        fog: settings.fog
       });
     }
 
@@ -97,7 +114,11 @@ const init: SampleInit = async ({ canvas, pageState, debugValueRef, debugOnRef, 
   return [
     "Move your uvs into a range of -1 to 1.", 
     "Invert uv.y",
-    "Select uvs below the horizon line."
+    "Select uvs below the horizon line.",
+    "Step four",
+    'Step five',
+    'step six',
+    'step 7'
   ];
 };
 
