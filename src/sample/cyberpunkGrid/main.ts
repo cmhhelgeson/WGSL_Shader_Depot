@@ -95,7 +95,9 @@ const init: SampleInit = async ({ canvas, pageState, debugValueRef, debugOnRef, 
   }
   requestAnimationFrame(frame);
   return [
-    "Set fragments to texture uvs (red as x goes right to 1, green as y goes up to 1).", 
+    "Move your uvs into a range of -1 to 1.", 
+    "Invert uv.y",
+    "Select uvs below the horizon line."
   ];
 };
 

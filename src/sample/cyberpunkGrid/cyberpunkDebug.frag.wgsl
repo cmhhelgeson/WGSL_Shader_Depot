@@ -134,18 +134,20 @@ fn sdCloud(
 fn fragmentMain(input: VertexOutput) -> @location(0) vec4<f32> {
   //var uv: vec2<f32> = -(input.v_uv * 2.0 - 1.0) * vec2<f32>(-1.0, -1.0);
   var uv = (input.Position.xy * 2.0 - vec2<f32>(uniforms.resolutionX, uniforms.resolutionY) + vec2<f32>(-35.0, -35.0)) / uniforms.resolutionY;
-  //var uv = (input.v_uv * 2.0) / uniforms.resolution;
+  var stepOneUv = uv;
   uv.y = -uv.y;
+  var stepTwoUv = uv;
   var battery: f32 = 1.0;
   var fog: f32 = smoothstep(0.1, -0.02, abs(uv.y + 0.2));
   var color: vec3<f32> = vec3(0.0, 0.1, 0.2);
-  var uvGridChange: vec2<f32> = vec2(0.0, 0.0);
+  var stepThreeUv: vec2<f32> = vec2(0.0, 0.0);
   var gridVal: f32 = 0.0;
   var val = 0.0;
 
   if (uv.y < -0.2) {
     uv.x = 1.0;
     uv.y = 3.0 / (abs(uv.y + 0.2) + 0.05);
+    stepThreeUv = uv;
     gridVal = grid(uv, battery, uniforms.time);
     color = mix(color, vec3(1.0, 0.5, 1.0), gridVal);
   } else {
@@ -191,6 +193,16 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4<f32> {
 
   color += fog * fog * fog;
   color = mix(vec3f(color.r, color.r, color.r) * 0.5, color, battery * 0.7);
+
+  if (uniforms.debugStep == 0) {
+    return vec4<f32>(stepOneUv, 0.0, 1.0);
+  }
+  if (uniforms.debugStep == 1) {
+    return vec4<f32>(stepTwoUv, 0.0, 1.0);
+  }
+  if (uniforms.debugStep == 2) {
+    return vec4<f32>(stepThreeUv, 0.0, 1.0);
+  }
 
   //input.Position.xy * 2.0 - 1.0 
 

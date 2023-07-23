@@ -2,6 +2,7 @@ import { createBindGroupDescriptor } from '../../utils/bindGroup';
 import { BaseRenderer, create2DVertexModule } from '../../utils/renderProgram';
 import { Base2DRendererClass } from '../../utils/renderProgram';
 import CyberpunkGridFragWGSL from './cyberpunk.frag.wgsl';
+import CyberpunkGridDebugFragWGSL from './cyberpunkDebug.frag.wgsl';
 
 type CyberpunkGridRenderArgs = {
   time: number;
@@ -31,6 +32,8 @@ export default class CyberpunkGridRenderer
   changeCanvasHeight: (height: number) => void;
   changeTime: (time: number) => void;
   changeDebugStep: (step: number) => void;
+  changeGridLineColor: (r: number, g: number, b: number) => void;
+  changeFog: (fog: number) => void;
 
   constructor(
     device: GPUDevice,
@@ -42,7 +45,7 @@ export default class CyberpunkGridRenderer
   ) {
     super();
     this.renderPassDescriptor = renderPassDescriptor;
-    const uniformElements = 4;
+    const uniformElements = 8;
 
     const uniformBufferSize = Float32Array.BYTES_PER_ELEMENT * uniformElements;
     const uniformBuffer = device.createBuffer({
@@ -79,7 +82,7 @@ export default class CyberpunkGridRenderer
       vertex: create2DVertexModule(device, 'WEBGL'),
       fragment: {
         module: device.createShaderModule({
-          code: debug ? CyberpunkGridFragWGSL : CyberpunkGridFragWGSL,
+          code: debug ? CyberpunkGridDebugFragWGSL : CyberpunkGridFragWGSL,
         }),
         entryPoint: 'fragmentMain',
         targets: [
@@ -99,27 +102,37 @@ export default class CyberpunkGridRenderer
       this.currentBindGroupName = name;
     };
 
+    this.changeGridLineColor = (r: number, g: number, b: number) => {
+      device.queue.writeBuffer(uniformBuffer, 0, new Float32Array([r, g, b]));
+    };
+
     this.changeCanvasWidth = (width: number) => {
-      device.queue.writeBuffer(uniformBuffer, 0, new Float32Array([width]));
+      device.queue.writeBuffer(uniformBuffer, 12, new Float32Array([width]));
     };
 
     this.changeCanvasHeight = (height: number) => {
-      device.queue.writeBuffer(uniformBuffer, 4, new Float32Array([height]));
+      device.queue.writeBuffer(uniformBuffer, 16, new Float32Array([height]));
     };
 
     this.changeTime = (time: number) => {
-      device.queue.writeBuffer(uniformBuffer, 8, new Float32Array([time]));
+      device.queue.writeBuffer(uniformBuffer, 20, new Float32Array([time]));
     };
 
+    this.changeFog = (fog: number) => {
+      device.queue.writeBuffer(uniformBuffer, 24, new Float32Array([fog]));
+    }
+
     this.changeDebugStep = (step: number) => {
-      device.queue.writeBuffer(uniformBuffer, 12, new Float32Array([step]));
+      device.queue.writeBuffer(uniformBuffer, 28, new Float32Array([step]));
     };
   }
 
   startRun(commandEncoder: GPUCommandEncoder, args: CyberpunkGridRenderArgs) {
+    this.changeGridLineColor(1.0, 0.0, 0.0);
     this.changeCanvasWidth(args.canvasWidth);
     this.changeCanvasHeight(args.canvasHeight);
     this.changeTime(args.time);
+    this.changeFog(0.2);
     if (args.debugStep !== this.prevDebugStep) {
       this.changeDebugStep(args.debugStep);
       this.prevDebugStep = args.debugStep;
