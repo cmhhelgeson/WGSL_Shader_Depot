@@ -8,7 +8,7 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4<f32> {
   //var uv = (input.v_uv * 2.0) / uniforms.resolution;
   uv.y = -uv.y;
   var battery: f32 = 1.0;
-  var fog: f32 = smoothstep(0.1, -0.02, abs(uv.y + 0.2));
+  var fog: f32 = smoothstep(uniforms.fog, -0.02, abs(uv.y + 0.2));
   var color: vec3<f32> = vec3(0.0, 0.1, 0.2);
   var uvGridChange: vec2<f32> = vec2(0.0, 0.0);
   var gridVal: f32 = 0.0;

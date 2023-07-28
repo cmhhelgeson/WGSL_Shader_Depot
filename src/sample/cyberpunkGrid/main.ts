@@ -43,7 +43,7 @@ const init: SampleInit = async ({ canvas, pageState, gui, debugValueRef, debugOn
   };
 
   gui.add(settings, 'lineSize', 0.1, 1.0).step(0.1)
-  gui.add(settings, 'lineGlow', 0.01, 0.1).step(0.01);
+  gui.add(settings, 'lineGlow', 0.001, 0.1).step(0.001);
   gui.add(settings, 'fog', 0.1, 1.0).step(0.1);
   
 
@@ -118,7 +118,12 @@ const init: SampleInit = async ({ canvas, pageState, gui, debugValueRef, debugOn
     "Step four",
     'Step five',
     'step six',
-    'step 7'
+    'step 7',
+    'step 8',
+    'step 9',
+    'step 10',
+    'step 11',
+    'step 12'
   ];
 };
 

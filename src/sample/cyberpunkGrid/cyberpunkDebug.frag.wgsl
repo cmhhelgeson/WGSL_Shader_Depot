@@ -8,11 +8,15 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4<f32> {
   uv.y = -uv.y;
   var stepTwoUv = uv;
   var battery: f32 = 1.0;
-  var fog: f32 = smoothstep(0.1, -0.02, abs(uv.y + 0.2));
+  var fog: f32 = smoothstep(uniforms.fog, -0.02, abs(uv.y + 0.2));
   var color: vec3<f32> = vec3(0.0, 0.1, 0.2);
   var stepThreeUv: vec2<f32> = vec2(0.0, 0.0);
   var stepFourUv: vec2<f32> = vec2(0.0, 0.0);
   var stepFiveUv: vec2<f32> = vec2(0.0, 0.0);
+  var stepSixUv: vec2<f32> = vec2(0.0, 0.0);
+  var stepSevenUv: vec2<f32> = vec2(0.0, 0.0);
+  var stepEightUv: vec2<f32> = vec2(0.0, 0.0);
+  var stepNineUv: vec2<f32> = vec2(0.0, 0.0);
   var gridVal: f32 = 0.0;
   var val = 0.0;
 
@@ -22,9 +26,12 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4<f32> {
     stepThreeUv = uv;
     gridVal = grid(uv, battery, uniforms.time, uniforms.lineSize, uniforms.lineGlow);
     //As uv.y gets closer to -0.2, y will get closer to one
-    stepFourUv = vec2(uv.y, uv.y * uv.y * 0.4) * 0.01;
+    stepFourUv = vec2(uv.y, uv.y * uv.y * uniforms.lineSize) * uniforms.lineGlow;
     stepFiveUv = stepFourUv + vec2<f32>(0.0, uniforms.time * 4.0 * (battery + 0.05));
     stepFiveUv = abs(fract(stepFiveUv) - 0.5);
+    stepSixUv = smoothstep(stepFourUv, vec2<f32>(0.0), stepFiveUv);
+    stepSevenUv = smoothstep(stepFourUv * 5.0, vec2<f32>(0.0), stepFiveUv) * 0.4 * battery;
+    color = mix(color, vec3(1.0, 0.5, 1.0), gridVal);
   } else {
     var fujiD: f32 = min(uv.y * 4.5 - 0.5, 1.0);
     uv.y -= battery * 1.1 - 0.51;
@@ -34,6 +41,8 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4<f32> {
             
     // Sun
     sunUV += vec2(0.75, 0.2);
+    stepEightUv = sunUV;
+    stepNineUv = fujiUV;
     //uv.y -= 1.1 - 0.51;
     color = vec3(1.0, 0.2, 1.0);
     var sunVal = sun(sunUV, battery, uniforms.time);
@@ -83,6 +92,18 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4<f32> {
   } 
   if (uniforms.debugStep == 4) {
     return vec4<f32>(stepFiveUv, 0.0, 1.0);
+  }
+  if (uniforms.debugStep == 5) {
+    return vec4<f32>(stepSixUv, 0.0, 1.0);
+  }
+  if (uniforms.debugStep == 6) {
+    return vec4<f32>(stepSevenUv, 0.0, 1.0);
+  }
+  if (uniforms.debugStep == 7) {
+    return vec4<f32>(stepEightUv, 0.0, 1.0);
+  }
+  if (uniforms.debugStep == 8) {
+    return vec4<f32>(stepNineUv, 0.0, 1.0);
   }
 
   //input.Position.xy * 2.0 - 1.0 

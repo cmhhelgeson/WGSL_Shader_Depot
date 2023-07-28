@@ -51,7 +51,7 @@ export default class CyberpunkGridRenderer
   ) {
     super();
     this.renderPassDescriptor = renderPassDescriptor;
-    const uniformElements = 8;
+    const uniformElements = 10;
 
     const uniformBufferSize = Float32Array.BYTES_PER_ELEMENT * uniformElements;
     const uniformBuffer = device.createBuffer({

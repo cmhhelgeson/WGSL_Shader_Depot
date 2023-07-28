@@ -20,7 +20,7 @@ export const pages = {
   gltf: dynamic(() => import('../../sample/gltfViewer/main')),
 };
 
-function Page({ slug, }: Props): JSX.Element {
+function Page({slug, }: Props): JSX.Element {
   const PageComponent = pages[slug];
   return <PageComponent />;
 }

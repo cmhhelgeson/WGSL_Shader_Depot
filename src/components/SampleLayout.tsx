@@ -4,7 +4,7 @@ import { MutableRefObject, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { GUI } from 'dat.gui';
 import type { Stats } from 'stats-js';
-import { motion } from 'framer-motion';
+import { motion, useAnimation, Variant, Variants } from 'framer-motion';
 import type { Editor, EditorConfiguration } from 'codemirror';
 interface CodeMirrorEditor extends Editor {
   updatedSource: (source: string) => void;
@@ -13,6 +13,7 @@ interface CodeMirrorEditor extends Editor {
 import styles from './SampleLayout.module.css';
 import { useAppDispatch, useAppSelector } from '../features/store';
 import { changeDebugExplanations } from '../features/debugInfo/debugInfoSlice';
+import { useImmer } from 'use-immer';
 
 type SourceFileInfo = {
   name: string;
@@ -27,7 +28,7 @@ export type SampleInit = (params: {
   stats?: Stats;
   debugValueRef: MutableRefObject<number>;
   debugOnRef: MutableRefObject<boolean>;
-  canvasRef: MutableRefObject<HTMLCanvasElement>,
+  canvasRef: MutableRefObject<HTMLCanvasElement>;
 }) => void | Promise<void> | Promise<string[]>;
 
 if (process.browser) {
@@ -69,6 +70,48 @@ function makeCodeMirrorEditor(source: string) {
     Container,
   };
 }
+
+type CanvasVariantKeys =
+  | 'moveOffscreenRight'
+  | 'moveOffscreenLeft'
+  | 'moveOnscreenRight'
+  | 'moveOnscreenLeft';
+type CanvasVariantType = {
+  [key in CanvasVariantKeys]: Variant;
+};
+
+const canvasVariants: CanvasVariantType = {
+  moveOffscreenRight: {
+    x: [0, 1000],
+    transition: {
+      duration: 0.5,
+    },
+  },
+  moveOffscreenLeft: {
+    x: [0, -1000],
+    transition: {
+      duration: 0.5,
+    },
+  },
+  moveOnscreenLeft: {
+    x: [1000, 0],
+    transition: {
+      duration: 0.5,
+    },
+  },
+  moveOnscreenRight: {
+    x: [-1000, 0],
+    transition: {
+      duration: 0.5,
+    },
+  },
+  initial: {
+    x: [0],
+    transition: {
+      duration: 0,
+    },
+  },
+};
 
 const SampleLayout: React.FunctionComponent<
   React.PropsWithChildren<{
@@ -124,7 +167,27 @@ const SampleLayout: React.FunctionComponent<
   const debugValueRef = useRef<number>(0);
   const [debugOn, setDebugOn] = useState<boolean>(false);
   const debugOnRef = useRef<boolean>(false);
-  const [hoverDebug, setHoverDebug] = useState<boolean>(false); 
+  const [hoverDebug, setHoverDebug] = useState<boolean>(false);
+  const controls = useAnimation();
+  const [animationKeys, setAnimationKeys] = useImmer({
+    canvas: 'initial',
+  });
+
+  useEffect(() => {
+    if (debugOn) {
+      setAnimationKeys((draft) => {
+        draft.canvas = 'moveOffscreenRight';
+      });
+    } else if (animationKeys.canvas !== 'initial') {
+      setAnimationKeys((draft) => {
+        draft.canvas = 'moveOffscreenLeft';
+      });
+    }
+  }, [debugOn]);
+
+  useEffect(() => {
+    controls.start(animationKeys.canvas);
+  }, [animationKeys, controls]);
 
   const onIncrementDebugStep = () => {
     if (debugStep === debugExplanations.length - 1) {
@@ -240,7 +303,7 @@ const SampleLayout: React.FunctionComponent<
           </>
         ) : null}
       </div>
-      <div className={styles.canvasContainer}>
+      <motion.div className={styles.canvasContainer}>
         <div
           style={{
             position: 'absolute',
@@ -252,46 +315,104 @@ const SampleLayout: React.FunctionComponent<
           style={{
             position: 'absolute',
             right: 10,
+            zIndex: 9,
           }}
           ref={guiParentRef}
         ></div>
-        <canvas ref={canvasRef}></canvas>
-      </div>
+        <motion.canvas
+          variants={canvasVariants}
+          animate={controls}
+          onAnimationComplete={() => {
+            if (debugOn) {
+              debugOnRef.current = true;
+              setAnimationKeys((draft) => {
+                const anim: CanvasVariantKeys = 'moveOnscreenRight';
+                draft.canvas = anim;
+              });
+            } else {
+              debugOnRef.current = false;
+              setAnimationKeys((draft) => {
+                const anim: CanvasVariantKeys = 'moveOnscreenLeft';
+                draft.canvas = anim;
+              });
+            }
+          }}
+          ref={canvasRef}
+        ></motion.canvas>
+      </motion.div>
       {debugOn ? (
         <div
           style={{
             display: 'flex',
-            backgroundColor: 'darkblue',
-            width: 'auto',
-            textAlign: 'center',
-            justifyContent: 'space-between',
-            marginTop: '10px',
-            fontSize: '20px',
-            height: 'auto',
+            flexDirection: 'column',
           }}
         >
-          <button
+          <div
             style={{
-              borderTopLeftRadius: '15%',
-              marginLeft: '2px',
-            }}
-            onClick={onDecrementDebugStep}
-          >{`<`}</button>
-          <motion.div
-            style={{
-              alignItems: 'center',
-              marginTop: '4px',
-              textShadow: '2px 2px 2px 2px black',
-              marginRight: '2px',
+              display: 'flex',
+              backgroundColor: 'darkblue',
+              width: 'auto',
+              textAlign: 'center',
+              justifyContent: 'space-between',
+              marginTop: '10px',
+              fontSize: '20px',
               height: 'auto',
             }}
           >
-            {debugExplanations[debugStep]}
-          </motion.div>
-          <button
-            style={{ borderTopRightRadius: '25%' }}
-            onClick={onIncrementDebugStep}
-          >{`>`}</button>
+            <button
+              style={{
+                borderTopLeftRadius: '15%',
+                marginLeft: '2px',
+              }}
+              onClick={onDecrementDebugStep}
+            >{`<`}</button>
+            <motion.div
+              style={{
+                alignItems: 'center',
+                marginTop: '4px',
+                textShadow: '2px 2px 2px 2px black',
+                marginRight: '2px',
+                height: 'auto',
+              }}
+            >
+              {debugExplanations[debugStep]}
+            </motion.div>
+            <button
+              style={{ borderTopRightRadius: '25%' }}
+              onClick={onIncrementDebugStep}
+            >{`>`}</button>
+          </div>
+          <div
+            style={{
+              display: 'flex',
+              width: '100%',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: 'darkblue',
+              fontSize: '15px',
+              height: 'auto',
+              paddingTop: '5px',
+              paddingBottom: '5px',
+            }}
+          >
+            <motion.div
+              style={{
+                textDecoration: `${hoverDebug ? 'underline' : 'none'}`,
+                cursor: 'pointer',
+              }}
+              onHoverStart={() => {
+                setHoverDebug(true);
+              }}
+              onHoverEnd={() => {
+                setHoverDebug(false);
+              }}
+              onClick={() => {
+                setDebugOn(false);
+              }}
+            >
+              {'(Close Debug)'}
+            </motion.div>
+          </div>
         </div>
       ) : (
         <div
@@ -324,7 +445,7 @@ const SampleLayout: React.FunctionComponent<
             }}
             onClick={() => {
               setDebugOn(true);
-              debugOnRef.current = true;
+              //debugOnRef.current = true;
             }}
           >
             {'(Open Debug)'}

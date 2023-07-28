@@ -438,7 +438,7 @@ export const convertGLBToJSONAndBinary = async (
 
   const binaryChunk = new GLTFBuffer(
     buffer,
-    28 + jsonHeader[3],
+    28 + jsonHeader.getUint32(12, true),
     binaryHeader[0]
   );
 

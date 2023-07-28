@@ -16,7 +16,7 @@ struct Uniforms {
 @vertex
 fn vertexMain(input: VertexInput) -> VertexOutput {
   var output: VertexOutput;
-  output.Position = uniforms.projViewMatrix * vec4<f32>(input.position, 1.0);
+  output.Position = vec4<f32>(input.position, 1.0);
   //Get unadjusted world coordinates
   output.world_pos = input.position.xyz;
   return output;

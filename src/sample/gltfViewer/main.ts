@@ -4,7 +4,8 @@ import { createBindGroupDescriptor } from '../../utils/bindGroup';
 import { convertGLBToJSONAndBinary, GLTFMesh } from '../../utils/glbUtils';
 import gltfVertWGSL from './gltf.vert.wgsl';
 import gltfFragWGSL from './gltf.frag.wgsl';
-import { mat4 } from 'wgpu-matrix';
+import { mat4, vec3 } from 'wgpu-matrix';
+import {ArcballCamera} from 'arcball_camera'
 
 const init: SampleInit = async ({
   canvas,
@@ -69,14 +70,21 @@ const init: SampleInit = async ({
 
   const aspect = canvas.width / canvas.height;
   const projectionMatrix = mat4.perspective(
-    (50 * Math.PI) / 180.0,
+    (2 * Math.PI) / 5,
     aspect,
-    0.01,
-    1000.0
-  ) as Float32Array;
+    1,
+    100.0
+  );
+  const modelViewProjectionMatrix = mat4.create();
 
+  function getTransformationMatrix() {
+    const viewMatrix = mat4.identity();
+    mat4.translate(viewMatrix, vec3.fromValues(0, 5, -2), viewMatrix);
 
-  const projView = mat4.create();
+    mat4.multiply(projectionMatrix, viewMatrix, modelViewProjectionMatrix);
+
+    return modelViewProjectionMatrix as Float32Array;
+  }
 
 
 
@@ -106,14 +114,14 @@ const init: SampleInit = async ({
     // Sample is no longer the active page.
     if (!pageState.active) return;
 
-    const camera = mat4.create();
-    mat4.mul(projView, projectionMatrix, camera);
+    const transform = getTransformationMatrix();
+
     device.queue.writeBuffer(
       cameraBuffer,
       0,
-      camera.buffer,
-      camera.byteOffset,
-      camera.length
+      transform.buffer,
+      transform.byteOffset,
+      transform.length
     );
     
     renderPassDescriptor.colorAttachments[0].view = context
@@ -138,7 +146,7 @@ const init: SampleInit = async ({
 const gltfViewerExample: () => JSX.Element = () =>
   makeSample({
     name: 'GLTF Viewer',
-    description: 'Naive viwere for gltf models',
+    description: 'Naive viewer for gltf models',
     init,
     gui: true,
     sources: [
