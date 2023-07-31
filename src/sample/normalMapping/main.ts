@@ -1,5 +1,5 @@
 import { mat4, vec3 } from 'wgpu-matrix';
-import { makeSample, SampleInit } from '../../components/SampleLayout';
+import { makeSample, SampleInit } from '../../components/SampleLayout/SampleLayout';
 
 import normalMapWGSL from './normalMap.wgsl';
 import {

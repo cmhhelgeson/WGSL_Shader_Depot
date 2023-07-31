@@ -1,5 +1,5 @@
 /* eslint-disable prettier/prettier */
-import { makeSample, SampleInit } from '../../components/SampleLayout';
+import { makeSample, SampleInit } from '../../components/SampleLayout/SampleLayout';
 import fullscreenVertWebGLWGSL from '../../shaders/fullscreenWebGL.vert.wgsl';
 import gridFragWGSL from './grid.frag.wgsl';
 
@@ -175,7 +175,7 @@ const init: SampleInit = async ({ canvas, pageState, gui, debugValueRef, debugOn
 const gridExample: () => JSX.Element = () =>
   makeSample({
     name: 'Grid Shader',
-    description: 'A shader that renders a basic, graph style grid.',
+    description: 'A shader that renders a 80s, cyberpunk style grid.',
     init,
     gui: true,
     sources: [

@@ -1,5 +1,5 @@
 /* eslint-disable prettier/prettier */
-import { makeSample, SampleInit } from '../../components/SampleLayout';
+import { makeSample, SampleInit } from '../../components/SampleLayout/SampleLayout';
 import fullscreenVertWebGPU from '../../shaders/fullscreenWebGPU.vert.wgsl';
 import crtFragShader from './crt.frag.wgsl';
 
@@ -127,6 +127,7 @@ const init: SampleInit = async ({ canvas, pageState, gui, debugValueRef, debugOn
   ];
 };
 
+//Effectively the equivalent of returning <SampleLayout>
 const crtExample: () => JSX.Element = () =>
   makeSample({
     name: 'CRT Shader',
@@ -151,5 +152,4 @@ const crtExample: () => JSX.Element = () =>
     ],
     filename: __filename,
   });
-
 export default crtExample;

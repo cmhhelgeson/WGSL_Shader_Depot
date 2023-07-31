@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { MutableRefObject, useEffect, useMemo, useRef, useState } from 'react';
@@ -5,14 +6,15 @@ import { MutableRefObject, useEffect, useMemo, useRef, useState } from 'react';
 import type { GUI } from 'dat.gui';
 import type { Stats } from 'stats-js';
 import { motion, useAnimation, Variant, Variants } from 'framer-motion';
+import { canvasVariants, debugButtonVariants, AnimationKeysType } from './SampleLayoutTypes';
 import type { Editor, EditorConfiguration } from 'codemirror';
 interface CodeMirrorEditor extends Editor {
   updatedSource: (source: string) => void;
 }
 
-import styles from './SampleLayout.module.css';
-import { useAppDispatch, useAppSelector } from '../features/store';
-import { changeDebugExplanations } from '../features/debugInfo/debugInfoSlice';
+import styles from './SampleLayout.module.scss';
+import { useAppDispatch, useAppSelector } from '../../features/store';
+import { changeDebugExplanations } from '../../features/debugInfo/debugInfoSlice';
 import { useImmer } from 'use-immer';
 
 type SourceFileInfo = {
@@ -41,6 +43,7 @@ function makeCodeMirrorEditor(source: string) {
     lineWrapping: true,
     theme: 'monokai',
     readOnly: true,
+    dragDrop: true,
   };
 
   let el: HTMLDivElement | null = null;
@@ -70,48 +73,6 @@ function makeCodeMirrorEditor(source: string) {
     Container,
   };
 }
-
-type CanvasVariantKeys =
-  | 'moveOffscreenRight'
-  | 'moveOffscreenLeft'
-  | 'moveOnscreenRight'
-  | 'moveOnscreenLeft';
-type CanvasVariantType = {
-  [key in CanvasVariantKeys]: Variant;
-};
-
-const canvasVariants: CanvasVariantType = {
-  moveOffscreenRight: {
-    x: [0, 1000],
-    transition: {
-      duration: 0.5,
-    },
-  },
-  moveOffscreenLeft: {
-    x: [0, -1000],
-    transition: {
-      duration: 0.5,
-    },
-  },
-  moveOnscreenLeft: {
-    x: [1000, 0],
-    transition: {
-      duration: 0.5,
-    },
-  },
-  moveOnscreenRight: {
-    x: [-1000, 0],
-    transition: {
-      duration: 0.5,
-    },
-  },
-  initial: {
-    x: [0],
-    transition: {
-      duration: 0,
-    },
-  },
-};
 
 const SampleLayout: React.FunctionComponent<
   React.PropsWithChildren<{
@@ -168,9 +129,13 @@ const SampleLayout: React.FunctionComponent<
   const [debugOn, setDebugOn] = useState<boolean>(false);
   const debugOnRef = useRef<boolean>(false);
   const [hoverDebug, setHoverDebug] = useState<boolean>(false);
-  const controls = useAnimation();
-  const [animationKeys, setAnimationKeys] = useImmer({
-    canvas: 'initial',
+  const canvasAnimControls = useAnimation();
+  const debugButtonLeftAnimController = useAnimation();
+  const debugButtonRightAnimController = useAnimation();
+  const [animationKeys, setAnimationKeys] = useImmer<AnimationKeysType>({
+    canvas: '',
+    debugButtonLeft: '',
+    debugButtonRight: '',
   });
 
   useEffect(() => {
@@ -178,7 +143,7 @@ const SampleLayout: React.FunctionComponent<
       setAnimationKeys((draft) => {
         draft.canvas = 'moveOffscreenRight';
       });
-    } else if (animationKeys.canvas !== 'initial') {
+    } else if (animationKeys.canvas !== '') {
       setAnimationKeys((draft) => {
         draft.canvas = 'moveOffscreenLeft';
       });
@@ -186,8 +151,16 @@ const SampleLayout: React.FunctionComponent<
   }, [debugOn]);
 
   useEffect(() => {
-    controls.start(animationKeys.canvas);
-  }, [animationKeys, controls]);
+    canvasAnimControls.start(animationKeys.canvas);
+  }, [animationKeys.canvas, canvasAnimControls]);
+
+  useEffect(() => {
+    debugButtonLeftAnimController.start(animationKeys.debugButtonLeft);
+  }, [animationKeys.debugButtonLeft, debugButtonLeftAnimController]);
+
+  useEffect(() => {
+    debugButtonRightAnimController.start(animationKeys.debugButtonRight)
+  }, [animationKeys.debugButtonRight, debugButtonRightAnimController])
 
   const onIncrementDebugStep = () => {
     if (debugStep === debugExplanations.length - 1) {
@@ -321,18 +294,18 @@ const SampleLayout: React.FunctionComponent<
         ></div>
         <motion.canvas
           variants={canvasVariants}
-          animate={controls}
+          animate={canvasAnimControls}
           onAnimationComplete={() => {
             if (debugOn) {
               debugOnRef.current = true;
               setAnimationKeys((draft) => {
-                const anim: CanvasVariantKeys = 'moveOnscreenRight';
+                const anim: keyof typeof canvasVariants = 'moveOnscreenRight';
                 draft.canvas = anim;
               });
-            } else {
+            } else if (animationKeys.canvas !== '') {
               debugOnRef.current = false;
               setAnimationKeys((draft) => {
-                const anim: CanvasVariantKeys = 'moveOnscreenLeft';
+                const anim: keyof typeof canvasVariants = 'moveOnscreenLeft';
                 draft.canvas = anim;
               });
             }
@@ -341,78 +314,87 @@ const SampleLayout: React.FunctionComponent<
         ></motion.canvas>
       </motion.div>
       {debugOn ? (
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              backgroundColor: 'darkblue',
-              width: 'auto',
-              textAlign: 'center',
-              justifyContent: 'space-between',
-              marginTop: '10px',
-              fontSize: '20px',
-              height: 'auto',
+        <div className={styles.debugArea}>
+          <motion.div className={styles.debugArea__Button__HoverAreaLeft}
+            onHoverStart={() =>
+              setAnimationKeys((draft) => {
+                draft.debugButtonLeft = 'shiftLeft';
+                return draft;
+              })
+            }
+            onHoverEnd={() => {
+              setAnimationKeys((draft) => {
+                draft.debugButtonLeft = 'shiftBackFromLeft';
+                return draft;
+              });
             }}
           >
-            <button
-              style={{
-                borderTopLeftRadius: '15%',
-                marginLeft: '2px',
-              }}
+            <motion.button
+              className={styles.debugArea__Button__Left}
               onClick={onDecrementDebugStep}
-            >{`<`}</button>
-            <motion.div
-              style={{
-                alignItems: 'center',
-                marginTop: '4px',
-                textShadow: '2px 2px 2px 2px black',
-                marginRight: '2px',
-                height: 'auto',
-              }}
+              animate={debugButtonLeftAnimController}
+              variants={debugButtonVariants}
             >
-              {debugExplanations[debugStep]}
-            </motion.div>
-            <button
-              style={{ borderTopRightRadius: '25%' }}
-              onClick={onIncrementDebugStep}
-            >{`>`}</button>
+              {`<`}
+            </motion.button>
+          </motion.div>
+          <div className={styles.debugArea__DebugBlock}>
+            <div className={styles.debugArea__DebugBlock__Explanation}>
+              <motion.div
+                style={{
+                  alignItems: 'center',
+                  marginTop: '4px',
+                  textShadow: '2px 2px 2px 2px black',
+                  marginRight: '2px',
+                  height: 'auto',
+                }}
+              >
+                {debugExplanations[debugStep]}
+              </motion.div>
+            </div>
+            <div className={styles.debugArea__DebugBlock__Close}>
+              <motion.div
+                style={{
+                  textDecoration: `${hoverDebug ? 'underline' : 'none'}`,
+                  cursor: 'pointer',
+                }}
+                onHoverStart={() => {
+                  setHoverDebug(true);
+                }}
+                onHoverEnd={() => {
+                  setHoverDebug(false);
+                }}
+                onClick={() => {
+                  setDebugOn(false);
+                }}
+              >
+                {'(Close Debug)'}
+              </motion.div>
+            </div>
           </div>
-          <div
-            style={{
-              display: 'flex',
-              width: '100%',
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: 'darkblue',
-              fontSize: '15px',
-              height: 'auto',
-              paddingTop: '5px',
-              paddingBottom: '5px',
+          <motion.div className={styles.debugArea__Button__HoverAreaRight}
+            onHoverStart={() =>
+              setAnimationKeys((draft) => {
+                draft.debugButtonRight = 'shiftRight';
+                return draft;
+              })
+            }
+            onHoverEnd={() => {
+              setAnimationKeys((draft) => {
+                draft.debugButtonRight = 'shiftBackFromRight';
+                return draft;
+              });
             }}
           >
-            <motion.div
-              style={{
-                textDecoration: `${hoverDebug ? 'underline' : 'none'}`,
-                cursor: 'pointer',
-              }}
-              onHoverStart={() => {
-                setHoverDebug(true);
-              }}
-              onHoverEnd={() => {
-                setHoverDebug(false);
-              }}
-              onClick={() => {
-                setDebugOn(false);
-              }}
+            <motion.button
+              className={styles.debugArea__Button__Right}
+              onClick={onIncrementDebugStep}
+              variants={debugButtonVariants}
+              animate={debugButtonRightAnimController}
             >
-              {'(Close Debug)'}
-            </motion.div>
-          </div>
+              {`>`}
+            </motion.button>
+          </motion.div>
         </div>
       ) : (
         <div

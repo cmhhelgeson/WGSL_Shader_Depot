@@ -1,5 +1,5 @@
 /* eslint-disable prettier/prettier */
-import { makeSample, SampleInit } from '../../components/SampleLayout';
+import { makeSample, SampleInit } from '../../components/SampleLayout/SampleLayout';
 import fullscreenVertWGSL from '../../shaders/fullscreenWebGL.vert.wgsl';
 import mixFragWGSL from './mix.frag.wgsl';
 import { createBindGroupDescriptor } from '../../utils/bindGroup';

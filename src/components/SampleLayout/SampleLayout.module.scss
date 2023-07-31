@@ -1,0 +1,140 @@
+.canvasContainer {
+  text-align: center;
+  position: relative;
+  margin-top: 10px;
+}
+
+.canvasContainer>canvas {
+  width: 100%;
+  aspect-ratio: 1;
+  max-width: 640px;
+  max-height: 480px;
+}
+
+nav.sourceFileNav ul {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+  margin-top: 15px;
+}
+
+nav.sourceFileNav li {
+  display: inline-block;
+  margin: 0;
+  padding: 0;
+}
+
+nav.sourceFileNav li a {
+  display: block;
+  margin: 0;
+  padding: 10px;
+  color: white;
+  background-color: #403e3e;
+}
+
+nav.sourceFileNav li a[data-active=true] {
+  background-color: #282823;
+}
+
+.sourceFileContainer {
+  overflow: hidden;
+  height: 0;
+}
+
+.sourceFileContainer[data-active=true] {
+  height: auto;
+}
+
+.sourceFileContainer :global(.CodeMirror) {
+  margin-top: 0;
+}
+
+@mixin debugBlockNormals() {
+  flex-direction: row;
+  background-color: darkblue;
+  width: auto;
+  height: auto;
+  text-align: center;
+  justify-content: center;
+  align-items: center;
+  grid-row: 1 / span 1;
+  align-self: start;
+}
+
+@mixin debugButtonNormals() {
+  &:hover {
+    color: green;
+  }
+  width: 50px;
+  max-width: 50px;
+  height: 100%;
+}
+
+@mixin debugButtonHoverAreaNormals() {
+  display: flex;
+  grid-row: 1 / span 2;
+  justify-content: flex-start;
+}
+
+.debugArea {
+  //display: flex;
+  //flex-direction: column;
+  display: grid;
+  grid-template-columns: 10% auto 10%;
+  grid-template-rows: auto auto;
+  background-color: darkblue;
+  &__DebugBlock {
+    grid-row: 1 / span 2;
+    &__Explanation {
+      @include debugBlockNormals();
+      margin-top: 5px;
+      font-size: 20px;
+    }
+  
+    &__Close {
+      @include debugBlockNormals();
+      font-size: 15px;
+      padding-top: 5px;
+      padding-bottom: 5px;
+      cursor: pointer;
+    }
+  }
+
+  &__Button {
+    &__HoverAreaLeft {
+      @include debugButtonHoverAreaNormals();
+      flex-direction: row;
+    }
+
+    &__HoverAreaRight {
+      @include debugButtonHoverAreaNormals();
+      flex-direction: row-reverse;
+    }
+    &__Left {
+      @include debugButtonNormals();
+      border-top-left-radius: 25%;
+      margin-left: 10px;
+    }
+    &__Right {
+      @include debugButtonNormals();
+      border-top-right-radius: 25%;
+      margin-right: 10px;
+    }
+  }
+}
+
+.debug_output {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  background-color: 'darkblue';
+  font-size: 15px;
+  height: auto;
+
+  &__close_debug_area {
+    font-size: 20px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+  }
+}

@@ -1,5 +1,5 @@
 /* eslint-disable prettier/prettier */
-import { makeSample, SampleInit } from '../../components/SampleLayout';
+import { makeSample, SampleInit } from '../../components/SampleLayout/SampleLayout';
 import { createBindGroupDescriptor } from '../../utils/bindGroup';
 import { convertGLBToJSONAndBinary, GLTFMesh } from '../../utils/glbUtils';
 import gltfVertWGSL from './gltf.vert.wgsl';

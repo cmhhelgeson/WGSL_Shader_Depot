@@ -1,5 +1,5 @@
 /* eslint-disable prettier/prettier */
-import { makeSample, SampleInit } from '../../components/SampleLayout';
+import { makeSample, SampleInit } from '../../components/SampleLayout/SampleLayout';
 import SDFRenderer from './sdf';
 import CyberpunkGridFragWGSL from './cyberpunk.frag.wgsl';
 

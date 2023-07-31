@@ -1,5 +1,5 @@
 import { vec2 } from 'wgpu-matrix';
-import { makeSample, SampleInit } from '../../components/SampleLayout';
+import { makeSample, SampleInit } from '../../components/SampleLayout/SampleLayout';
 
 import comancheWGSL from './comanche.wgsl';
 
