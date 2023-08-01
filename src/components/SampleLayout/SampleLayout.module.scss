@@ -65,15 +65,19 @@ nav.sourceFileNav li a[data-active=true] {
   &:hover {
     color: green;
   }
-  width: 50px;
-  max-width: 50px;
+  min-width: 60px;
+  max-width: 80px;
   height: 100%;
+  background-color: burlywood;
+  z-index: 9;
+  transition: box-shadow 0.3s ease-out;
 }
 
 @mixin debugButtonHoverAreaNormals() {
   display: flex;
   grid-row: 1 / span 2;
   justify-content: flex-start;
+  align-items: center;
 }
 
 .debugArea {

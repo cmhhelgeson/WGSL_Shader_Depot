@@ -47,28 +47,36 @@ type DebugVariantType = {
 
 export const debugButtonVariants: DebugVariantType = {
   shiftLeft: {
-    x: [0, -9],
+    x: [0, -10],
     transition: {
       ease: 'easeIn',
+      duration: 0.3,
     },
+    scaleY: [1, 1.2],
   },
   shiftBackFromLeft: {
-    x: [-9, 0],
+    x: [-10, 0],
     transition: {
       ease: 'easeOut',
+      duration: 0.3,
     },
+    scaleY: [1.2, 1],
   },
   shiftRight: {
-    x: [0, 9],
+    x: [0, 10],
     transition: {
       ease: 'easeIn',
+      duration: 0.3,
     },
+    scaleY: [1, 1.2],
   },
   shiftBackFromRight: {
-    x: [9, 0],
+    x: [10, 0],
     transition: {
       ease: 'easeOut',
+      duration: 0.3,
     },
+    scaleY: [1.2, 1],
   },
 };
 

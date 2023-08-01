@@ -5,7 +5,7 @@ import { MutableRefObject, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { GUI } from 'dat.gui';
 import type { Stats } from 'stats-js';
-import { motion, useAnimation, Variant, Variants } from 'framer-motion';
+import { motion, useAnimation, Variant, Variants, useMotionValue, useTransform } from 'framer-motion';
 import { canvasVariants, debugButtonVariants, AnimationKeysType } from './SampleLayoutTypes';
 import type { Editor, EditorConfiguration } from 'codemirror';
 interface CodeMirrorEditor extends Editor {
@@ -87,6 +87,9 @@ const SampleLayout: React.FunctionComponent<
   }>
 > = (props) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const debugButtonLeftRef = useRef<HTMLButtonElement | null>();
+  const debugButtonRightRef = useRef<HTMLButtonElement | null>();
+  const shadowY = useMotionValue(0);
   const sources = useMemo(
     () =>
       props.sources.map(({ name, contents }) => {
@@ -182,6 +185,21 @@ const SampleLayout: React.FunctionComponent<
 
   const [activeHash, setActiveHash] = useState<string | null>(null);
 
+  const mmDebugLeft = (event) => {
+    const button = debugButtonLeftRef.current
+    const buttonRect = button.getBoundingClientRect();
+    const coords = {
+      mouseX: event.pageX - buttonRect.left,
+      mouseY: event.pageY - buttonRect.top,
+      shadowY: event.pageY - buttonRect.top - Math.round(buttonRect.height / 2),
+    }
+    coords.shadowY = Math.floor(coords.shadowY);
+    console.log(shadowY);
+    shadowY.set(coords.shadowY);
+    //debugButtonLeftAnimController.start({boxShadow: `100px ${coords.shadowY} 1px -10px rgba(0, 0, 100, 1.0)`})
+  }
+  const testTransform = useTransform(shadowY, [-100, 100], [-100, 100]);
+
   useEffect(() => {
     if (currentHash) {
       setActiveHash(currentHash[1]);
@@ -234,8 +252,12 @@ const SampleLayout: React.FunctionComponent<
     }
     return () => {
       pageState.active = false;
+      if (debugButtonLeftRef.current) {
+        debugButtonLeftRef.current.removeEventListener('mousemove', mmDebugLeft);
+      }
     };
   }, []);
+  
 
   return (
     <main>
@@ -334,6 +356,18 @@ const SampleLayout: React.FunctionComponent<
               onClick={onDecrementDebugStep}
               animate={debugButtonLeftAnimController}
               variants={debugButtonVariants}
+              ref={debugButtonLeftRef}
+              onMouseMove={(event) => {
+                const button = event.currentTarget;
+                let offset = event.pageY - button.getBoundingClientRect().top - Math.round(button.clientHeight / 2);
+                console.log(offset);
+                offset = Math.min(Math.max(offset, -4.0), 4.0);
+                button.style.boxShadow = `30px ${offset * -1 / 2}px 1px -8px rgba(0, 0, 0, 0.3)`;
+              }}
+              onMouseLeave={(event) => {
+                const button = event.currentTarget;
+                button.style.boxShadow = '';
+              }}
             >
               {`<`}
             </motion.button>
@@ -391,6 +425,7 @@ const SampleLayout: React.FunctionComponent<
               onClick={onIncrementDebugStep}
               variants={debugButtonVariants}
               animate={debugButtonRightAnimController}
+              ref={debugButtonRightRef}
             >
               {`>`}
             </motion.button>
@@ -455,7 +490,6 @@ const SampleLayout: React.FunctionComponent<
           </ul>
         </nav>
         {sources.map((src, i) => {
-          console.log(src);
           return (
             <src.Container
               className={styles.sourceFileContainer}
