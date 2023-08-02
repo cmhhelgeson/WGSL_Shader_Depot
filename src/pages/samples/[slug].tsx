@@ -20,6 +20,20 @@ export const pages = {
   gltf: dynamic(() => import('../../sample/gltfViewer/main')),
 };
 
+export const fragmentPages = {
+  mixExample: dynamic(() => import('../../sample/mixExample/main')),
+  CRT: dynamic(() => import('../../sample/crt/main')),
+  grid: dynamic(() => import('../../sample/grid/main')),
+  cyberpunkGrid: dynamic(() => import('../../sample/cyberpunkGrid/main'))
+};
+
+export const vertexPages = {
+  gltf: dynamic(() => import('../../sample/gltfViewer/main')),
+  renderBundles: dynamic(() => import('../../sample/renderBundles/main')),
+  normalMapping: dynamic(() => import('../../sample/normalMapping/main')),
+};
+
+
 function Page({slug, }: Props): JSX.Element {
   const PageComponent = pages[slug];
   return <PageComponent />;

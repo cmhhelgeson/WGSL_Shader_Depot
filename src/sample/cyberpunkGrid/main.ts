@@ -83,7 +83,7 @@ const init: SampleInit = async ({ canvas, pageState, gui, debugValueRef, debugOn
       .createView();
 
     const commandEncoder = device.createCommandEncoder();
-    console.log(canvasRef.current.width)
+    //console.log(canvasRef.current.width)
     if (debugOnRef.current) {
       debugRenderer.startRun(commandEncoder, {
         time: timeElapsed,

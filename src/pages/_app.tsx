@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useState } from 'react';
 import type { AppProps } from 'next/app';
+import { fragmentPages, vertexPages } from './samples/[slug]';
 import { appStore, wrapper } from '../features/store';
 
 import './styles.css';
