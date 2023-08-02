@@ -198,8 +198,6 @@ const SampleLayout: React.FunctionComponent<
     shadowY.set(coords.shadowY);
     //debugButtonLeftAnimController.start({boxShadow: `100px ${coords.shadowY} 1px -10px rgba(0, 0, 100, 1.0)`})
   }
-  const testTransform = useTransform(shadowY, [-100, 100], [-100, 100]);
-
   useEffect(() => {
     if (currentHash) {
       setActiveHash(currentHash[1]);

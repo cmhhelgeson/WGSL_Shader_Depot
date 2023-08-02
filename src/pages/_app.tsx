@@ -11,6 +11,7 @@ import styles from './MainLayout.module.css';
 
 import { pages } from './samples/[slug]';
 import { Provider } from 'react-redux';
+import AppSidebar from '../components/AppSidebar/AppSidebar';
 
 const title = 'WGSL Shader Depot';
 
@@ -46,6 +47,7 @@ const MainLayout: React.FunctionComponent<AppProps> = ({
           />
         </Head>
         <div className={styles.wrapper}>
+          <AppSidebar />
           <nav
             className={`${styles.panel} ${styles.container}`}
             data-expanded={listExpanded}

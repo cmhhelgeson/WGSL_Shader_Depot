@@ -1,0 +1,103 @@
+
+
+/* Adapted from Paulina Hetman code */
+@mixin moveInGrid($cols, $numElements) {
+  $rows: ceil(calc($numElements / $cols));
+  .sidebar_select_grid {
+    & > .sidebar_item:last-of-type:after,
+    & > .sidebar_item:last-of-type:before {
+      left: 100% * (($cols - $numElements) % $cols);
+      transform: translateY(-100% * calc(($rows - 1) / 2)); //would be translate 3d with appropriate x calculation
+    }
+    @for $i from 1 through $numElements - 1 {
+      $x: ($cols - $i) % $cols;
+      $y: $rows - floor(calc(( ($i - 1) / $cols ))) - 1;
+      @debug "x & y: #{$x}, #{$y}";
+      & > .sidebar_item:nth-of-type(#{$i}):hover ~ .sidebar_item:last-of-type:after,
+      & > .sidebar_item:nth-of-type(#{$i}):hover ~ .sidebar_item:last-of-type:before {
+        transform: translateY(-$y * 100%); //would be translate3d but that wasn't working
+        opacity: 1;
+        width: 100%;
+        background-color: rgba(200, 200, 250, 0.1);
+      }
+
+      & > .sidebar_item:last-of-type:hover:after,
+      & > .sidebar_item:last-of-type:hover:before {
+        transform: translateY(0%);
+        opacity: 1;
+        width: 100%;
+        background-color: rgba(200, 200, 250, 0.1);
+      }
+    }
+  }
+}
+
+.sidebar_select_grid {
+  & > .sidebar_item {
+    &:last-of-type:after,
+    &:last-of-type:before {
+      content: "";
+      position: absolute;
+      width: 0%;
+      height: 100%;
+      top: 0;
+      background-color: transparent;
+      pointer-events: none;
+      opacity: 0;
+      transition: 1s;
+    }
+  }
+}
+
+.pro_menu_item {
+  width: inherit;
+}
+
+/*.pro-menu-item {
+  &:hover {
+    --gradient_width: 100%;
+  }
+
+  &::before {
+    content: "";
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    height: 100%;
+    background: linear-gradient(to right, #23a6d5 var(--light_blue_percent), #4fb8dd);
+    width: var(--gradient_width, 0%);
+    transition: width 800ms ease;
+    z-index: 0;
+  } 
+} */
+
+.SidebarArea {
+
+  &__BurgerArea {
+    display: flex;
+    height: auto;
+    align-items: center;
+    color: blue;
+    padding-top: 10px;
+
+    &__BurgerIcon {
+
+    }
+
+    &__BurgerText {
+      margin-left: 10px;
+      font-family: 'Roboto';
+    }
+  }
+
+  &__Menu {
+    &__SelectableMenuArea {
+      display: grid;
+    }
+  }
+
+}
+
+
+
+@include moveInGrid(1, 4);
