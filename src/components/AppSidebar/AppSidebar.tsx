@@ -23,6 +23,7 @@ import {
   listItemVariants,
 } from './AppSidebarTypes';
 import { useImmer } from 'use-immer';
+import { useRouter } from 'next/router';
 
 /*const whenMouseMove = (e: React.MouseEvent) => {
     if (!ref.current) {
@@ -63,6 +64,8 @@ const Item = ({
   if (!collapsedTitle) {
     collapsedTitle = title;
   }
+
+  const router = useRouter();
 
   const [animationKeys, setAnimationKeys] = useImmer<AnimationKeysType>({
     triangle: '',
@@ -169,16 +172,14 @@ const Item = ({
         animate={listController}
       >
         {subItems.map((slug, idx) => {
+          console.log(slug);
           return (
             <motion.li
               key={slug}
               className={styles.SidebarArea__Menu__List__ListItem}
               variants={listItemVariants}
-              onMouseOver={() => {
-                pages[slug].render.preload();
-              }}
             >
-              <Link href={`/samples/${slug}`}>{`${idx + 1}. ${slug}`}</Link>
+              {`${idx + 1}.${slug}`}
             </motion.li>
           );
         })}
@@ -199,6 +200,7 @@ const AppSidebar = () => {
   const sideBarRef = useRef<HTMLDivElement>(null);
   const fragmentNames = Object.keys(fragmentPages);
   const vertexNames = Object.keys(vertexPages);
+  const router = useRouter();
 
   return (
     <Box
@@ -271,7 +273,7 @@ const AppSidebar = () => {
                 setSelected={setSelected}
                 isCollapsed={isCollapsed}
                 setIsCollapsed={setIsCollapsed}
-                subItems={[]}
+                subItems={vertexNames}
               />
               <Item
                 title="Compute Shaders"

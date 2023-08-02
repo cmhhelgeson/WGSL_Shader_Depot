@@ -24,7 +24,7 @@ export const fragmentPages = {
   mixExample: dynamic(() => import('../../sample/mixExample/main')),
   CRT: dynamic(() => import('../../sample/crt/main')),
   grid: dynamic(() => import('../../sample/grid/main')),
-  cyberpunkGrid: dynamic(() => import('../../sample/cyberpunkGrid/main'))
+  cyberpunkGrid: dynamic(() => import('../../sample/cyberpunkGrid/main')),
 };
 
 export const vertexPages = {
@@ -33,8 +33,7 @@ export const vertexPages = {
   normalMapping: dynamic(() => import('../../sample/normalMapping/main')),
 };
 
-
-function Page({slug, }: Props): JSX.Element {
+function Page({ slug }: Props): JSX.Element {
   const PageComponent = pages[slug];
   return <PageComponent />;
 }

@@ -3,8 +3,6 @@ import { AppProps } from 'next/app';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useState } from 'react';
-import type { AppProps } from 'next/app';
-import { fragmentPages, vertexPages } from './samples/[slug]';
 import { appStore, wrapper } from '../features/store';
 
 import './styles.css';
@@ -22,7 +20,7 @@ const MainLayout: React.FunctionComponent<AppProps> = ({
 }) => {
   const router = useRouter();
   const samplesNames = Object.keys(pages);
-  const { store, props } = wrapper.useWrappedStore(appStore);
+  const { store } = wrapper.useWrappedStore(appStore);
 
   const [listExpanded, setListExpanded] = useState<boolean>(false);
 
