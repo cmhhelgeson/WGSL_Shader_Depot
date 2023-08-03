@@ -52,6 +52,43 @@ type ItemProps = {
   subItems: string[];
 };
 
+type SubItemProps = {
+  slug: string;
+  idx: number;
+  itemOpen: boolean;
+};
+
+const SubItem = ({ slug, idx, itemOpen }: SubItemProps) => {
+  const router = useRouter();
+  const itemController = useAnimation();
+  return (
+    <motion.li
+      key={slug}
+      className={styles.SidebarArea__Menu__List__ListItem}
+      variants={listItemVariants}
+      onClick={() => {
+        if (itemOpen) {
+          router.push(`/samples/${slug}`);
+        }
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'flex-start',
+        }}
+      >
+        <div className={styles.SidebarArea__Menu__List__ListItem__Number}>
+          {`${idx + 1}.`}
+        </div>
+        <motion.div className={styles.SidebarArea__Menu__List__ListItem__Text}>
+          {`${slug}`}
+        </motion.div>
+      </div>
+    </motion.li>
+  );
+};
+
 const Item = ({
   title,
   collapsedTitle,
@@ -60,7 +97,6 @@ const Item = ({
   setIsCollapsed,
   subItems,
 }: ItemProps) => {
-  const theme = useTheme();
   if (!collapsedTitle) {
     collapsedTitle = title;
   }
@@ -69,7 +105,7 @@ const Item = ({
 
   const [animationKeys, setAnimationKeys] = useImmer<AnimationKeysType>({
     triangle: '',
-    list: '',
+    list: 'close',
   });
 
   const [itemOpen, setItemOpen] = useState<boolean>(false);
@@ -116,7 +152,6 @@ const Item = ({
         }}
         onClick={() => {
           if (!itemOpen && isCollapsed === true) {
-            setIsCollapsed(!isCollapsed);
             setItemOpen(!itemOpen);
           }
         }}
@@ -172,16 +207,7 @@ const Item = ({
         animate={listController}
       >
         {subItems.map((slug, idx) => {
-          console.log(slug);
-          return (
-            <motion.li
-              key={slug}
-              className={styles.SidebarArea__Menu__List__ListItem}
-              variants={listItemVariants}
-            >
-              {`${idx + 1}.${slug}`}
-            </motion.li>
-          );
+          return (<SubItem slug={slug} idx={idx} isOpen={isOpen}></SubItem>;
         })}
       </motion.ul>
     </div>
