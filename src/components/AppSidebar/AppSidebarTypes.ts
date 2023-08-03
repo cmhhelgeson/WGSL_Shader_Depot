@@ -46,13 +46,27 @@ export const listItemVariants: ListVariantType = {
   open: {
     opacity: 1,
     y: 0,
-    transition: { type: "spring", stiffness: 300, damping: 24 },
+    transition: { type: "spring", stiffness: 1000, damping: 24 },
     pointerEvents: 'all',
   },
   close: { opacity: 0, y: 20, transition: { duration: 0.2 }, pointerEvents: 'none'},
 };
 
-export type AnimationKeysType = {
+export type AppSidebarAnimationKeysType = {
   triangle: TriangleVariantKeys | '';
   list: ListVariantKeys | ''
+}
+
+type ListItemTextVariantKeys =
+  | 'initial'
+  | 'coil'
+  | 'release'
+
+type ListItemTextVariants = {
+  [key in ListItemTextVariantKeys]: Variant;
+}
+
+export type SubItemKeysType = {
+  text: ListItemTextVariantKeys | '',
+  period: ListItemTextVariantKeys | ''
 }

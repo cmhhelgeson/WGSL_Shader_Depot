@@ -21,6 +21,7 @@ import {
   AnimationKeysType,
   listVariants,
   listItemVariants,
+  AppSidebarAnimationKeysType,
 } from './AppSidebarTypes';
 import { useImmer } from 'use-immer';
 import { useRouter } from 'next/router';
@@ -103,10 +104,11 @@ const Item = ({
 
   const router = useRouter();
 
-  const [animationKeys, setAnimationKeys] = useImmer<AnimationKeysType>({
-    triangle: '',
-    list: 'close',
-  });
+  const [animationKeys, setAnimationKeys] =
+    useImmer<AppSidebarAnimationKeysType>({
+      triangle: '',
+      list: 'close',
+    });
 
   const [itemOpen, setItemOpen] = useState<boolean>(false);
 
@@ -153,6 +155,7 @@ const Item = ({
         onClick={() => {
           if (!itemOpen && isCollapsed === true) {
             setItemOpen(!itemOpen);
+            setIsCollapsed(false);
           }
         }}
       >
@@ -207,7 +210,14 @@ const Item = ({
         animate={listController}
       >
         {subItems.map((slug, idx) => {
-          return (<SubItem slug={slug} idx={idx} isOpen={isOpen}></SubItem>;
+          return (
+            <SubItem
+              key={slug}
+              slug={slug}
+              idx={idx}
+              itemOpen={itemOpen}
+            ></SubItem>
+          );
         })}
       </motion.ul>
     </div>
