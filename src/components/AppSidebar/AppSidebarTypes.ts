@@ -66,6 +66,18 @@ type ListItemTextVariants = {
   [key in ListItemTextVariantKeys]: Variant;
 }
 
+export const subItemTextVariants: ListItemTextVariants = {
+  initial: {
+    x: [5, 0]
+  },
+  coil: {
+    x: [0, 5]
+  },
+  release: {
+    x: [0,5]
+  }
+}
+
 export type SubItemKeysType = {
   text: ListItemTextVariantKeys | '',
   period: ListItemTextVariantKeys | ''

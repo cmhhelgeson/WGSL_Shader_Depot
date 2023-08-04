@@ -5,7 +5,7 @@ import { MutableRefObject, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { GUI } from 'dat.gui';
 import type { Stats } from 'stats-js';
-import { motion, useAnimation, Variant, Variants, useMotionValue, useTransform } from 'framer-motion';
+import { motion, useAnimation, useMotionValue } from 'framer-motion';
 import { canvasVariants, debugButtonVariants, AnimationKeysType } from './SampleLayoutTypes';
 import type { Editor, EditorConfiguration } from 'codemirror';
 interface CodeMirrorEditor extends Editor {
@@ -23,7 +23,7 @@ type SourceFileInfo = {
   editable?: boolean;
 };
 
-export type SampleInit = (params: {
+export type SampleInitParams = {
   canvas: HTMLCanvasElement;
   pageState: { active: boolean };
   gui?: GUI;
@@ -31,7 +31,9 @@ export type SampleInit = (params: {
   debugValueRef: MutableRefObject<number>;
   debugOnRef: MutableRefObject<boolean>;
   canvasRef: MutableRefObject<HTMLCanvasElement>;
-}) => void | Promise<void> | Promise<string[]>;
+};
+
+export type SampleInit = (params: SampleInitParams) => void | Promise<void> | Promise<string[]>;
 
 if (process.browser) {
   require('codemirror/mode/javascript/javascript');

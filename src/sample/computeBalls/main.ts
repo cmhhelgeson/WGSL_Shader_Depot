@@ -1,42 +1,10 @@
 /* eslint-disable prettier/prettier */
-import { makeSample, SampleInit, SampleInitParams } from '../../components/SampleLayout/SampleLayout';
+import { makeSample, SampleInit } from '../../components/SampleLayout/SampleLayout';
 import CyberpunkGridRenderer from './cyberpunkGrid';
 import CyberpunkGridFragWGSL from './cyberpunk.frag.wgsl';
 
 
-const SampleInitFactory = (params: SampleInitParams) => {
-  return {
-    async createSampleInit(callback: (params: SampleInitParams & {
-      device: GPUDevice,
-      context: GPUCanvasContext,
-      presentationFormat: GPUTextureFormat,
-    })): SampleInit {
-      const adapter = await navigator.gpu.requestAdapter();
-      const device = await adapter.requestDevice();
-
-      if (!params.pageState.active) return;
-      const context = params.canvas.getContext('webgpu') as GPUCanvasContext;
-
-      const devicePixelRatio = window.devicePixelRatio || 1;
-      params.canvas.width = params.canvas.clientWidth * devicePixelRatio;
-      params.canvas.height = params.canvas.clientHeight * devicePixelRatio;
-      console.log(params.canvas.clientWidth * devicePixelRatio);
-      const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
-
-      // Call the callback function with any parameters it needs
-      if (callback && typeof callback === 'function') {
-        callback({
-          device, context, presentationFormat,
-          canvas: params.canvas,
-          pageState: params.pageState,
-          debugValueRef: params.debugValueRef,
-          debugOnRef: params.debugOnRef,
-          canvasRef: params.canvasRef,
-        });
-      }
-    }
-  }
-}
+const SampleInitFactory = ({canvas, pageState, })
 
 const init: SampleInit = async ({ canvas, pageState, gui, debugValueRef, debugOnRef, canvasRef}) => {
   //Normal setup
