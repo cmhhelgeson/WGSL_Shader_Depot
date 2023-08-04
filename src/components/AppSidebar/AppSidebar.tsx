@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect, SetStateAction, Dispatch } from 'react';
 import { ProSidebar, Menu } from 'react-pro-sidebar';
-import Link from 'next/link';
 import { Box, IconButton, Typography, useTheme } from '@mui/material';
 import 'react-pro-sidebar/dist/css/styles.css';
 import { tokens } from './theme';
@@ -13,7 +12,6 @@ import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import ShareIcon from '@mui/icons-material/Share';
 import TocIcon from '@mui/icons-material/Toc';
 import styles from './app_sidebar.module.scss';
-import { pages } from '../../pages/samples/[slug]';
 import { fragmentPages, vertexPages } from '../../pages/samples/[slug]';
 import { motion, useAnimation } from 'framer-motion';
 import {
@@ -144,7 +142,20 @@ const Item = ({
   const ref = useRef<HTMLLIElement>(null);
 
   return (
-    <div className={styles.SidebarArea__Menu__SelectableMenuItem}>
+    <div
+      className={styles.SidebarArea__Menu__SelectableMenuItem}
+      onClick={() => {
+        setItemOpen(!itemOpen);
+        setAnimationKeys((draft) => {
+          if (draft.triangle === 'close' || draft.triangle === '') {
+            draft.triangle = 'open';
+          } else {
+            draft.triangle = 'close';
+          }
+          return draft;
+        });
+      }}
+    >
       <div
         className={styles.SidebarArea__Menu__SelectableMenuItem__Layout}
         style={{
@@ -171,7 +182,12 @@ const Item = ({
             marginTop: isCollapsed ? '5px' : '0px',
           }}
         >
-          <Typography fontSize={'S'}>
+          <Typography
+            className={
+              styles.SidebarArea__Menu__SelectableMenuItem__TextContainer__Text
+            }
+            fontSize={'S'}
+          >
             {isCollapsed ? collapsedTitle : title}
           </Typography>
           {isCollapsed ? null : (
@@ -180,17 +196,6 @@ const Item = ({
               variants={triangleVariants}
               transition={{ duration: 0.2 }}
               animate={triangleController}
-              onClick={() => {
-                setItemOpen(!itemOpen);
-                setAnimationKeys((draft) => {
-                  if (draft.triangle === 'close' || draft.triangle === '') {
-                    draft.triangle = 'open';
-                  } else {
-                    draft.triangle = 'close';
-                  }
-                  return draft;
-                });
-              }}
             >
               <svg
                 width="15"

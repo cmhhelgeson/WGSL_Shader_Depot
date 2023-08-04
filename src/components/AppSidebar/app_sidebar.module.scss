@@ -99,6 +99,7 @@
       height: 100%;
       margin-top: 10px;
       margin-bottom: 10px;
+      cursor: pointer;
       &__Layout {
         display: grid;
         width: inherit;
@@ -114,6 +115,9 @@
         display: flex;
         align-items: center;
         height: inherit;
+        &__Text {
+          pointer-events: none;
+        }
       }
       &__Dropdown {
         transform-origin: center 55%;

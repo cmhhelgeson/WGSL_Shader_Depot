@@ -4,11 +4,11 @@ import {
 } from '../../components/SampleLayout/SampleLayout';
 import CyberpunkGridRenderer from './cyberpunkGrid';
 import CyberpunkGridFragWGSL from './cyberpunk.frag.wgsl';
-import { SampleInitFactory } from '../../components/SampleLayout/SampleLayoutUtils';
+import { SampleInitFactoryWebGPU } from '../../components/SampleLayout/SampleLayoutUtils';
 
 let init: SampleInit;
 
-SampleInitFactory(
+SampleInitFactoryWebGPU(
   ({
     pageState,
     gui,

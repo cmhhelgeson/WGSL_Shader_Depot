@@ -5,11 +5,11 @@ import mixFragWGSL from './mix.frag.wgsl';
 import { createBindGroupDescriptor } from '../../utils/bindGroup';
 import { createUniformDescriptor } from '../../utils/uniform';
 import { create2DVertexModule } from '../../utils/renderProgram';
-import { SampleInitFactory } from '../../components/SampleLayout/SampleLayoutUtils';
+import { SampleInitFactoryWebGPU } from '../../components/SampleLayout/SampleLayoutUtils';
 
 let init: SampleInit;
 
-SampleInitFactory(
+SampleInitFactoryWebGPU(
   ({
     canvas,
     pageState,

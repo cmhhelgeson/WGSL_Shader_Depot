@@ -5,10 +5,10 @@ import crtFragShader from './crt.frag.wgsl';
 
 import CRTRenderer from './crt';
 import { createTextureFromImage } from '../../utils/texture';
-import { SampleInitFactory } from '../../components/SampleLayout/SampleLayoutUtils';
+import { SampleInitFactoryWebGPU } from '../../components/SampleLayout/SampleLayoutUtils';
 
 let init: SampleInit;
-SampleInitFactory(
+SampleInitFactoryWebGPU(
   async ({
     pageState,
     gui,
