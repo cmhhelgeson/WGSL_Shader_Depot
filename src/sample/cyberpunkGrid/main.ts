@@ -23,6 +23,8 @@ SampleInitFactoryWebGPU(
       lineSize: 0.2,
       lineGlow: 0.01,
       fog: 0.2,
+      sunX: -0.75,
+      sunY: 0.2,
     };
 
     const renderPassDescriptor: GPURenderPassDescriptor = {
@@ -40,6 +42,8 @@ SampleInitFactoryWebGPU(
     gui.add(settings, 'lineSize', 0.1, 1.0).step(0.1);
     gui.add(settings, 'lineGlow', 0.001, 0.1).step(0.001);
     gui.add(settings, 'fog', 0.1, 1.0).step(0.1);
+    gui.add(settings, 'sunX', -1.0, 1.0).step(0.01);
+    gui.add(settings, 'sunY', 0.0, 1.0).step(0.01)
 
     const renderer = new CyberpunkGridRenderer(
       device,
@@ -78,6 +82,9 @@ SampleInitFactoryWebGPU(
       //console.log(canvasRef.current.width)
       if (debugOnRef.current) {
         debugRenderer.startRun(commandEncoder, {
+          gridLineR: 1.0,
+          gridLineG: 0.0,
+          gridLineB: 0.0,
           time: timeElapsed,
           canvasWidth: canvasRef.current.width * devicePixelRatio,
           canvasHeight: canvasRef.current.height * devicePixelRatio,
@@ -85,9 +92,14 @@ SampleInitFactoryWebGPU(
           lineSize: settings.lineSize,
           lineGlow: settings.lineGlow,
           fog: settings.fog,
+          sunX: settings.sunX,
+          sunY: settings.sunY,
         });
       } else {
         renderer.startRun(commandEncoder, {
+          gridLineR: 1.0,
+          gridLineG: 1.0,
+          gridLineB: 1.0,
           time: timeElapsed,
           debugStep: debugValueRef.current,
           canvasWidth: canvasRef.current.width * devicePixelRatio,
@@ -95,6 +107,8 @@ SampleInitFactoryWebGPU(
           lineSize: settings.lineSize,
           lineGlow: settings.lineGlow,
           fog: settings.fog,
+          sunX: settings.sunX,
+          sunY: settings.sunY,
         });
       }
 
@@ -123,7 +137,7 @@ SampleInitFactoryWebGPU(
 const cyberpunkGridExample: () => JSX.Element = () =>
   makeSample({
     name: 'Cyberpunk Grid Shader',
-    description: 'A shader that renders a basic, graph style grid.',
+    description: 'A shader that renders a 80s, cyberpunk style grid.',
     init,
     gui: true,
     sources: [

@@ -6,6 +6,9 @@ import CyberpunkGridDebugFragWGSL from './cyberpunkDebug.frag.wgsl';
 import CyberpunkCommonsWGSL from './cyberpunk_commons.wgsl';
 
 type CyberpunkGridRenderArgs = {
+  gridLineR: number;
+  gridLineG: number;
+  gridLineB: number;
   time: number;
   canvasWidth: number;
   canvasHeight: number;
@@ -13,6 +16,8 @@ type CyberpunkGridRenderArgs = {
   fog: number;
   lineSize: number;
   lineGlow: number;
+  sunX: number;
+  sunY: number;
 };
 
 export default class CyberpunkGridRenderer
@@ -40,6 +45,8 @@ export default class CyberpunkGridRenderer
   changeFog: (fog: number) => void;
   changeLineSize: (lineSize: number) => void;
   changeLineGlow: (lineGlow: number) => void;
+  changeSunX: (sunX: number) => void;
+  changeSunY: (sunY: number) => void;
 
   constructor(
     device: GPUDevice,
@@ -51,7 +58,8 @@ export default class CyberpunkGridRenderer
   ) {
     super();
     this.renderPassDescriptor = renderPassDescriptor;
-    const uniformElements = 10;
+    const uniformElements = 12;
+    console.log(`Uniform Elements: ${uniformElements}`);
 
     const uniformBufferSize = Float32Array.BYTES_PER_ELEMENT * uniformElements;
     const uniformBuffer = device.createBuffer({
@@ -141,16 +149,24 @@ export default class CyberpunkGridRenderer
     this.changeDebugStep = (step: number) => {
       device.queue.writeBuffer(uniformBuffer, 36, new Float32Array([step]));
     };
+    this.changeSunX = (sunX: number) => {
+      device.queue.writeBuffer(uniformBuffer, 40, new Float32Array([-sunX]));
+    };
+    this.changeSunY = (sunY: number) => {
+      device.queue.writeBuffer(uniformBuffer, 44, new Float32Array([sunY]));
+    };
   }
 
   startRun(commandEncoder: GPUCommandEncoder, args: CyberpunkGridRenderArgs) {
-    this.changeGridLineColor(1.0, 0.0, 0.0);
+    this.changeGridLineColor(args.gridLineR, args.gridLineG, args.gridLineB);
     this.changeCanvasWidth(args.canvasWidth);
     this.changeCanvasHeight(args.canvasHeight);
     this.changeTime(args.time);
     this.changeFog(args.fog);
     this.changeLineSize(args.lineSize);
     this.changeLineGlow(args.lineGlow);
+    this.changeSunX(args.sunX);
+    this.changeSunY(args.sunY);
     if (args.debugStep !== this.prevDebugStep) {
       this.changeDebugStep(args.debugStep);
       this.prevDebugStep = args.debugStep;

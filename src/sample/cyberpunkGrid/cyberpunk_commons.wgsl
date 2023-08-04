@@ -15,6 +15,8 @@ struct Uniforms {
   lineSize: f32,
   lineGlow: f32,
   debugStep: f32,
+  sunX: f32,
+  sunY: f32,
 }
 
 fn inverseLerpF32(minVal: f32, maxVal: f32, val: f32) -> f32 {

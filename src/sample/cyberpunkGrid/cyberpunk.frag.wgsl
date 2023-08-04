@@ -27,7 +27,7 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4<f32> {
     var fujiUV: vec2<f32> = uv;
             
     // Sun
-    sunUV += vec2(0.75, 0.2);
+    sunUV += vec2(uniforms.sunX, uniforms.sunY);
     //uv.y -= 1.1 - 0.51;
     color = vec3(1.0, 0.2, 1.0);
     var sunVal = sun(sunUV, battery, uniforms.time);
