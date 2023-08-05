@@ -223,6 +223,25 @@ const init: SampleInit = async ({ canvas, pageState, gui, stats }) => {
     new Float32Array(uniformBuffer.getMappedRange()).set(transform);
     uniformBuffer.unmap();
 
+    const layout = device.createBindGroupLayout({
+      entries: [
+        {
+          binding: 0,
+          visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+          buffer: {
+            type: 'uniform'
+          }
+        },
+        {
+          binding: 1,
+          visibility: GPUShaderStage.FRAGMENT,
+          texture: {
+            sampleType: 'float'
+          }
+        }
+      ]
+    })
+
     const bindGroup = device.createBindGroup({
       layout: pipeline.getBindGroupLayout(1),
       entries: [

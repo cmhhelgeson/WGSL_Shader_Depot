@@ -106,8 +106,6 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4<f32> {
     return vec4<f32>(stepNineUv, 0.0, 1.0);
   }
 
-  //input.Position.xy * 2.0 - 1.0 
-
   return vec4<f32>(color, 1.0);
   // return vec4<f32>(uv, 0.0, 1.0);
 }

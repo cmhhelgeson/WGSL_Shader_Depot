@@ -5,6 +5,8 @@ import CyberpunkGridFragWGSL from './cyberpunk.frag.wgsl';
 import CyberpunkGridDebugFragWGSL from './cyberpunkDebug.frag.wgsl';
 import CyberpunkCommonsWGSL from './cyberpunk_commons.wgsl';
 
+import { CyberpunkGridShader } from './shaderTest';
+
 type CyberpunkGridRenderArgs = {
   gridLineR: number;
   gridLineG: number;

@@ -43,7 +43,7 @@ SampleInitFactoryWebGPU(
     gui.add(settings, 'lineGlow', 0.001, 0.1).step(0.001);
     gui.add(settings, 'fog', 0.1, 1.0).step(0.1);
     gui.add(settings, 'sunX', -1.0, 1.0).step(0.01);
-    gui.add(settings, 'sunY', 0.0, 1.0).step(0.01)
+    gui.add(settings, 'sunY', 0.0, 1.0).step(0.01);
 
     const renderer = new CyberpunkGridRenderer(
       device,

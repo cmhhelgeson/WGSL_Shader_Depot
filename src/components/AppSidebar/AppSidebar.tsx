@@ -100,6 +100,23 @@ const Item = ({
     collapsedTitle = title;
   }
 
+  const itemRef = useRef<HTMLDivElement>(null);
+
+  const onMouseMove = (e: React.MouseEvent) => {
+    if (!itemRef.current) {
+      return;
+    }
+    const decimal = e.clientX / itemRef.current.offsetWidth;
+    const basePercent = -100;
+    const percentRange = 200;
+    const adjustablePercent = percentRange * decimal;
+    const lightBluePercent = basePercent + adjustablePercent;
+    itemRef.current.style.setProperty(
+      '--light_blue_percent',
+      `${lightBluePercent}%`
+    );
+  };
+
   const router = useRouter();
 
   const [animationKeys, setAnimationKeys] =
@@ -139,8 +156,6 @@ const Item = ({
     }
   }, [isCollapsed]);
 
-  const ref = useRef<HTMLLIElement>(null);
-
   return (
     <div
       className={styles.SidebarArea__Menu__SelectableMenuItem}
@@ -155,6 +170,7 @@ const Item = ({
           return draft;
         });
       }}
+      onMouseMove={onMouseMove}
     >
       <div
         className={styles.SidebarArea__Menu__SelectableMenuItem__Layout}
