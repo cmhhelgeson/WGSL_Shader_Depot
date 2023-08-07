@@ -1,4 +1,5 @@
-import { Accessor, BufferView, GlTf } from './gltf';
+import { json } from 'stream/consumers';
+import { Accessor, BufferView, GlTf, Node } from './gltf';
 
 enum GLTFRenderMode {
   POINTS = 0,
@@ -31,6 +32,16 @@ enum GLTFType {
   MAT2 = 4,
   MAT3 = 5,
   MAT4 = 6,
+}
+
+type GLTFNode = {
+  nodeIndex: number;
+  childrenNodes: GLTFNode[];
+};
+
+type GLTFScene = {
+  sceneIndex: number;
+  nodes: GLTFNode[],
 }
 
 export const alignTo = (val: number, align: number): number => {
@@ -412,6 +423,24 @@ export const validateBinaryHeader = (header: Uint32Array) => {
   }
 };
 
+export const dfsNodeTree = (gltf: GlTf, parentNode: GLTFNode) => {
+  if (gltf.nodes[parentNode.nodeIndex] === undefined || gltf.nodes[parentNode.nodeIndex] === null) {
+    return;
+  }
+  for (let i = 0; i < gltf.nodes[parentNode.nodeIndex].children.length; i++) {
+    const childNode: GLTFNode = {
+      nodeIndex: gltf.nodes[parentNode.nodeIndex].children[i],
+      childrenNodes: [],
+    }
+    if (gltf.nodes[childNode.nodeIndex].children !== undefined &&
+      gltf.nodes[childNode.nodeIndex].children.length !== 0
+    ) {
+      dfsNodeTree(gltf, childNode);
+    }
+    parentNode.childrenNodes.push(childNode);
+  }
+}
+
 // Upload a GLB model and return it
 export const convertGLBToJSONAndBinary = async (
   buffer: ArrayBuffer,
@@ -499,6 +528,25 @@ export const convertGLBToJSONAndBinary = async (
       bufferViews[i].upload(device);
     }
   }
+
+  const theScenes: GLTFScene[] = [];
+  for (let i = 0; i < jsonChunk.scenes.length; i++) {
+    const scene: GLTFScene = {
+      sceneIndex: i,
+      nodes: [],
+    };
+    for (let j = 0; j < jsonChunk.scenes[i].nodes.length; j++) {
+      const currentNodeIndex = jsonChunk.scenes[i].nodes[j];
+      const parentNode: GLTFNode = {
+        nodeIndex: currentNodeIndex,
+        childrenNodes: [],
+      };
+      dfsNodeTree(jsonChunk, parentNode);
+      scene.nodes.push(parentNode);
+    }
+    theScenes.push(scene);
+  }
+  console.log(theScenes);
 
   console.log(`Mesh ${mesh['name']} has ${meshPrimitives.length} primitives`);
   return new GLTFMesh(mesh['name'], meshPrimitives);
