@@ -5,11 +5,14 @@ import { convertGLBToJSONAndBinary, GLTFMesh } from '../../utils/glbUtils';
 import gltfVertWGSL from './gltf.vert.wgsl';
 import gltfFragWGSL from './gltf.frag.wgsl';
 import { mat4, vec3 } from 'wgpu-matrix';
-import {ArcballCamera} from 'arcball_camera'
+//import {ArcballCamera} from 'arcball_camera'
+
+const MAT4X4_BYTES = 64;
 
 const init: SampleInit = async ({
   canvas,
   pageState,
+  gui,
 }) => {
   //Normal setup
   const adapter = await navigator.gpu.requestAdapter();
@@ -30,6 +33,16 @@ const init: SampleInit = async ({
     alphaMode: 'premultiplied',
   });
 
+  const settings = {
+    cameraX: 0,
+    cameraY: -0.3,
+    cameraZ: -0.6,
+  };
+
+  gui.add(settings, 'cameraX', -5, 5).step(0.1);
+  gui.add(settings, 'cameraY', -5, 5).step(0.1);
+  gui.add(settings, 'cameraZ', -5, 0).step(0.1);
+
   const depthTexture = device.createTexture({
     size: [canvas.width, canvas.height],
     format: 'depth24plus-stencil8',
@@ -37,7 +50,7 @@ const init: SampleInit = async ({
   });
 
   const cameraBuffer = device.createBuffer({
-    size: 64 * 1,
+    size: MAT4X4_BYTES * 3,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   })
 
@@ -72,21 +85,23 @@ const init: SampleInit = async ({
   const projectionMatrix = mat4.perspective(
     (2 * Math.PI) / 5,
     aspect,
-    1,
+    0.1,
     100.0
   );
-  const modelViewProjectionMatrix = mat4.create();
 
-  function getTransformationMatrix() {
+  function getViewMatrix() {
     const viewMatrix = mat4.identity();
-    mat4.translate(viewMatrix, vec3.fromValues(0, 5, -2), viewMatrix);
-
-    mat4.multiply(projectionMatrix, viewMatrix, modelViewProjectionMatrix);
-
-    return modelViewProjectionMatrix as Float32Array;
+    mat4.translate(viewMatrix, vec3.fromValues(settings.cameraX, settings.cameraY, settings.cameraZ), viewMatrix);
+    return viewMatrix as Float32Array;
   }
 
-
+  function getModelMatrix() {
+    const modelMatrix = mat4.identity();
+    const scaleVector = vec3.fromValues(10, 10, 10);
+    mat4.scale(modelMatrix, scaleVector, modelMatrix);
+    mat4.rotateY(modelMatrix, Date.now() / 1000 * 0.5, modelMatrix);
+    return modelMatrix as Float32Array;
+  }
 
   const renderPassDescriptor: GPURenderPassDescriptor = {
     colorAttachments: [
@@ -114,15 +129,33 @@ const init: SampleInit = async ({
     // Sample is no longer the active page.
     if (!pageState.active) return;
 
-    const transform = getTransformationMatrix();
+    const modelMatrix = getModelMatrix();
+
+    const viewMatrix = getViewMatrix();
 
     device.queue.writeBuffer(
       cameraBuffer,
       0,
-      transform.buffer,
-      transform.byteOffset,
-      transform.length
+      projectionMatrix.buffer,
+      projectionMatrix.byteOffset,
+      projectionMatrix.byteLength
     );
+
+    device.queue.writeBuffer(
+      cameraBuffer,
+      64, 
+      viewMatrix.buffer,
+      viewMatrix.byteOffset,
+      viewMatrix.byteLength
+    )
+
+    device.queue.writeBuffer(
+      cameraBuffer,
+      128,
+      modelMatrix.buffer,
+      modelMatrix.byteOffset,
+      modelMatrix.byteLength
+    )
     
     renderPassDescriptor.colorAttachments[0].view = context
       .getCurrentTexture()

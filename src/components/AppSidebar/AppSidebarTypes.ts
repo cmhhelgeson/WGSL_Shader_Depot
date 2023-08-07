@@ -101,11 +101,12 @@ export const subItemTextVariants: SubItemTextVariants = {
   coil: {
     x: [0, -4],
     transition: {
-      ease: 'easeIn'
+      ease: 'easeIn',
+      duration: 0.3
     }
   },
   release: {
-    x: [-4, 100],
+    x: [-4, 0],
     transition: {
       type: 'spring',
       damping: 5,
@@ -114,6 +115,5 @@ export const subItemTextVariants: SubItemTextVariants = {
 }
 
 export type SubItemAnimationKeysType = {
-  text: SubItemDigitTerminatorKeys | '',
   digitTerminator: SubItemDigitTerminatorKeys | ''
 }
