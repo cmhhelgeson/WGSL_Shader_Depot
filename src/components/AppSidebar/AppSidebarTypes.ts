@@ -57,28 +57,63 @@ export type AppSidebarAnimationKeysType = {
   list: ListVariantKeys | ''
 }
 
-type ListItemTextVariantKeys =
+type SubItemDigitTerminatorKeys =
   | 'initial'
   | 'coil'
   | 'release'
 
-type ListItemTextVariants = {
-  [key in ListItemTextVariantKeys]: Variant;
+type SubItemDigitTerminatorVariants = {
+  [key in SubItemDigitTerminatorKeys]: Variant;
 }
 
-export const subItemTextVariants: ListItemTextVariants = {
+export const subItemDigitTerminatorVariants: SubItemDigitTerminatorVariants = {
   initial: {
     x: [5, 0]
   },
   coil: {
-    x: [0, 5]
+    x: [0, -4],
+    transition: {
+      ease: 'easeIn'
+    }
   },
   release: {
-    x: [0,5]
-  }
+    x: [-4, 0],
+    transition: {
+      type: 'spring',
+      damping: 5,
+    }
+  },
 }
 
-export type SubItemKeysType = {
-  text: ListItemTextVariantKeys | '',
-  period: ListItemTextVariantKeys | ''
+type SubItemTextKeys =
+  | 'initial'
+  | 'coil'
+  | 'release'
+
+type SubItemTextVariants = {
+  [key in SubItemTextKeys]: Variant;
+}
+
+export const subItemTextVariants: SubItemTextVariants = {
+  initial: {
+    x: [5,0]
+  },
+  coil: {
+    x: [0, -4],
+    transition: {
+      ease: 'easeIn'
+    }
+  },
+  release: {
+    x: [-4, 100],
+    transition: {
+      type: 'spring',
+      damping: 5,
+    }
+  },
+}
+
+export type SubItemAnimationKeysType = {
+  text: SubItemDigitTerminatorKeys | '',
+  digitTerminator: SubItemDigitTerminatorKeys | ''
 }

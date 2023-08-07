@@ -20,24 +20,12 @@ import {
   listVariants,
   listItemVariants,
   AppSidebarAnimationKeysType,
+  subItemTextVariants,
+  subItemDigitTerminatorVariants,
+  SubItemAnimationKeysType,
 } from './AppSidebarTypes';
 import { useImmer } from 'use-immer';
 import { useRouter } from 'next/router';
-
-/*const whenMouseMove = (e: React.MouseEvent) => {
-    if (!ref.current) {
-      return;
-    }
-    const decimal = e.clientX / ref.current.offsetWidth;
-    const basePercent = -100,
-      percentRange = 200;
-    const adjustablePercent = percentRange * decimal;
-    const lightBluePercent = basePercent + adjustablePercent;
-    ref.current.style.setProperty(
-      '--light_blue_percent',
-      `${lightBluePercent}%`
-    );
-  }; */
 
 type ItemProps = {
   title: string;
@@ -59,7 +47,21 @@ type SubItemProps = {
 
 const SubItem = ({ slug, idx, itemOpen }: SubItemProps) => {
   const router = useRouter();
-  const itemController = useAnimation();
+  const digitTerminatorController = useAnimation();
+  const textController = useAnimation();
+  const [animationKeys, setAnimationKeys] = useImmer<SubItemAnimationKeysType>({
+    digitTerminator: '',
+    text: 'initial',
+  });
+  const [wasItemSelected, setWasItemSelected] = useState<boolean>(false);
+
+  useEffect(() => {
+    digitTerminatorController.start(animationKeys.digitTerminator);
+  }, [animationKeys.digitTerminator, digitTerminatorController]);
+
+  useEffect(() => {
+    textController.start(animationKeys.text);
+  }, [animationKeys.text, textController]);
   return (
     <motion.li
       key={slug}
@@ -68,6 +70,11 @@ const SubItem = ({ slug, idx, itemOpen }: SubItemProps) => {
       onClick={() => {
         if (itemOpen) {
           router.push(`/samples/${slug}`);
+          setWasItemSelected(true);
+          setAnimationKeys((draft) => {
+            draft.digitTerminator = 'coil';
+            draft.text = 'coil';
+          });
         }
       }}
     >
@@ -77,10 +84,38 @@ const SubItem = ({ slug, idx, itemOpen }: SubItemProps) => {
           justifyContent: 'flex-start',
         }}
       >
-        <div className={styles.SidebarArea__Menu__List__ListItem__Number}>
-          {`${idx + 1}.`}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'flex-start',
+          }}
+        >
+          <div className={styles.SidebarArea__Menu__List__ListItem__Number}>
+            {`${idx + 1}`}
+          </div>
+          <motion.div
+            className={
+              styles.SidebarArea__Menu__List__ListItem__NumberTerminator
+            }
+            variants={subItemDigitTerminatorVariants}
+            animate={digitTerminatorController}
+            onAnimationComplete={() => {
+              setAnimationKeys((draft) => {
+                draft.digitTerminator = 'release';
+                draft.text = 'release';
+              });
+            }}
+          >
+            {`.`}
+          </motion.div>
         </div>
-        <motion.div className={styles.SidebarArea__Menu__List__ListItem__Text}>
+        <motion.div
+          className={`${styles.SidebarArea__Menu__List__ListItem__Text} ${
+            wasItemSelected ? '' : styles.hover_enabled
+          }`}
+          variants={subItemTextVariants}
+          animate={textController}
+        >
           {`${slug}`}
         </motion.div>
       </div>
@@ -101,22 +136,6 @@ const Item = ({
   }
 
   const itemRef = useRef<HTMLDivElement>(null);
-
-  const onMouseMove = (e: React.MouseEvent) => {
-    if (!itemRef.current) {
-      return;
-    }
-    const decimal = e.clientX / itemRef.current.offsetWidth;
-    const basePercent = -100;
-    const percentRange = 200;
-    const adjustablePercent = percentRange * decimal;
-    const lightBluePercent = basePercent + adjustablePercent;
-    itemRef.current.style.setProperty(
-      '--light_blue_percent',
-      `${lightBluePercent}%`
-    );
-  };
-
   const router = useRouter();
 
   const [animationKeys, setAnimationKeys] =
@@ -160,17 +179,19 @@ const Item = ({
     <div
       className={styles.SidebarArea__Menu__SelectableMenuItem}
       onClick={() => {
-        setItemOpen(!itemOpen);
-        setAnimationKeys((draft) => {
-          if (draft.triangle === 'close' || draft.triangle === '') {
-            draft.triangle = 'open';
-          } else {
-            draft.triangle = 'close';
-          }
-          return draft;
-        });
+        if (!itemOpen) {
+          setItemOpen(!itemOpen);
+          setAnimationKeys((draft) => {
+            if (draft.triangle === 'close' || draft.triangle === '') {
+              draft.triangle = 'open';
+            } else {
+              draft.triangle = 'close';
+            }
+            return draft;
+          });
+        }
       }}
-      onMouseMove={onMouseMove}
+      ref={itemRef}
     >
       <div
         className={styles.SidebarArea__Menu__SelectableMenuItem__Layout}
@@ -183,6 +204,9 @@ const Item = ({
           if (!itemOpen && isCollapsed === true) {
             setItemOpen(!itemOpen);
             setIsCollapsed(false);
+          }
+          if (itemOpen) {
+            setItemOpen(!itemOpen);
           }
         }}
       >
@@ -309,7 +333,7 @@ const AppSidebar = () => {
               </div>
             </div>
 
-            <div className={styles.SidebarArea__SelectableMenuArea}>
+            <div className={styles.SidebarArea__Menu}>
               <Item
                 title={'Fragment Shaders'}
                 collapsedTitle={'Fragment'}
