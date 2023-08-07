@@ -16,7 +16,6 @@ import { fragmentPages, vertexPages } from '../../pages/samples/[slug]';
 import { motion, useAnimation } from 'framer-motion';
 import {
   triangleVariants,
-  AnimationKeysType,
   listVariants,
   listItemVariants,
   AppSidebarAnimationKeysType,
@@ -136,7 +135,6 @@ const Item = ({
   }
 
   const itemRef = useRef<HTMLDivElement>(null);
-  const router = useRouter();
 
   const [animationKeys, setAnimationKeys] =
     useImmer<AppSidebarAnimationKeysType>({
@@ -281,7 +279,6 @@ const AppSidebar = () => {
   const sideBarRef = useRef<HTMLDivElement>(null);
   const fragmentNames = Object.keys(fragmentPages);
   const vertexNames = Object.keys(vertexPages);
-  const router = useRouter();
 
   return (
     <Box
