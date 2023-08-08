@@ -1,5 +1,7 @@
 import { json } from 'stream/consumers';
 import { Accessor, BufferView, GlTf, Node } from './gltf';
+import { mat4, vec3, vec4 } from 'wgpu-matrix';
+import { ArrayLike } from 'wgpu-matrix/dist/1.x/array-like';
 
 enum GLTFRenderMode {
   POINTS = 0,
@@ -35,14 +37,73 @@ enum GLTFType {
 }
 
 type GLTFNode = {
+  //name: string;
+  //mesh: GLTFMesh;
   nodeIndex: number;
   childrenNodes: GLTFNode[];
+  transformationMatrix: ArrayLike;
+  worldTransformMatrix?: ArrayLike;
+  mesh?: GLTFMesh;
 };
 
 type GLTFScene = {
   sceneIndex: number;
-  nodes: GLTFNode[],
+  nodes: GLTFNode[];
+};
+
+/*export const buildSceneRenderPipeline = (  device: GPUDevice,
+  scene: GLTFScene,
+  vertexShaderModule: GPUShaderModule,
+  fragmentShaderModule: GPUShaderModule,
+  colorFormat: GPUTextureFormat,
+  depthFormat: GPUTextureFormat,
+  uniformsBGLayout: GPUBindGroupLayout
+) => {
+  
 }
+
+export const renderScene = (
+  passEncoder: GPURenderPassEncoder,
+  scene: GLTFScene,
+  bindGroups: GPUBindGroup[],
+) => {
+  for (let i = 0; i < bindGroups.length; i++) {
+    passEncoder.setBindGroup(i, bindGroups[i]);
+  }
+  for (let i = 0; i < scene.nodes.length; i++) {
+    scene.nodes
+  }
+
+}
+
+
+const buildNodeRenderPipeline = (
+  device: GPUDevice,
+  node: GLTFNode,
+  vertexShaderModule: GPUShaderModule,
+  fragmentShaderModule: GPUShaderModule,
+  colorFormat: GPUTextureFormat,
+  depthFormat: GPUTextureFormat,
+  unifromsBGLayout: GPUBindGroupLayout,
+  nodesBGLayout: GPUBindGroupLayout,
+) => {
+  node.
+
+
+} */
+
+/*export const buildSceneRenderPipeline(
+  device: GPUDevice,
+  scene: GLTFScene,
+  vertexShaderModule: GPUShaderModule,
+  fragmentShaderModule: GPUShaderModule,
+  colorFormat: GPUTextureFormat,
+  depthFormat: GPUTextureFormat,
+  uniformsBGLayout: GPUBindGroupLayout
+) => {
+  for (let i = 0)
+
+} */
 
 export const alignTo = (val: number, align: number): number => {
   return Math.floor((val + align - 1) / align) * align;
@@ -252,6 +313,34 @@ export class GLTFAccessor {
   }
 }
 
+export const createGPUBufferFromBufferView = (
+  device: GPUDevice,
+  bufferView: BufferView,
+  buffer: Uint8Array,
+  usage: number
+) => {
+  if (!usage) {
+    return null;
+  }
+  const gpuBuffer = device.createBuffer({});
+  for (let i = 0; i < data.bufferViews.length; i++) {
+    const currentBufferView = data.bufferViews[i];
+    const bufferIndex = currentBufferView.buffer;
+    const currentBuffer = data.buffers[bufferIndex];
+    const buf: GPUBuffer = device.createBuffer({
+      size: alignTo(this.view.byteLength, 4),
+      usage: this.usage,
+      mappedAtCreation: true,
+    });
+    new Uint8Array(buf.getMappedRange()).set(this.view);
+    buf.unmap();
+  }
+};
+
+type PrimitiveTest = {
+  renderPipeline: GPURenderPipeline;
+};
+
 export class GLTFPrimitive {
   positions: GLTFAccessor;
   indices: GLTFAccessor;
@@ -282,7 +371,8 @@ export class GLTFPrimitive {
     fragmentShaderModule: GPUShaderModule,
     colorFormat: GPUTextureFormat,
     depthFormat: GPUTextureFormat,
-    uniformsBGLayout: GPUBindGroupLayout
+    uniformsBGLayout: GPUBindGroupLayout,
+    label: string
   ) {
     // Vertex attribute state and shader stage
     const vertexState: GPUVertexState = {
@@ -324,7 +414,7 @@ export class GLTFPrimitive {
       bindGroupLayouts: [uniformsBGLayout],
     });
 
-    this.renderPipeline = device.createRenderPipeline({
+    const rpDescript: GPURenderPipelineDescriptor = {
       layout: layout,
       vertex: vertexState,
       fragment: fragmentState,
@@ -334,7 +424,12 @@ export class GLTFPrimitive {
         depthWriteEnabled: true,
         depthCompare: 'less',
       },
-    });
+    };
+
+    console.log('New Pipeline');
+    console.log(rpDescript);
+
+    this.renderPipeline = device.createRenderPipeline(rpDescript);
   }
 
   render(renderPassEncoder: GPURenderPassEncoder, uniformsBG: GPUBindGroup) {
@@ -392,7 +487,8 @@ export class GLTFMesh {
         fragmentShaderModule,
         colorFormat,
         depthFormat,
-        uniformsBGLayout
+        uniformsBGLayout,
+        `PrimitivePipeline${i}`
       );
     }
   }
@@ -423,23 +519,106 @@ export const validateBinaryHeader = (header: Uint32Array) => {
   }
 };
 
-export const dfsNodeTree = (gltf: GlTf, parentNode: GLTFNode) => {
-  if (gltf.nodes[parentNode.nodeIndex] === undefined || gltf.nodes[parentNode.nodeIndex] === null) {
+export const flattenNodeOutput = (parentNode: GLTFNode) => {
+  if (!parentNode.transformationMatrix) {
+    return mat4.identity();
+  }
+  if (parentNode.childrenNodes.length === 0) {
+    return parentNode.transformationMatrix;
+  }
+  const accumulator = mat4.identity();
+  parentNode.childrenNodes.forEach((node) => {
+    mat4.multiply(accumulator, flattenNodeOutput(node), accumulator);
+  });
+  return parentNode.transformationMatrix;
+};
+
+export const mat4FromRotationTranslationScale = (
+  rotation: ArrayLike,
+  translation: ArrayLike,
+  scale: ArrayLike
+): ArrayLike => {
+  const [x, y, z, w] = rotation;
+  const [sx, sy, sz] = scale;
+
+  const x2 = x * 2;
+  const y2 = y * 2;
+  const z2 = z * 2;
+
+  const xx = x * x2;
+  const xy = x * y2;
+  const xz = x * z2;
+  const yy = y * y2;
+  const yz = y * z2;
+  const zz = z * z2;
+  const wx = w * x2;
+  const wy = w * y2;
+  const wz = w * z2;
+
+  const mat = mat4.create(
+    (1 - (yy + zz)) * sx,
+    (xy + wz) * sx,
+    (xz - wy) * sx,
+    0,
+    (xy - wz) * sy,
+    (1 - (xx + zz)) * sy,
+    (yz + wx) * sy,
+    0,
+    (xz + wy) * sz,
+    (yz - wx) * sz,
+    (1 - (xx + yy)) * sz,
+    0,
+    translation[0],
+    translation[1],
+    translation[2],
+    1
+  );
+  return mat;
+};
+
+export const readNodeTransform = (node: Node): ArrayLike => {
+  if (node.matrix) {
+    return mat4.create(...node.matrix);
+  }
+  const scale: ArrayLike = node.scale
+    ? vec3.fromValues(...node.scale)
+    : vec3.fromValues(1, 1, 1);
+  const rotation: ArrayLike = node.rotation
+    ? vec4.fromValues(...node.rotation)
+    : vec4.fromValues(0, 0, 0, 1);
+  const translation = node.translation
+    ? vec3.fromValues(...node.translation)
+    : vec3.fromValues(0, 0, 0);
+  return mat4FromRotationTranslationScale(rotation, translation, scale);
+};
+
+export const setNodeWorldTransformMatrix = (
+  data: GlTf,
+  node: Node,
+  parentWorldTransformationMatrix: ArrayLike
+) => {
+  //Do not recompute the worldMatrixTransform if it has already been computed
+  if (node.worldTransformationMatrix) {
     return;
   }
-  for (let i = 0; i < gltf.nodes[parentNode.nodeIndex].children.length; i++) {
-    const childNode: GLTFNode = {
-      nodeIndex: gltf.nodes[parentNode.nodeIndex].children[i],
-      childrenNodes: [],
+  node.worldTransformationMatrix = readNodeTransform(node);
+  mat4.multiply(
+    node.worldTransformationMatrix,
+    parentWorldTransformationMatrix,
+    node.worldTransformationMatrix
+  );
+
+  if (node.children) {
+    for (const childIndex of node.children) {
+      const childNode = data.nodes[childIndex];
+      setNodeWorldTransformMatrix(
+        data,
+        childNode,
+        node.worldTransformationMatrix
+      );
     }
-    if (gltf.nodes[childNode.nodeIndex].children !== undefined &&
-      gltf.nodes[childNode.nodeIndex].children.length !== 0
-    ) {
-      dfsNodeTree(gltf, childNode);
-    }
-    parentNode.childrenNodes.push(childNode);
   }
-}
+};
 
 // Upload a GLB model and return it
 export const convertGLBToJSONAndBinary = async (
@@ -471,6 +650,42 @@ export const convertGLBToJSONAndBinary = async (
     binaryHeader[0]
   );
 
+  //Const populate missing properties of jsonChunk
+  for (const accessor of jsonChunk.accessors) {
+    accessor.byteOffset = accessor.byteOffset ?? 0;
+    accessor.normalized = accessor.normalized ?? false;
+  }
+
+  for (const bufferView of jsonChunk.bufferViews) {
+    bufferView.byteOffset = bufferView.byteOffset ?? 0;
+  }
+
+  //Node Transforms get handled later
+
+  if (jsonChunk.samplers) {
+    for (const sampler of jsonChunk.samplers) {
+      sampler.wrapS = sampler.wrapS ?? 10497; //GL.REPEAT
+      sampler.wrapT = sampler.wrapT ?? 10947;
+    }
+  }
+
+  //Iterate through the ancestor nodes of the gltf scene, applying world transforms down the tree to children
+  for (let i = 0; i < jsonChunk.scenes.length; i++) {
+    for (const nodeIndex of jsonChunk.scenes[i].nodes) {
+      const currentNode = jsonChunk.nodes[nodeIndex];
+      setNodeWorldTransformMatrix(jsonChunk, currentNode, mat4.identity());
+    }
+  }
+
+  for (const mesh of jsonChunk.meshes) {
+    for (const primitive of mesh.primitives) {
+      if ('indices' in primitive) {
+        const accessor = jsonChunk.accessors[primitive.indices];
+        jsonChunk.bufferViews[accessor.bufferView]
+      }
+    }
+  }
+
   // Create GLTFBufferView objects for all the buffer views in the glTF file
   const bufferViews: GLTFBufferView[] = [];
   for (let i = 0; i < jsonChunk.bufferViews.length; ++i) {
@@ -486,41 +701,46 @@ export const convertGLBToJSONAndBinary = async (
 
   console.log(`glTF file has ${jsonChunk.meshes.length} meshes`);
   // Load the first mesh
-  const mesh = jsonChunk.meshes[0];
-  const meshPrimitives: GLTFPrimitive[] = [];
-  for (let i = 0; i < mesh.primitives.length; ++i) {
-    const prim = mesh.primitives[i];
-    let topology = prim['mode'];
-    // Default is triangles if mode specified
-    if (topology === undefined) {
-      topology = GLTFRenderMode.TRIANGLES;
-    }
-    if (
-      topology != GLTFRenderMode.TRIANGLES &&
-      topology != GLTFRenderMode.TRIANGLE_STRIP
-    ) {
-      throw Error(`Unsupported primitive mode ${prim['mode']}`);
-    }
-
-    let indices = null;
-    if (jsonChunk['accessors'][prim['indices']] !== undefined) {
-      indices = accessors[prim['indices']];
-    }
-
-    // Loop through all the attributes to find the POSITION attribute.
-    // While we only want the position attribute right now, we'll load
-    // the others later as well.
-    let positions = null;
-    for (const attr in prim['attributes']) {
-      const accessor = accessors[prim['attributes'][attr]];
-      if (attr == 'POSITION') {
-        positions = accessor;
+  const meshes: GLTFMesh[] = [];
+  for (let i = 0; i < jsonChunk.meshes.length; i++) {
+    const mesh = jsonChunk.meshes[i];
+    const meshPrimitives: GLTFPrimitive[] = [];
+    for (let j = 0; j < mesh.primitives.length; ++j) {
+      const prim = mesh.primitives[j];
+      let topology = prim['mode'];
+      // Default is triangles if mode specified
+      if (topology === undefined) {
+        topology = GLTFRenderMode.TRIANGLES;
       }
-    }
+      if (
+        topology != GLTFRenderMode.TRIANGLES &&
+        topology != GLTFRenderMode.TRIANGLE_STRIP
+      ) {
+        throw Error(`Unsupported primitive mode ${prim['mode']}`);
+      }
 
-    // Add the primitive to the mesh's list of primitives
-    meshPrimitives.push(new GLTFPrimitive(positions, indices, topology));
+      let indices = null;
+      if (jsonChunk['accessors'][prim['indices']] !== undefined) {
+        indices = accessors[prim['indices']];
+      }
+
+      // Loop through all the attributes to find the POSITION attribute.
+      // While we only want the position attribute right now, we'll load
+      // the others later as well.
+      let positions = null;
+      for (const attr in prim['attributes']) {
+        const accessor = accessors[prim['attributes'][attr]];
+        if (attr == 'POSITION') {
+          positions = accessor;
+        }
+      }
+      meshPrimitives.push(new GLTFPrimitive(positions, indices, topology));
+    }
+    meshes.push(new GLTFMesh(mesh.name, meshPrimitives));
   }
+
+  console.log('Mesh 0 Primitives');
+  console.log(meshes[0].primitives);
 
   // Upload the buffer views used by mesh
   for (let i = 0; i < bufferViews.length; ++i) {
@@ -529,25 +749,62 @@ export const convertGLBToJSONAndBinary = async (
     }
   }
 
+  const dfsConstructNodeTree = (gltf: GlTf, parentNode: GLTFNode) => {
+    if (
+      gltf.nodes[parentNode.nodeIndex] === undefined ||
+      gltf.nodes[parentNode.nodeIndex] === null
+    ) {
+      return;
+    }
+    if (
+      gltf.nodes[parentNode.nodeIndex].children === undefined ||
+      gltf.nodes[parentNode.nodeIndex].children.length === 0
+    ) {
+      return;
+    }
+    for (let i = 0; i < gltf.nodes[parentNode.nodeIndex].children.length; i++) {
+      const childNodeIndex = gltf.nodes[parentNode.nodeIndex].children[i];
+      const childNodeObject = gltf.nodes[childNodeIndex];
+      const childNode: GLTFNode = {
+        nodeIndex: childNodeIndex,
+        childrenNodes: [],
+        transformationMatrix: readNodeTransform(childNodeObject),
+        mesh: childNodeObject.mesh ? meshes[childNodeObject.mesh] : undefined,
+      };
+      if (
+        gltf.nodes[childNode.nodeIndex].children !== undefined &&
+        gltf.nodes[childNode.nodeIndex].children.length !== 0
+      ) {
+        dfsConstructNodeTree(gltf, childNode);
+      }
+      parentNode.childrenNodes.push(childNode);
+    }
+  };
+
   const theScenes: GLTFScene[] = [];
   for (let i = 0; i < jsonChunk.scenes.length; i++) {
     const scene: GLTFScene = {
       sceneIndex: i,
       nodes: [],
     };
+    //Access every top-level ancestor node from this scene
     for (let j = 0; j < jsonChunk.scenes[i].nodes.length; j++) {
+      //Get the index of the current top-level ancestor node
       const currentNodeIndex = jsonChunk.scenes[i].nodes[j];
+      const currentNodeObject = jsonChunk.nodes[currentNodeIndex];
+      //Construct the ancestor node
       const parentNode: GLTFNode = {
         nodeIndex: currentNodeIndex,
         childrenNodes: [],
+        transformationMatrix: readNodeTransform(currentNodeObject),
+        mesh: currentNodeObject.mesh
+          ? meshes[currentNodeObject.mesh]
+          : undefined,
       };
-      dfsNodeTree(jsonChunk, parentNode);
+      dfsConstructNodeTree(jsonChunk, parentNode);
       scene.nodes.push(parentNode);
     }
     theScenes.push(scene);
   }
-  console.log(theScenes);
-
-  console.log(`Mesh ${mesh['name']} has ${meshPrimitives.length} primitives`);
-  return new GLTFMesh(mesh['name'], meshPrimitives);
+  return meshes;
 };

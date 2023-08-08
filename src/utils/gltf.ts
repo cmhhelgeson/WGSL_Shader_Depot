@@ -66,6 +66,11 @@ export interface Accessor {
    */
   bufferView?: GlTfId;
   /**
+   * The usage target of the GPU Buffer that is bound to the accessor instance.
+   * Calculated after load due to the infrequency with which BufferView's target value is populated.
+   */
+  bufferViewUsage?: 34962 | 34963 | number;
+  /**
    * The offset relative to the start of the bufferView in bytes.
    */
   byteOffset?: number;
@@ -236,6 +241,11 @@ export interface BufferView {
    * The target that the GPU buffer should be bound to.
    */
   target?: 34962 | 34963 | number;
+  /**
+   * The target that the GPU buffer should be bound to.
+   * Calculated after load due to the infrequency with which target is populated.
+   */
+  bufferViewUsage?: 34962 | 34963 | number;
   name?: any;
   extensions?: any;
   extras?: any;
@@ -509,6 +519,12 @@ export interface Node {
    * A floating-point 4x4 transformation matrix stored in column-major order.
    */
   matrix?: number[];
+  /**
+   * A floating-point 4x4 transformation matrix stored in column-major order.
+   * This matrix acts as a container for a pre-computed world transformation matrix,
+   * generated after the gltf has been loaded.
+   */
+  worldTransformationMatrix?: ArrayLike;
   /**
    * The index of the mesh in this node.
    */

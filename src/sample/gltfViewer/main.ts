@@ -37,11 +37,13 @@ const init: SampleInit = async ({
     cameraX: 0,
     cameraY: -0.3,
     cameraZ: -0.6,
+    objectScale: 1,
   };
 
   gui.add(settings, 'cameraX', -5, 5).step(0.1);
   gui.add(settings, 'cameraY', -5, 5).step(0.1);
-  gui.add(settings, 'cameraZ', -5, 0).step(0.1);
+  gui.add(settings, 'cameraZ', -100, 0).step(0.1);
+  gui.add(settings, 'objectScale', 0.01, 10).step(0.01);
 
   const depthTexture = device.createTexture({
     size: [canvas.width, canvas.height],
@@ -64,11 +66,32 @@ const init: SampleInit = async ({
     device
   );
 
-  const mesh: GLTFMesh = await fetch('/gltf/Avocado.glb')
+  const mesh: GLTFMesh[] = await fetch('/gltf/Avocado.glb')
     .then((res) => res.arrayBuffer())
     .then((buffer) => convertGLBToJSONAndBinary(buffer, device));
 
-  mesh.buildRenderPipeline(
+  const foxMesh: GLTFMesh[] = await fetch('/gltf/Fox.glb')
+    .then((res) => res.arrayBuffer())
+    .then((buffer) => convertGLBToJSONAndBinary(buffer, device));
+
+  const cylinderEngineMesh: GLTFMesh[] = await fetch('/gltf/2CylinderEngine.glb')
+    .then((res) => res.arrayBuffer())
+    .then((buffer) => convertGLBToJSONAndBinary(buffer, device));
+
+  mesh[0].buildRenderPipeline(
+    device,
+    device.createShaderModule({
+      code: gltfVertWGSL
+    }),
+    device.createShaderModule({
+      code: gltfFragWGSL
+    }),
+    presentationFormat,
+    depthTexture.format,
+    bgDescriptor.bindGroupLayout
+  )
+
+  cylinderEngineMesh[0].buildRenderPipeline(
     device,
     device.createShaderModule({
       code: gltfVertWGSL
@@ -97,7 +120,7 @@ const init: SampleInit = async ({
 
   function getModelMatrix() {
     const modelMatrix = mat4.identity();
-    const scaleVector = vec3.fromValues(10, 10, 10);
+    const scaleVector = vec3.fromValues(settings.objectScale, settings.objectScale, settings.objectScale);
     mat4.scale(modelMatrix, scaleVector, modelMatrix);
     mat4.rotateY(modelMatrix, Date.now() / 1000 * 0.5, modelMatrix);
     return modelMatrix as Float32Array;
@@ -163,7 +186,8 @@ const init: SampleInit = async ({
 
     const commandEncoder = device.createCommandEncoder();
     const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
-    mesh.render(passEncoder, bgDescriptor.bindGroups[0]);
+    //mesh.render(passEncoder, bgDescriptor.bindGroups[0]);
+    cylinderEngineMesh[0].render(passEncoder, bgDescriptor.bindGroups[0]);
     passEncoder.end();
 
     device.queue.submit([commandEncoder.finish()]);
