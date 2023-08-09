@@ -66,19 +66,19 @@ const init: SampleInit = async ({
     device
   );
 
-  const mesh: GLTFMesh[] = await fetch('/gltf/Avocado.glb')
+  const avocadoScene = await fetch('/gltf/Avocado.glb')
     .then((res) => res.arrayBuffer())
     .then((buffer) => convertGLBToJSONAndBinary(buffer, device));
 
-  const foxMesh: GLTFMesh[] = await fetch('/gltf/Fox.glb')
+  const foxScene = await fetch('/gltf/Fox.glb')
     .then((res) => res.arrayBuffer())
     .then((buffer) => convertGLBToJSONAndBinary(buffer, device));
 
-  const cylinderEngineMesh: GLTFMesh[] = await fetch('/gltf/2CylinderEngine.glb')
+  const cylinderEngineScene = await fetch('/gltf/2CylinderEngine.glb')
     .then((res) => res.arrayBuffer())
     .then((buffer) => convertGLBToJSONAndBinary(buffer, device));
 
-  mesh[0].buildRenderPipeline(
+  /*avocadoScene.meshes[0].buildRenderPipeline(
     device,
     device.createShaderModule({
       code: gltfVertWGSL
@@ -89,9 +89,9 @@ const init: SampleInit = async ({
     presentationFormat,
     depthTexture.format,
     bgDescriptor.bindGroupLayout
-  )
+  ) */
 
-  cylinderEngineMesh[0].buildRenderPipeline(
+  cylinderEngineScene.meshes[0].buildRenderPipeline(
     device,
     device.createShaderModule({
       code: gltfVertWGSL
@@ -187,7 +187,7 @@ const init: SampleInit = async ({
     const commandEncoder = device.createCommandEncoder();
     const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
     //mesh.render(passEncoder, bgDescriptor.bindGroups[0]);
-    cylinderEngineMesh[0].render(passEncoder, bgDescriptor.bindGroups[0]);
+    cylinderEngineScene.meshes[0].render(passEncoder, bgDescriptor.bindGroups[0]);
     passEncoder.end();
 
     device.queue.submit([commandEncoder.finish()]);

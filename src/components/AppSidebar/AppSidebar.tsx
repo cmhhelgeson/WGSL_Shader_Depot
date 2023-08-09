@@ -44,13 +44,62 @@ type SubItemProps = {
   itemOpen: boolean;
 };
 
+type LoadingBubbleProps = {
+  delay: number;
+  wasItemSelected: boolean;
+};
+const LoadingBubble = ({ delay, wasItemSelected }: LoadingBubbleProps) => {
+  const bubbleController = useAnimation();
+
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (wasItemSelected) {
+      bubbleController.start({
+        opacity: [0, 0.25, 0.5, 0.75, 1],
+        scale: [1, 0.4, 0.4, 0.4, 1],
+        translateY: [-8, 0, -7, -3, -8],
+        transition: {
+          duration: 1,
+          ease: 'easeInOut',
+          times: [0, 0.3, 0.5, 0.7, 1],
+          delay: delay,
+        },
+      });
+      setIsLoading(true);
+    }
+  }, [wasItemSelected, bubbleController]);
+
+  useEffect(() => {
+    if (isLoading) {
+      bubbleController.start({
+        scale: [1, 0.4, 0.4, 0.4, 1],
+        translateY: [-8, 0, -7, -3, -8],
+        transition: {
+          duration: 2.5,
+          ease: 'easeInOut',
+          repeat: Infinity,
+          times: [0, 0.3, 0.5, 0.7, 1],
+          delay: delay,
+        },
+      });
+    }
+  }, [isLoading, bubbleController]);
+
+  return (
+    <motion.div
+      className={styles.SidebarArea__Menu__List__ListItem__LoadingGrid__Cell}
+      initial={{ opacity: '0%' }}
+      animate={bubbleController}
+    ></motion.div>
+  );
+};
+
 const SubItem = ({ slug, idx, itemOpen }: SubItemProps) => {
   const router = useRouter();
   const digitTerminatorController = useAnimation();
-  const textController = useAnimation();
   const [animationKeys, setAnimationKeys] = useImmer<SubItemAnimationKeysType>({
     digitTerminator: '',
-    text: 'initial',
   });
   const [wasItemSelected, setWasItemSelected] = useState<boolean>(false);
 
@@ -58,9 +107,6 @@ const SubItem = ({ slug, idx, itemOpen }: SubItemProps) => {
     digitTerminatorController.start(animationKeys.digitTerminator);
   }, [animationKeys.digitTerminator, digitTerminatorController]);
 
-  useEffect(() => {
-    textController.start(animationKeys.text);
-  }, [animationKeys.text, textController]);
   return (
     <motion.li
       key={slug}
@@ -72,7 +118,6 @@ const SubItem = ({ slug, idx, itemOpen }: SubItemProps) => {
           setWasItemSelected(true);
           setAnimationKeys((draft) => {
             draft.digitTerminator = 'coil';
-            draft.text = 'coil';
           });
         }
       }}
@@ -101,22 +146,29 @@ const SubItem = ({ slug, idx, itemOpen }: SubItemProps) => {
             onAnimationComplete={() => {
               setAnimationKeys((draft) => {
                 draft.digitTerminator = 'release';
-                draft.text = 'release';
               });
             }}
           >
             {`.`}
           </motion.div>
         </div>
-        <motion.div
-          className={`${styles.SidebarArea__Menu__List__ListItem__Text} ${
-            wasItemSelected ? '' : styles.hover_enabled
-          }`}
-          variants={subItemTextVariants}
-          animate={textController}
-        >
+        <div className={styles.SidebarArea__Menu__List__ListItem__Text}>
           {`${slug}`}
-        </motion.div>
+        </div>
+      </div>
+      <div className={styles.SidebarArea__Menu__List__ListItem__LoadingGrid}>
+        <LoadingBubble
+          delay={0}
+          wasItemSelected={wasItemSelected}
+        ></LoadingBubble>
+        <LoadingBubble
+          delay={0.2}
+          wasItemSelected={wasItemSelected}
+        ></LoadingBubble>
+        <LoadingBubble
+          delay={0.4}
+          wasItemSelected={wasItemSelected}
+        ></LoadingBubble>
       </div>
     </motion.li>
   );

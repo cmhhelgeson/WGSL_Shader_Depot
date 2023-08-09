@@ -20,6 +20,26 @@
     100% { transform: rotateZ(0deg); }
   }
 
+  @keyframes loading {
+    0% {
+      transform: scale(1) translateY(-8px);
+    }
+    30% {
+      transform: scale(0.4) translateY(0px);  // overshoot to simulate inertia 0
+    }
+    50% {
+      transform: scale(0.4) translateY(-7px);  // bounce back a bit due to inertia -7
+    }
+    70% {
+      transform: scale(0.4) translateY(-3px);  // a small secondary bounce -3
+    }
+    100% {
+      transform: scale(1) translateY(-8px);  // smoothly return to original position 15
+    }
+  }
+
+  $DropdownMarginRight: 10px;
+
   &__Menu {
     &__SelectableMenuItem {
       display: flex;
@@ -63,7 +83,7 @@
       &__Dropdown {
         transform-origin: center 55%;
         color: white;
-        margin-right: 10px;
+        margin-right: $DropdownMarginRight;
         height: inherit;
         display: flex;
         justify-content: flex-start;
@@ -78,10 +98,13 @@
       margin-left: 100px;
       color: rgb(234, 232, 232);
       &__ListItem {
+        display: flex;
         color: rgb(234, 232, 232);
         font-size: 20px;
         margin-top: 5px;
         margin-bottom: 5px;
+        justify-content: space-between;
+        align-items: center;
         &:first-child {
           margin-top: 0px;
         }
@@ -92,18 +115,31 @@
         &__Number {
           color: rgb(181, 177, 177);
         }
-
+  
         &__NumberTerminator {
           color: rgb(181, 177, 177);
         }
-
+  
         &__Text {
           transition: all 0.2s ease-in;
           cursor: pointer;
-          &.hover_enabled {
-            &:hover {
-              margin-left: 6px;
-            }
+          &:hover {
+            margin-left: 6px;
+          }
+        }
+
+        &__LoadingGrid {
+          display: grid;
+          grid-template-columns: 33.3% 33.3% 33.3%;
+          margin-right: $DropdownMarginRight;
+          &__Cell {
+            width: 10px;
+            height: 10px;
+            background-color: #89cff2;
+            box-sizing: border-box;
+            margin-top: 5px;
+            margin-left: 2px;
+            border-radius: 50%;
           }
         }
       }

@@ -241,16 +241,14 @@ export interface BufferView {
    * The target that the GPU buffer should be bound to.
    */
   target?: 34962 | 34963 | number;
-  /**
-   * The target that the GPU buffer should be bound to.
-   * Calculated after load due to the infrequency with which target is populated.
-   */
-  bufferViewUsage?: 34962 | 34963 | number;
   name?: any;
   extensions?: any;
   extras?: any;
   [k: string]: any;
-  /* Same as target, but different since target is rarely populated */
+  /*   /**
+   * The target that the GPU buffer should be bound to.
+   * Calculated after load due to the infrequency with which target is populated.
+   */
   usage?: number;
 }
 /**

@@ -620,11 +620,16 @@ export const setNodeWorldTransformMatrix = (
   }
 };
 
+type TempReturn = {
+  meshes: GLTFMesh[],
+  nodes: Node[],
+};
+
 // Upload a GLB model and return it
 export const convertGLBToJSONAndBinary = async (
   buffer: ArrayBuffer,
   device: GPUDevice
-) => {
+): TempReturn => {
   const jsonHeader = new DataView(buffer, 0, 20);
   validateGLBHeader(jsonHeader);
 
@@ -660,12 +665,10 @@ export const convertGLBToJSONAndBinary = async (
     bufferView.byteOffset = bufferView.byteOffset ?? 0;
   }
 
-  //Node Transforms get handled later
-
   if (jsonChunk.samplers) {
     for (const sampler of jsonChunk.samplers) {
       sampler.wrapS = sampler.wrapS ?? 10497; //GL.REPEAT
-      sampler.wrapT = sampler.wrapT ?? 10947;
+      sampler.wrapT = sampler.wrapT ?? 10947; //GL.REPEAT
     }
   }
 
@@ -677,11 +680,22 @@ export const convertGLBToJSONAndBinary = async (
     }
   }
 
+  //Mark each accessor with its intended usage within the vertexShader.
+  //Often necessary due to infrequencey with which the BufferView target field is populated.
   for (const mesh of jsonChunk.meshes) {
     for (const primitive of mesh.primitives) {
       if ('indices' in primitive) {
         const accessor = jsonChunk.accessors[primitive.indices];
-        jsonChunk.bufferViews[accessor.bufferView]
+        jsonChunk.accessors[primitive.indices].bufferViewUsage |=
+          GPUBufferUsage.INDEX;
+        jsonChunk.bufferViews[accessor.bufferView].usage |=
+          GPUBufferUsage.INDEX;
+      }
+      for (const attribute of Object.values(primitive.attributes)) {
+        const accessor = jsonChunk.accessors[attribute];
+        jsonChunk.accessors[attribute].bufferViewUsage |= GPUBufferUsage.VERTEX;
+        jsonChunk.bufferViews[accessor.bufferView].usage |=
+          GPUBufferUsage.VERTEX;
       }
     }
   }
@@ -738,9 +752,6 @@ export const convertGLBToJSONAndBinary = async (
     }
     meshes.push(new GLTFMesh(mesh.name, meshPrimitives));
   }
-
-  console.log('Mesh 0 Primitives');
-  console.log(meshes[0].primitives);
 
   // Upload the buffer views used by mesh
   for (let i = 0; i < bufferViews.length; ++i) {
@@ -806,5 +817,8 @@ export const convertGLBToJSONAndBinary = async (
     }
     theScenes.push(scene);
   }
-  return meshes;
+  return {
+    meshes,
+    nodes: jsonChunk.nodes,
+  };
 };
