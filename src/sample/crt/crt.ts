@@ -3,11 +3,11 @@ import crtFragWGSL from './crt.frag.wgsl';
 import crtDebugFragWGSL from './crtDebug.frag.wgsl';
 import { Base2DRendererClass, BaseRenderer, create2DVertexModule } from '../../utils/renderProgram';
 
-type CRTRendererArgs = {
+interface CRTRendererArgs {
   time: number;
   textureName: string;
   debugStep: number;
-};
+}
 
 export default class CRTRenderer
   extends Base2DRendererClass

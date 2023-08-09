@@ -1,23 +1,23 @@
 //Adapters are the translation layer between an operating system's
 //API to WebGPU
 
-import fullscreenVertWGSL from '../../shaders/fullscreenWebGL.vert.wgsl';
-import { createBindGroupDescriptor } from '../../utils/bindGroup';
 import {
   BaseComputeProgramClass,
   BaseComputeProgramTypes,
 } from '../../utils/computeProgram';
-import { Base2DRendererClass, BaseRenderer } from '../../utils/renderProgram';
-import gridFragWGSL from './grid.frag.wgsl';
-import gridDebugFragWGSL from './gridDebug.frag.wgsl';
+import { createBindGroupDescriptor } from '../../utils/bindGroup';
+import ComputeBallsWGSL from './balls.comp.wgsl';
 
-type GridRendererArgumentsType = {
-  gridDimensions: number;
-  cellOriginX: number;
-  cellOriginY: number;
-  lineWidth: number;
-  debugStep: number;
-};
+interface ComputeBallsArgumentType {
+  ballColorR: number;
+  ballColorG: number;
+  ballColorB: number;
+  numBalls: number;
+}
+
+const numBalls = 200;
+const ballInfoSize = 6;
+const BUFFER_SIZE = numBalls * ballInfoSize * Float32Array.BYTES_PER_ELEMENT;
 
 export default class computeBalls
   extends BaseComputeProgramClass
@@ -28,7 +28,7 @@ export default class computeBalls
     contents: __SOURCE__,
   };
 
-  readonly renderPassDescriptor: GPURenderPassDescriptor;
+  readonly computePassDescriptor: GPUComputePassDescriptor;
   readonly pipeline: GPUComputePipeline;
   readonly bindGroupMap: Record<string, GPUBindGroup>;
   currentBindGroup: GPUBindGroup;
@@ -39,7 +39,7 @@ export default class computeBalls
   constructor(
     device: GPUDevice,
     presentationFormat: GPUTextureFormat,
-    renderPassDescriptor: GPURenderPassDescriptor,
+    renderPassDescriptor: GPUComputePassDescriptor,
     bindGroupNames: string[],
     label: string,
     debug = false
@@ -49,26 +49,35 @@ export default class computeBalls
       this.currentBindGroup = this.bindGroupMap[name];
       this.currentBindGroupName = name;
     };
-    this.renderPassDescriptor = renderPassDescriptor;
+    this.computePassDescriptor = renderPassDescriptor;
 
-    let bufferElements = 4;
-    if (debug) {
-      bufferElements += 1;
-    }
-
-    const uniformBufferSize = Float32Array.BYTES_PER_ELEMENT * bufferElements;
-    const uniformBuffer = device.createBuffer({
-      size: uniformBufferSize,
+    const inputBuffer = device.createBuffer({
+      size: BUFFER_SIZE,
+      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+    });
+    const outputBuffer = device.createBuffer({
+      size: BUFFER_SIZE,
+      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
+    });
+    //Group 0 Binding 2
+    const uniformsBuffer = device.createBuffer({
+      size: Float32Array.BYTES_PER_ELEMENT * 3,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
     const bgDescript = createBindGroupDescriptor(
-      [0],
-      [GPUShaderStage.FRAGMENT],
-      ['buffer'],
-      [{ type: 'uniform' }],
-      [[{ buffer: uniformBuffer }]],
-      'Grid',
+      [0, 1, 2],
+      [GPUShaderStage.COMPUTE, GPUShaderStage.COMPUTE, GPUShaderStage.COMPUTE],
+      ['buffer', 'buffer', 'buffer'],
+      [{ type: 'storage' }, { type: 'storage' }, { type: 'uniform' }],
+      [
+        [
+          { buffer: inputBuffer },
+          { buffer: outputBuffer },
+          { buffer: uniformsBuffer },
+        ],
+      ],
+      'Balls',
       device
     );
 
@@ -84,25 +93,24 @@ export default class computeBalls
       device,
       'ComputeBalls',
       [bgDescript.bindGroupLayout],
-      
-    )
+      ComputeBallsWGSL
+    );
 
     this.changeDebugStep = (step: number) => {
       if (debug) {
-        device.queue.writeBuffer(uniformBuffer, 16, new Float32Array([step]));
+        device.queue.writeBuffer(uniformsBuffer, 16, new Float32Array([step]));
       }
     };
   }
 
-  startRun(commandEncoder: GPUCommandEncoder, args: GridRendererArgumentsType) {
-    this.changeDimensions(args.gridDimensions);
-    this.changeCellOriginX(args.cellOriginX);
-    this.changeCellOriginY(args.cellOriginY);
-    this.changeLineWidth(args.lineWidth);
-    this.changeDebugStep(args.debugStep);
-    super.executeRun(commandEncoder, this.renderPassDescriptor, this.pipeline, [
-      this.currentBindGroup,
-    ]);
+  startRun(commandEncoder: GPUCommandEncoder) {
+    super.executeRun(
+      commandEncoder,
+      this.computePassDescriptor,
+      this.pipeline,
+      [this.currentBindGroup],
+      Math.ceil(BUFFER_SIZE / 64)
+    );
   }
 }
 
@@ -176,77 +184,6 @@ const renderBalls = (ballData: Float32Array, color: string) => {
   context.restore();
 };
 
-if (!navigator.gpu) throw Error('WebGPU not supported');
-
-const adapter = await navigator.gpu.requestAdapter();
-if (!adapter) throw Error("Couldn't request WebGPU adapter.");
-
-//requestDevice will return a device that represents what WebGPU
-//considers to be the lowest common denominator GPU
-const device = await adapter.requestDevice();
-if (!device) throw Error("Couldn't request WebGPU logical device.");
-
-//WebGPU facilitates the creation of two types of pipelines
-// 1. Render pipeline: Renders images to the screen
-// 2. Compute pipeline: Does a trivial amount of work
-
-//global_invocation_id is the unique id of a unit of work within an entire grid
-//local_invocation_id is the unique id of a unit of work within a workgroup
-const ballComputeModule = device.createShaderModule({
-  //BindGroup 0 with layout bindGroupLayoutOne
-  //Binding 1: The entry within our bindgroup, a storage buffer
-  code: `
-    struct Ball {
-      radius: f32,
-      position: vec2<f32>,
-      velocity: vec2<f32>,
-    }
-
-    struct UniformData {
-      canvasWidth: i32,
-      canvasHeight: i32
-    }
-
-    @group(0) @binding(0)
-    var<storage, read> input: array<Ball>;
-
-    @group(0) @binding(1)
-    var<storage, read_write> output: array<Ball>;
-
-    @group(0) @binding(2)
-    var<uniform> uniforms: UniformData;
-
-    const TIME_STEP: f32 = 0.016;
-
-    @compute @workgroup_size(64)
-    fn main( 
-      @builtin(global_invocation_id) global_id: vec3<u32>,
-    ) {
-      let num_balls = arrayLength(&output);
-      if (global_id.x >= arrayLength(&output)) {
-        return;
-      }
-      let src_ball = input[global_id.x];
-      let dst_ball = &output[global_id.x];
-
-      (*dst_ball) = src_ball;
-      (*dst_ball).position = (*dst_ball).position + (*dst_ball).velocity * TIME_STEP;
-      if ( 
-        (*dst_ball).position[0] >= f32(uniforms.canvasWidth) ||
-        (*dst_ball).position[0] <= 0.0
-      ) {
-        (*dst_ball).velocity[0] = src_ball.velocity[0] * -1;
-      }
-
-      if ( 
-        (*dst_ball).position[1] >= f32(uniforms.canvasHeight) ||
-        (*dst_ball).position[1] <= 0.0
-      ) {
-        (*dst_ball).velocity[1] = src_ball.velocity[1] * -1;
-      }
-    }
-  `,
-});
 //four bytes will be added to end of output since allignment is 8
 //and f32 has a size of four bytes
 
@@ -257,108 +194,13 @@ const ballComputeModule = device.createShaderModule({
 //and the program begins executing another workgroup. Global_invocation_id
 //continues to increase, as it is tracking the index of a piece of work
 //within the entire workload.
-
-//This is just a layout, we are not creating the resources
-//That will populate this layout just yet
-const bindGroupLayoutOne = device.createBindGroupLayout({
-  entries: [
-    //Input buffer
-    {
-      binding: 0,
-      visibility: GPUShaderStage.COMPUTE,
-      buffer: {
-        type: 'read-only-storage',
-      },
-    },
-    //Output buffer that will be mapped to stagingBuffer later
-    {
-      //Resource Identifier within Group
-      binding: 1,
-      //Resource accessible to either vert, frag, or compute shader
-      visibility: GPUShaderStage.COMPUTE,
-      buffer: {
-        type: 'storage',
-      },
-    },
-    //Uniforms Buffer
-    {
-      binding: 2,
-      visibility: GPUShaderStage.COMPUTE,
-      buffer: {
-        type: 'uniform',
-      },
-    },
-  ],
-});
-
-const pipeline = device.createComputePipeline({
-  layout: device.createPipelineLayout({
-    bindGroupLayouts: [bindGroupLayoutOne],
-  }),
-  compute: {
-    module: ballComputeModule,
-    entryPoint: 'main',
-  },
-});
-
-const numBalls = 200;
-//Create the buffer that will be associated with binding 1
-const BUFFER_SIZE = numBalls * 6 * Float32Array.BYTES_PER_ELEMENT;
-
 //Group 0 Binding 0
-const input = device.createBuffer({
-  size: BUFFER_SIZE,
-  usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-});
-//.STORAGE: Can be written to by GPU
-//.COPY_SRC: Can act as the source for a copy operation
-//Producer of data
-//Group 0 Binding 1
-const output = device.createBuffer({
-  size: BUFFER_SIZE,
-  usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
-});
-
-//Group 0 Binding 2
-const uniformsBuffer = device.createBuffer({
-  size: 8,
-  usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-});
 
 //.MAP_READ. Can be read from the CPU
 //.COPY_DST Can be the destination for a copy operation
 const stagingBuffer = device.createBuffer({
   size: BUFFER_SIZE,
   usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
-});
-
-//Above are GPU Buffers
-//Cannot be read or written to unless these conditions are met
-// 1. Usage is set as MAP_READ or MAP_WRITE
-// 2. Need to be mapped to an ArrayBuffer with a separate API Call
-
-const bindGroup = device.createBindGroup({
-  layout: bindGroupLayoutOne,
-  entries: [
-    {
-      binding: 0,
-      resource: {
-        buffer: input,
-      },
-    },
-    {
-      binding: 1,
-      resource: {
-        buffer: output,
-      },
-    },
-    {
-      binding: 2,
-      resource: {
-        buffer: uniformsBuffer,
-      },
-    },
-  ],
 });
 
 let inputBalls = new Float32Array(new ArrayBuffer(BUFFER_SIZE));

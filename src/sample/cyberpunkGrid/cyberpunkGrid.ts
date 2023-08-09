@@ -4,10 +4,9 @@ import { Base2DRendererClass } from '../../utils/renderProgram';
 import CyberpunkGridFragWGSL from './cyberpunk.frag.wgsl';
 import CyberpunkGridDebugFragWGSL from './cyberpunkDebug.frag.wgsl';
 import CyberpunkCommonsWGSL from './cyberpunk_commons.wgsl';
-
 import { CyberpunkGridShader } from './shaderTest';
 
-type CyberpunkGridRenderArgs = {
+interface CyberpunkGridRenderArgs {
   gridLineR: number;
   gridLineG: number;
   gridLineB: number;
@@ -20,7 +19,7 @@ type CyberpunkGridRenderArgs = {
   lineGlow: number;
   sunX: number;
   sunY: number;
-};
+}
 
 export default class CyberpunkGridRenderer
   extends Base2DRendererClass

@@ -4,13 +4,13 @@ import { Base2DRendererClass, BaseRenderer } from '../../utils/renderProgram';
 import gridFragWGSL from './grid.frag.wgsl';
 import gridDebugFragWGSL from './gridDebug.frag.wgsl';
 
-type GridRendererArgumentsType = {
+interface GridRendererArgumentsType {
   gridDimensions: number;
   cellOriginX: number;
   cellOriginY: number;
   lineWidth: number;
   debugStep: number;
-};
+}
 
 export default class GridRenderer
   extends Base2DRendererClass

@@ -11,27 +11,15 @@ SampleInitFactoryCanvas2D(
     gui,
     device,
   }) => {
-    const settings = {
-      lineSize: 0.2,
-      lineGlow: 0.01,
-      fog: 0.2,
-    };
-
-  
-    gui.add(settings, 'lineSize', 0.1, 1.0).step(0.1)
-    gui.add(settings, 'lineGlow', 0.001, 0.1).step(0.001);
-    gui.add(settings, 'fog', 0.1, 1.0).step(0.1);
   
   
     let lastTime = performance.now();
-    let timeElapsed = 0;
   
     function frame() {
       // Sample is no longer the active page.
       if (!pageState.active) return;
       const currentTime = performance.now();
   
-      timeElapsed += Math.min(1 / 60, (currentTime - lastTime) / 1000);
   
       lastTime = currentTime;
 

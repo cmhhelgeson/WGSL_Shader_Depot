@@ -1,11 +1,11 @@
 type OutputSize = 1 | 2 | 3 | 4;
 
-type DebugValuePackage = {
+interface DebugValuePackage {
   debugStep: number;
   variableDeclaration: string;
   returnStatement: string;
   assignmentStatement: string;
-};
+}
 
 const createDebugValuePackage = (
   debugStep: number,

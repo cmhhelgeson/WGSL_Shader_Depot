@@ -19,14 +19,13 @@ import {
   listVariants,
   listItemVariants,
   AppSidebarAnimationKeysType,
-  subItemTextVariants,
   subItemDigitTerminatorVariants,
   SubItemAnimationKeysType,
 } from './AppSidebarTypes';
 import { useImmer } from 'use-immer';
 import { useRouter } from 'next/router';
 
-type ItemProps = {
+interface ItemProps {
   title: string;
   collapsedTitle?: string;
   to: any;
@@ -36,19 +35,25 @@ type ItemProps = {
   isCollapsed: boolean;
   setIsCollapsed: Dispatch<SetStateAction<boolean>>;
   subItems: string[];
-};
+}
 
-type SubItemProps = {
+interface SubItemProps {
   slug: string;
   idx: number;
   itemOpen: boolean;
-};
+}
 
-type LoadingBubbleProps = {
+interface LoadingBubbleProps {
   delay: number;
   wasItemSelected: boolean;
-};
-const LoadingBubble = ({ delay, wasItemSelected }: LoadingBubbleProps) => {
+  doneLoading: boolean;
+}
+
+const LoadingBubble = ({
+  delay,
+  wasItemSelected,
+  doneLoading,
+}: LoadingBubbleProps) => {
   const bubbleController = useAnimation();
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -86,6 +91,25 @@ const LoadingBubble = ({ delay, wasItemSelected }: LoadingBubbleProps) => {
     }
   }, [isLoading, bubbleController]);
 
+  useEffect(() => {
+    if (doneLoading) {
+      bubbleController.stop();
+
+      bubbleController.start({
+        opacity: [1, 0.75, 0.5, 0.25, 0],
+        scale: [1, 0.4, 0.4, 0.4, 1],
+        translateY: [-8, 0, -7, -3, -8],
+        transition: {
+          duration: 2.5,
+          ease: 'easeInOut',
+          times: [0, 0.3, 0.5, 0.7, 1],
+          delay: delay,
+        },
+      });
+      setIsLoading(false);
+    }
+  }, [doneLoading, bubbleController]);
+
   return (
     <motion.div
       className={styles.SidebarArea__Menu__List__ListItem__LoadingGrid__Cell}
@@ -102,6 +126,20 @@ const SubItem = ({ slug, idx, itemOpen }: SubItemProps) => {
     digitTerminator: '',
   });
   const [wasItemSelected, setWasItemSelected] = useState<boolean>(false);
+  const [doneLoading, setDoneLoading] = useState<boolean>(false);
+
+  useEffect(() => {
+    const handlePageLoadComplete = () => {
+      setDoneLoading(true);
+      setWasItemSelected(false);
+    };
+
+    router.events.on('routeChangeComplete', handlePageLoadComplete);
+
+    return () => {
+      router.events.off('routeChangeComplete', handlePageLoadComplete);
+    };
+  }, []);
 
   useEffect(() => {
     digitTerminatorController.start(animationKeys.digitTerminator);
@@ -116,6 +154,7 @@ const SubItem = ({ slug, idx, itemOpen }: SubItemProps) => {
         if (itemOpen) {
           router.push(`/samples/${slug}`);
           setWasItemSelected(true);
+          setDoneLoading(false);
           setAnimationKeys((draft) => {
             draft.digitTerminator = 'coil';
           });
@@ -160,14 +199,17 @@ const SubItem = ({ slug, idx, itemOpen }: SubItemProps) => {
         <LoadingBubble
           delay={0}
           wasItemSelected={wasItemSelected}
+          doneLoading={doneLoading}
         ></LoadingBubble>
         <LoadingBubble
           delay={0.2}
           wasItemSelected={wasItemSelected}
+          doneLoading={doneLoading}
         ></LoadingBubble>
         <LoadingBubble
           delay={0.4}
           wasItemSelected={wasItemSelected}
+          doneLoading={doneLoading}
         ></LoadingBubble>
       </div>
     </motion.li>
@@ -318,10 +360,6 @@ const Item = ({
     </div>
   );
 };
-
-/*type SidebarProps = {
-  isSidebar: boolean;
-}; */
 
 const AppSidebar = () => {
   const theme = useTheme();

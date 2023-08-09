@@ -6,6 +6,7 @@ struct Ball {
 struct UniformData {
   canvasWidth: i32,
   canvasHeight: i32
+  debugStep: f32
 }
 @group(0) @binding(0)
 var<storage, read> input: array<Ball>;
@@ -14,6 +15,8 @@ var<storage, read_write> output: array<Ball>;
 @group(0) @binding(2)
 var<uniform> uniforms: UniformData;
 const TIME_STEP: f32 = 0.016;
+//global_invocation_id is the unique id of a unit of work within an entire grid
+//local_invocation_id is the unique id of a unit of work within a workgroup
 @compute @workgroup_size(64)
 fn main( 
   @builtin(global_invocation_id) global_id: vec3<u32>,
