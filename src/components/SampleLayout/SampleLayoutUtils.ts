@@ -37,6 +37,7 @@ export const SampleInitFactoryWebGPU = async (
     debugValueRef,
     debugOnRef,
     canvasRef,
+    stats,
   }) => {
     const adapter = await navigator.gpu.requestAdapter();
     const device = await adapter.requestDevice();
@@ -63,6 +64,7 @@ export const SampleInitFactoryWebGPU = async (
       device,
       context,
       presentationFormat,
+      stats,
     });
 
     if (debugArray !== null && debugArray !== undefined) {

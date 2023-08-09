@@ -21,6 +21,8 @@ interface CyberpunkGridRenderArgs {
   sunY: number;
 }
 
+const CYBERPUNK_DEBUG_SHADER = CyberpunkGridShader(true);
+
 export default class CyberpunkGridRenderer
   extends Base2DRendererClass
   implements BaseRenderer
@@ -97,9 +99,7 @@ export default class CyberpunkGridRenderer
       vertex: create2DVertexModule(device, 'WEBGL'),
       fragment: {
         module: device.createShaderModule({
-          code: debug
-            ? CyberpunkGridDebugFragWGSL + CyberpunkCommonsWGSL
-            : CyberpunkGridFragWGSL + CyberpunkCommonsWGSL,
+          code: CyberpunkGridShader(debug) + CyberpunkCommonsWGSL,
         }),
         entryPoint: 'fragmentMain',
         targets: [

@@ -4,6 +4,7 @@ import { makeSample, SampleInit } from '../../components/SampleLayout/SampleLayo
 import { createSphereMesh, SphereLayout } from '../../meshes/sphere';
 
 import meshWGSL from './mesh.wgsl';
+import { SampleInitFactoryWebGPU } from '../../components/SampleLayout/SampleLayoutUtils';
 
 interface Renderable {
   vertices: GPUBuffer;
@@ -12,35 +13,26 @@ interface Renderable {
   bindGroup?: GPUBindGroup;
 }
 
-const init: SampleInit = async ({ canvas, pageState, gui, stats }) => {
-  const adapter = await navigator.gpu.requestAdapter();
-  const device = await adapter.requestDevice();
-
-  if (!pageState.active) return;
+let init: SampleInit;
+SampleInitFactoryWebGPU(
+  async ({
+    canvas,
+    pageState,
+    gui,
+    debugValueRef,
+    debugOnRef,
+    canvasRef,
+    stats,
+    device,
+    context,
+    presentationFormat,
+  }) => {
 
   const settings = {
     useRenderBundles: true,
     asteroidCount: 5000,
   };
   gui.add(settings, 'useRenderBundles');
-  gui.add(settings, 'asteroidCount', 1000, 10000, 1000).onChange(() => {
-    // If the content of the scene changes the render bundle must be recreated.
-    ensureEnoughAsteroids();
-    updateRenderBundle();
-  });
-
-  const context = canvas.getContext('webgpu') as GPUCanvasContext;
-
-  const devicePixelRatio = window.devicePixelRatio || 1;
-  canvas.width = canvas.clientWidth * devicePixelRatio;
-  canvas.height = canvas.clientHeight * devicePixelRatio;
-  const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
-
-  context.configure({
-    device,
-    format: presentationFormat,
-    alphaMode: 'premultiplied',
-  });
 
   const shaderModule = device.createShaderModule({
     code: meshWGSL,
@@ -88,15 +80,9 @@ const init: SampleInit = async ({ canvas, pageState, gui, stats }) => {
     },
     primitive: {
       topology: 'triangle-list',
-
-      // Backface culling since the sphere is solid piece of geometry.
-      // Faces pointing away from the camera will be occluded by faces
-      // pointing toward the camera.
       cullMode: 'back',
     },
 
-    // Enable depth testing so that the fragment closest to the camera
-    // is rendered in front.
     depthStencil: {
       depthWriteEnabled: true,
       depthCompare: 'less',
@@ -122,7 +108,6 @@ const init: SampleInit = async ({ canvas, pageState, gui, stats }) => {
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
 
-  // Fetch the images and upload them into a GPUTexture.
   let planetTexture: GPUTexture;
   {
     const response = await fetch(
@@ -442,7 +427,7 @@ const init: SampleInit = async ({ canvas, pageState, gui, stats }) => {
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-};
+}, []).then((resultInit) => (init = resultInit));
 
 const RenderBundles: () => JSX.Element = () =>
   makeSample({

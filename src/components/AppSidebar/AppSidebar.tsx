@@ -14,6 +14,7 @@ import TocIcon from '@mui/icons-material/Toc';
 import styles from './app_sidebar.module.scss';
 import { fragmentPages, vertexPages } from '../../pages/samples/[slug]';
 import { motion, useAnimation } from 'framer-motion';
+import { LoadingBubble } from './LoadingBubble';
 import {
   triangleVariants,
   listVariants,
@@ -28,10 +29,9 @@ import { useRouter } from 'next/router';
 interface ItemProps {
   title: string;
   collapsedTitle?: string;
-  to: any;
   icon: any;
-  selected: any;
-  setSelected: any;
+  selected: string;
+  setSelected: Dispatch<SetStateAction<string>>;
   isCollapsed: boolean;
   setIsCollapsed: Dispatch<SetStateAction<boolean>>;
   subItems: string[];
@@ -41,92 +41,24 @@ interface SubItemProps {
   slug: string;
   idx: number;
   itemOpen: boolean;
+  selected: string;
+  setSelected: Dispatch<SetStateAction<string>>;
 }
 
-interface LoadingBubbleProps {
-  delay: number;
-  wasItemSelected: boolean;
-  doneLoading: boolean;
-}
-
-const LoadingBubble = ({
-  delay,
-  wasItemSelected,
-  doneLoading,
-}: LoadingBubbleProps) => {
-  const bubbleController = useAnimation();
-
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-
-  useEffect(() => {
-    if (wasItemSelected) {
-      bubbleController.start({
-        opacity: [0, 0.25, 0.5, 0.75, 1],
-        scale: [1, 0.4, 0.4, 0.4, 1],
-        translateY: [-8, 0, -7, -3, -8],
-        transition: {
-          duration: 1,
-          ease: 'easeInOut',
-          times: [0, 0.3, 0.5, 0.7, 1],
-          delay: delay,
-        },
-      });
-      setIsLoading(true);
-    }
-  }, [wasItemSelected, bubbleController]);
-
-  useEffect(() => {
-    if (isLoading) {
-      bubbleController.start({
-        scale: [1, 0.4, 0.4, 0.4, 1],
-        translateY: [-8, 0, -7, -3, -8],
-        transition: {
-          duration: 2.5,
-          ease: 'easeInOut',
-          repeat: Infinity,
-          times: [0, 0.3, 0.5, 0.7, 1],
-          delay: delay,
-        },
-      });
-    }
-  }, [isLoading, bubbleController]);
-
-  useEffect(() => {
-    if (doneLoading) {
-      bubbleController.stop();
-
-      bubbleController.start({
-        opacity: [1, 0.75, 0.5, 0.25, 0],
-        scale: [1, 0.4, 0.4, 0.4, 1],
-        translateY: [-8, 0, -7, -3, -8],
-        transition: {
-          duration: 2.5,
-          ease: 'easeInOut',
-          times: [0, 0.3, 0.5, 0.7, 1],
-          delay: delay,
-        },
-      });
-      setIsLoading(false);
-    }
-  }, [doneLoading, bubbleController]);
-
-  return (
-    <motion.div
-      className={styles.SidebarArea__Menu__List__ListItem__LoadingGrid__Cell}
-      initial={{ opacity: '0%' }}
-      animate={bubbleController}
-    ></motion.div>
-  );
-};
-
-const SubItem = ({ slug, idx, itemOpen }: SubItemProps) => {
+const SubItem = ({
+  slug,
+  idx,
+  itemOpen,
+  selected,
+  setSelected,
+}: SubItemProps) => {
   const router = useRouter();
   const digitTerminatorController = useAnimation();
   const [animationKeys, setAnimationKeys] = useImmer<SubItemAnimationKeysType>({
     digitTerminator: '',
   });
   const [wasItemSelected, setWasItemSelected] = useState<boolean>(false);
-  const [doneLoading, setDoneLoading] = useState<boolean>(false);
+  const [doneLoading, setDoneLoading] = useState<boolean>(true);
 
   useEffect(() => {
     const handlePageLoadComplete = () => {
@@ -154,6 +86,7 @@ const SubItem = ({ slug, idx, itemOpen }: SubItemProps) => {
         if (itemOpen) {
           router.push(`/samples/${slug}`);
           setWasItemSelected(true);
+          setSelected(`${slug}`);
           setDoneLoading(false);
           setAnimationKeys((draft) => {
             draft.digitTerminator = 'coil';
@@ -223,6 +156,8 @@ const Item = ({
   isCollapsed,
   setIsCollapsed,
   subItems,
+  selected,
+  setSelected,
 }: ItemProps) => {
   if (!collapsedTitle) {
     collapsedTitle = title;
@@ -352,6 +287,8 @@ const Item = ({
               key={slug}
               slug={slug}
               idx={idx}
+              selected={selected}
+              setSelected={setSelected}
               itemOpen={itemOpen}
             ></SubItem>
           );
@@ -424,7 +361,6 @@ const AppSidebar = () => {
               <Item
                 title={'Fragment Shaders'}
                 collapsedTitle={'Fragment'}
-                to="/lc_slice/grids"
                 icon={<AppsIcon fontSize="large" />}
                 selected={selected}
                 setSelected={setSelected}
@@ -435,7 +371,6 @@ const AppSidebar = () => {
               <Item
                 title={'Vertex Shaders'}
                 collapsedTitle={'Vertex'}
-                to="/lc_slice/linked_lists"
                 icon={<ShareIcon fontSize="large" />}
                 selected={selected}
                 setSelected={setSelected}
@@ -446,7 +381,6 @@ const AppSidebar = () => {
               <Item
                 title="Compute Shaders"
                 collapsedTitle="Compute"
-                to="/lc_slice/hash_tables"
                 icon={<TocIcon fontSize="large" />}
                 selected={selected}
                 setSelected={setSelected}

@@ -1,72 +1,30 @@
-type OutputSize = 1 | 2 | 3 | 4;
-
-interface DebugValuePackage {
-  debugStep: number;
-  variableDeclaration: string;
-  returnStatement: string;
-  assignmentStatement: string;
-}
-
-const createDebugValuePackage = (
-  debugStep: number,
-  size: OutputSize,
-  variableName: string,
-  assignment: string,
-): DebugValuePackage => {
-  let debugPackage: DebugValuePackage;
-  debugPackage.debugStep = debugStep;
-  switch (size) {
-    case 1:
-      {
-        debugPackage.variableDeclaration = `var ${variableName}: f32 = 0.0;`;
-        debugPackage.returnStatement = `
-          if (uniforms.debugStep == ${debugStep}) {
-            return vec4<f32>(${variableName}, 0.0, 0.0, 1.0);
-          }
-        `;
-        debugPackage.assignmentStatement = `${variableName} = ${assignment}`;
-      }
-      break;
-    case 2:
-      {
-        debugPackage.variableDeclaration = `var ${variableName}: vec2<f32> = vec2<f32>(0.0, 0.0);`;
-        debugPackage.returnStatement = `
-          if (uniforms.debugStep == ${debugStep}) {
-            return vec4<f32>(${variableName}, 0.0, 1.0);
-          }
-        `;
-        debugPackage.assignmentStatement = `${variableName} = ${assignment}`;
-      }
-      break;
-    case 3:
-      {
-        debugPackage.variableDeclaration = `var ${variableName}: vec3<f32> = vec3<f32>(0.0, 0.0, 0.0);`;
-        debugPackage.returnStatement = `
-          if (uniforms.debugStep == ${debugStep}) {
-            return vec4<f32>(${variableName}, 1.0);
-          }
-        `;
-        debugPackage.assignmentStatement = `${variableName} = ${assignment}`;
-      }
-      break;
-    case 4:
-      {
-        debugPackage.variableDeclaration = `var ${variableName}: vec4<f32> = vec4<f32>(0.0, 0.0, 0.0, 1.0);`;
-        debugPackage.returnStatement = `
-          if (uniforms.debugStep == ${debugStep}) {
-            return ${variableName};
-          }
-        `;
-        debugPackage.assignmentStatement = `${variableName} = ${assignment}`;
-      }
-      break;
-  }
-  return debugPackage;
-};
+import {
+  createDebugValuePackage,
+  DebugValuePackage,
+  createAssignmentStatement,
+} from '../../utils/shader';
 
 export const CyberpunkGridShader = (debug: boolean) => {
-  const debugStepOne = createDebugValuePackage(0, 2, 'stepOneUv', 'uv');
-  const debugStepTwo = createDebugValuePackage(1, 2, 'stepTwoUv', 'uv');
+  const debugPackages: DebugValuePackage[] = [];
+  let debugVariableDeclarations = '';
+  let debugReturnStatements = '';
+  if (debug) {
+    debugPackages.push(createDebugValuePackage(0, 2, 'stepOneUv'));
+    debugPackages.push(createDebugValuePackage(1, 2, 'stepTwoUv'));
+    debugPackages.push(createDebugValuePackage(2, 2, 'stepThreeUv'));
+    debugPackages.push(createDebugValuePackage(3, 2, 'stepFourUv'));
+    debugPackages.push(createDebugValuePackage(4, 2, 'stepFiveUv'));
+    debugPackages.push(createDebugValuePackage(5, 2, 'stepSixUv'));
+    debugPackages.push(createDebugValuePackage(6, 2, 'stepSevenUv'));
+    debugPackages.push(createDebugValuePackage(7, 2, 'stepEightUv'));
+    debugPackages.push(createDebugValuePackage(8, 2, 'stepNineUv'));
+    debugPackages.push(createDebugValuePackage(9, 2, 'stepTenUv'));
+    for (let i = 0; i < debugPackages.length; i++) {
+      debugVariableDeclarations += debugPackages[i].variableDeclaration + '\n';
+      debugReturnStatements += debugPackages[i].returnStatement + '\n';
+    }
+  }
+
   return `
   @group(0) @binding(0) var<uniform> uniforms: Uniforms;
 
@@ -74,33 +32,63 @@ export const CyberpunkGridShader = (debug: boolean) => {
   fn fragmentMain(input: VertexOutput) -> @location(0) vec4<f32> {
     //var uv: vec2<f32> = -(input.v_uv * 2.0 - 1.0) * vec2<f32>(-1.0, -1.0);
     var uv = (input.Position.xy * 2.0 - vec2<f32>(uniforms.resolutionX, uniforms.resolutionY) + vec2<f32>(-35.0, -35.0)) / uniforms.resolutionY;
-    ${debug ? debugStepOne.assignmentStatement : ``}
+    ${debugVariableDeclarations}
+
+    ${debug ? createAssignmentStatement(debugPackages[0], 'uv') : ``}
     uv.y = -uv.y;
-    ${debug ? debugStepTwo.assignmentStatement : ``}
+    ${debug ? createAssignmentStatement(debugPackages[1], 'uv') : ``}
     var battery: f32 = 1.0;
     var fog: f32 = smoothstep(uniforms.fog, -0.02, abs(uv.y + 0.2));
     var color: vec3<f32> = vec3(0.0, 0.1, 0.2);
-    var stepThreeUv: vec2<f32> = vec2(0.0, 0.0);
-    var stepFourUv: vec2<f32> = vec2(0.0, 0.0);
-    var stepFiveUv: vec2<f32> = vec2(0.0, 0.0);
-    var stepSixUv: vec2<f32> = vec2(0.0, 0.0);
-    var stepSevenUv: vec2<f32> = vec2(0.0, 0.0);
-    var stepEightUv: vec2<f32> = vec2(0.0, 0.0);
-    var stepNineUv: vec2<f32> = vec2(0.0, 0.0);
     var gridVal: f32 = 0.0;
     var val = 0.0;
 
     if (uv.y < -0.2) {
       uv.x = 1.0;
       uv.y = 3.0 / (abs(uv.y + 0.2) + 0.05);
-      stepThreeUv = uv;
+      ${debug ? createAssignmentStatement(debugPackages[2], 'uv') : ``}
       gridVal = grid(uv, battery, uniforms.time, uniforms.lineSize, uniforms.lineGlow);
       //As uv.y gets closer to -0.2, y will get closer to one
-      stepFourUv = vec2(uv.y, uv.y * uv.y * uniforms.lineSize) * uniforms.lineGlow;
-      stepFiveUv = stepFourUv + vec2<f32>(0.0, uniforms.time * 4.0 * (battery + 0.05));
-      stepFiveUv = abs(fract(stepFiveUv) - 0.5);
-      stepSixUv = smoothstep(stepFourUv, vec2<f32>(0.0), stepFiveUv);
-      stepSevenUv = smoothstep(stepFourUv * 5.0, vec2<f32>(0.0), stepFiveUv) * 0.4 * battery;
+      ${
+        debug
+          ? createAssignmentStatement(
+              debugPackages[3],
+              'vec2(uv.y, uv.y * uv.y * uniforms.lineSize) * uniforms.lineGlow'
+            )
+          : ``
+      }
+      ${
+        debug
+          ? createAssignmentStatement(
+              debugPackages[4],
+              'stepFourUv + vec2<f32>(0.0, uniforms.time * 4.0 * (battery + 0.05))'
+            )
+          : ``
+      }
+      ${
+        debug
+          ? createAssignmentStatement(
+              debugPackages[5],
+              'abs(fract(stepFiveUv) - 0.5)'
+            )
+          : ``
+      }
+      ${
+        debug
+          ? createAssignmentStatement(
+              debugPackages[6],
+              'smoothstep(stepFourUv, vec2<f32>(0.0), stepSixUv)'
+            )
+          : ``
+      }
+      ${
+        debug
+          ? createAssignmentStatement(
+              debugPackages[7],
+              'smoothstep(stepFourUv * 5.0, vec2<f32>(0.0), stepSixUv) * 0.4 * battery'
+            )
+          : ``
+      }
       color = mix(color, vec3(1.0, 0.5, 1.0), gridVal);
     } else {
       var fujiD: f32 = min(uv.y * 4.5 - 0.5, 1.0);
@@ -110,9 +98,9 @@ export const CyberpunkGridShader = (debug: boolean) => {
       var fujiUV: vec2<f32> = uv;
 
       // Sun
-      sunUV += vec2(0.75, 0.2);
-      stepEightUv = sunUV;
-      stepNineUv = fujiUV;
+      sunUV += vec2(uniforms.sunX, uniforms.sunY);
+      ${debug ? createAssignmentStatement(debugPackages[8], 'sunUV') : ``}
+      ${debug ? createAssignmentStatement(debugPackages[9], 'fujiUV') : ``}
       //uv.y -= 1.1 - 0.51;
       color = vec3(1.0, 0.2, 1.0);
       var sunVal = sun(sunUV, battery, uniforms.time);
@@ -148,29 +136,7 @@ export const CyberpunkGridShader = (debug: boolean) => {
     color += fog * fog * fog;
     color = mix(vec3f(color.r, color.r, color.r) * 0.5, color, battery * 0.7);
 
-    ${debug ? debugStepOne.returnStatement : ``}
-    ${debug ? debugStepTwo.returnStatement : ``}
-    if (uniforms.debugStep == 2) {
-      return vec4<f32>(stepThreeUv, 0.0, 1.0);
-    }
-    if (uniforms.debugStep == 3) {
-      return vec4<f32>(stepFourUv, 0.0, 1.0);
-    } 
-    if (uniforms.debugStep == 4) {
-      return vec4<f32>(stepFiveUv, 0.0, 1.0);
-    }
-    if (uniforms.debugStep == 5) {
-      return vec4<f32>(stepSixUv, 0.0, 1.0);
-    }
-    if (uniforms.debugStep == 6) {
-      return vec4<f32>(stepSevenUv, 0.0, 1.0);
-    }
-    if (uniforms.debugStep == 7) {
-      return vec4<f32>(stepEightUv, 0.0, 1.0);
-    }
-    if (uniforms.debugStep == 8) {
-      return vec4<f32>(stepNineUv, 0.0, 1.0);
-    }
+    ${debugReturnStatements}
 
     return vec4<f32>(color, 1.0);
     // return vec4<f32>(uv, 0.0, 1.0);
