@@ -196,7 +196,6 @@ const SampleLayout: React.FunctionComponent<
       shadowY: event.pageY - buttonRect.top - Math.round(buttonRect.height / 2),
     }
     coords.shadowY = Math.floor(coords.shadowY);
-    console.log(shadowY);
     shadowY.set(coords.shadowY);
     //debugButtonLeftAnimController.start({boxShadow: `100px ${coords.shadowY} 1px -10px rgba(0, 0, 100, 1.0)`})
   }
@@ -360,7 +359,6 @@ const SampleLayout: React.FunctionComponent<
               onMouseMove={(event) => {
                 const button = event.currentTarget;
                 let offset = event.pageY - button.getBoundingClientRect().top - Math.round(button.clientHeight / 2);
-                console.log(offset);
                 offset = Math.min(Math.max(offset, -4.0), 4.0);
                 button.style.boxShadow = `30px ${offset * -1 / 2}px 1px -8px rgba(0, 0, 0, 0.3)`;
               }}

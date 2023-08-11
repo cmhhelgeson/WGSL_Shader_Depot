@@ -3,8 +3,10 @@ import {
   SampleInit,
 } from '../../components/SampleLayout/SampleLayout';
 import CyberpunkGridRenderer from './cyberpunkGrid';
-import CyberpunkGridFragWGSL from './cyberpunk.frag.wgsl';
 import { SampleInitFactoryWebGPU } from '../../components/SampleLayout/SampleLayoutUtils';
+import { CyberpunkGridShader } from './shader';
+import CyberpunkGridCommonsWGSL from './cyberpunk_commons.wgsl';
+import { CyberpunkGridExplanations } from './shader';
 
 let init: SampleInit;
 
@@ -25,6 +27,7 @@ SampleInitFactoryWebGPU(
       fog: 0.2,
       sunX: -0.75,
       sunY: 0.2,
+      gridLineSpeed: 1.0,
     };
 
     const renderPassDescriptor: GPURenderPassDescriptor = {
@@ -44,6 +47,7 @@ SampleInitFactoryWebGPU(
     gui.add(settings, 'fog', 0.1, 1.0).step(0.1);
     gui.add(settings, 'sunX', -1.0, 1.0).step(0.01);
     gui.add(settings, 'sunY', 0.0, 1.0).step(0.01);
+    gui.add(settings, 'gridLineSpeed', 0.0, 3.0).step(0.1);
 
     const renderer = new CyberpunkGridRenderer(
       device,
@@ -94,6 +98,7 @@ SampleInitFactoryWebGPU(
           fog: settings.fog,
           sunX: settings.sunX,
           sunY: settings.sunY,
+          gridLineSpeed: settings.gridLineSpeed,
         });
       } else {
         renderer.startRun(commandEncoder, {
@@ -109,6 +114,7 @@ SampleInitFactoryWebGPU(
           fog: settings.fog,
           sunX: settings.sunX,
           sunY: settings.sunY,
+          gridLineSpeed: settings.gridLineSpeed,
         });
       }
 
@@ -118,20 +124,7 @@ SampleInitFactoryWebGPU(
     }
     requestAnimationFrame(frame);
   },
-  [
-    'Move your uvs into a range of -1 to 1.',
-    'Invert uv.y',
-    'Select uvs below the horizon line.',
-    'Step four',
-    'Step five',
-    'step six',
-    'step 7',
-    'step 8',
-    'step 9',
-    'step 10',
-    'step 11',
-    'step 12',
-  ]
+  CyberpunkGridExplanations
 ).then((resultInit) => (init = resultInit));
 
 const cyberpunkGridExample: () => JSX.Element = () =>
@@ -146,8 +139,18 @@ const cyberpunkGridExample: () => JSX.Element = () =>
         contents: __SOURCE__,
       },
       {
-        name: './fullscreen.frag.wgsl',
-        contents: CyberpunkGridFragWGSL,
+        name: './cyberpunkGrid.frag.wgsl',
+        contents: CyberpunkGridShader(false),
+        editable: true,
+      },
+      {
+        name: './cyberpunkGridDebug.frag.wgsl',
+        contents: CyberpunkGridShader(true),
+        editable: true,
+      },
+      {
+        name: './cyberpunk_commons.wgsl',
+        contents: CyberpunkGridCommonsWGSL,
         editable: true,
       },
     ],

@@ -38,7 +38,7 @@ const MainLayout: React.FunctionComponent<AppProps> = ({
           <title>{title}</title>
           <meta
             name="description"
-            content="The WebGPU Samples are a set of samples demonstrating the use of the WebGPU API."
+            content="WGSL Shader Depot contains a set of examples exploring shaders using the WebGPU/WGSL Framework."
           />
           <meta
             name="viewport"

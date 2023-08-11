@@ -17,6 +17,7 @@ struct Uniforms {
   debugStep: f32,
   sunX: f32,
   sunY: f32,
+  gridLineSpeed: f32,
 }
 
 fn inverseLerpF32(minVal: f32, maxVal: f32, val: f32) -> f32 {
@@ -44,12 +45,13 @@ fn grid(
   battery: f32,
   time: f32,
   line_size: f32,
-  line_glow: f32
+  line_glow: f32,
+  line_speed: f32,
 ) -> f32 {
   var uv = _uv;
   //0.2 line size, 0.01 line glow
   var size: vec2<f32> = vec2(uv.y, uv.y * uv.y * line_size) * line_glow;
-  uv += vec2<f32>(0.0, time * 4.0 * (battery + 0.05));
+  uv += vec2<f32>(0.0, time * 4.0 * (line_speed + 0.05));
   uv = abs(fract(uv) - 0.5);
  	var lines: vec2<f32> = smoothstep(size, vec2<f32>(0.0), uv);
  	lines += smoothstep(size * 5.0, vec2<f32>(0.0), uv) * 0.4 * battery;

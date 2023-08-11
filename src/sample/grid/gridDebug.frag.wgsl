@@ -47,14 +47,11 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4<f32> {
   var scaledDist: f32 = 1.0 - (1.0 + uniforms.lineWidth) * max(cell.x, cell.y);
   
   if (uniforms.debugStep == 4) {
-    return vec4<f32>(scaledDist, scaledDist, 0.0, 1.0);
+    return vec4<f32>(scaledDist, 0.0, 0.0, 1.0);
   }
 
   //Anything even a little bit white will be scaled along the smoothstep to 1.0
   var ceilLine: f32 = smoothstep(0.0, 0.05, scaledDist);
-  if (uniforms.debugStep == 5) {
-    return vec4<f32>(vec3f(ceilLine), 1.0);
-  }
 
   color = vec3f(ceilLine);
   
