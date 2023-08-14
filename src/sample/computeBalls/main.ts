@@ -11,10 +11,7 @@ SampleInitFactoryCanvas2D(
     gui,
     device,
   }) => {
-  
-  
-    let lastTime = performance.now();
-  
+    
     function frame() {
       // Sample is no longer the active page.
       if (!pageState.active) return;

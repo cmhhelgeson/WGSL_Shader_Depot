@@ -18,6 +18,7 @@ export const pages = {
   grid: dynamic(() => import('../../sample/grid/main')),
   cyberpunkGrid: dynamic(() => import('../../sample/cyberpunkGrid/main')),
   gltf: dynamic(() => import('../../sample/gltfViewer/main')),
+  computeBalls: dynamic(() => import('../../sample/computeBalls/main')),
 };
 
 export const fragmentPages = {
@@ -31,6 +32,10 @@ export const vertexPages = {
   gltf: dynamic(() => import('../../sample/gltfViewer/main')),
   renderBundles: dynamic(() => import('../../sample/renderBundles/main')),
   normalMapping: dynamic(() => import('../../sample/normalMapping/main')),
+};
+
+export const computePages = {
+  computeBalls: dynamic(() => import('../../sample/computeBalls/main')),
 };
 
 function Page({ slug }: Props): JSX.Element {

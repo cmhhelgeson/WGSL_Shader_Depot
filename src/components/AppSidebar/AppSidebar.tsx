@@ -19,7 +19,11 @@ import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import ShareIcon from '@mui/icons-material/Share';
 import TocIcon from '@mui/icons-material/Toc';
 import styles from './app_sidebar.module.scss';
-import { fragmentPages, vertexPages } from '../../pages/samples/[slug]';
+import {
+  fragmentPages,
+  vertexPages,
+  computePages,
+} from '../../pages/samples/[slug]';
 import { Item } from './Item';
 
 interface NavContainerProps {
@@ -37,10 +41,6 @@ const NavContainer = ({
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
   const headerController = useAnimation();
-
-  const handleHeaderAnimationComplete = () => {
-    setIsCollapsed(!isCollapsed);
-  };
 
   if (mobile) {
     return (
@@ -112,7 +112,7 @@ const NavContainer = ({
         <ProSidebar collapsed={isCollapsed}>
           <div
             className={styles.SidebarArea__BurgerArea}
-            style={{ justifyContent: isCollapsed ? 'center' : 'space-between'}}
+            style={{ justifyContent: isCollapsed ? 'center' : 'space-between' }}
           >
             {isCollapsed ? null : (
               <h1 className={styles.SidebarArea__BurgerArea__BurgerText}>
@@ -187,7 +187,7 @@ const MobileItemsContainer = ({
         setSelected={setSelected}
         isCollapsed={isCollapsed}
         setIsCollapsed={setIsCollapsed}
-        subItems={[]}
+        subItems={computePages}
         mobile={mobile}
       />
     </div>
@@ -215,7 +215,7 @@ const DesktopItemsContainer = ({
             textAlign: 'center',
           }}
         >
-          <div color={colors.grey[900]}>
+          <div style={{ color: 'white', textShadow: '1px 1px 1px black' }}>
             {isCollapsed ? 'Examples' : 'Shader Examples'}
           </div>
         </div>
@@ -262,7 +262,7 @@ const DesktopItemsContainer = ({
             textAlign: 'center',
           }}
         >
-          <div color={colors.grey[900]}>
+          <div style={{ color: 'white', textShadow: '1px 1px 1px black' }}>
             {isCollapsed ? 'Links' : 'Outside Links'}
           </div>
         </div>
