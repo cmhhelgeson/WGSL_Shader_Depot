@@ -17,9 +17,16 @@ interface SubItemProps {
   itemOpen: boolean;
   selected: string;
   setSelected: Dispatch<SetStateAction<string>>;
+  mobile: boolean;
 }
 
-export const SubItem = ({ slug, idx, itemOpen, setSelected }: SubItemProps) => {
+export const SubItem = ({
+  slug,
+  idx,
+  itemOpen,
+  setSelected,
+  mobile,
+}: SubItemProps) => {
   const router = useRouter();
   const digitTerminatorController = useAnimation();
   const [animationKeys, setAnimationKeys] = useImmer<SubItemAnimationKeysType>({
@@ -49,6 +56,9 @@ export const SubItem = ({ slug, idx, itemOpen, setSelected }: SubItemProps) => {
     <motion.li
       key={slug}
       className={styles.SidebarArea__Menu__List__ListItem}
+      style={{
+        justifyContent: mobile ? 'flex-start' : 'space-between',
+      }}
       variants={listItemVariants}
       onClick={() => {
         if (itemOpen) {
@@ -96,21 +106,27 @@ export const SubItem = ({ slug, idx, itemOpen, setSelected }: SubItemProps) => {
           {`${slug}`}
         </div>
       </div>
-      <div className={styles.SidebarArea__Menu__List__ListItem__LoadingGrid}>
+      <div
+        className={styles.SidebarArea__Menu__List__ListItem__LoadingGrid}
+        style={{ marginLeft: mobile ? '5px' : '0px' }}
+      >
         <LoadingBubble
           delay={0}
           wasItemSelected={wasItemSelected}
           doneLoading={doneLoading}
+          itemOpen={itemOpen}
         ></LoadingBubble>
         <LoadingBubble
           delay={0.2}
           wasItemSelected={wasItemSelected}
           doneLoading={doneLoading}
+          itemOpen={itemOpen}
         ></LoadingBubble>
         <LoadingBubble
           delay={0.4}
           wasItemSelected={wasItemSelected}
           doneLoading={doneLoading}
+          itemOpen={itemOpen}
         ></LoadingBubble>
       </div>
     </motion.li>

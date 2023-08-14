@@ -52,13 +52,6 @@ const NavContainer = ({
             width: '100%',
           }}
         >
-          <motion.h1
-            animate={headerController}
-            initial={{ opacity: '100%' }}
-            className={styles.SidebarArea__BurgerArea__BurgerText}
-          >
-            WGSL Shader Depot
-          </motion.h1>
           {children}
           <IconButton
             onClick={() => {
@@ -119,15 +112,7 @@ const NavContainer = ({
         <ProSidebar collapsed={isCollapsed}>
           <div
             className={styles.SidebarArea__BurgerArea}
-            style={{ justifyContent: {
-              if (mobile) {
-                return 'flex-start'
-              }
-              if (isCollapsed) {
-                return 'center'
-              }
-              return 'space-between'
-            }}}
+            style={{ justifyContent: isCollapsed ? 'center' : 'space-between'}}
           >
             {isCollapsed ? null : (
               <h1 className={styles.SidebarArea__BurgerArea__BurgerText}>
@@ -165,7 +150,13 @@ const MobileItemsContainer = ({
   mobile,
 }: ItemsContainerProps) => {
   return (
-    <div style={{ display: 'flex' }}>
+    <div
+      style={{
+        display: 'flex',
+        flex: 1,
+        justifyContent: 'space-evenly',
+      }}
+    >
       <Item
         title={'Fragment Shaders'}
         collapsedTitle={'Fragment'}

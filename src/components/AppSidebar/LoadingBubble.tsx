@@ -7,12 +7,14 @@ interface LoadingBubbleProps {
   delay: number;
   wasItemSelected: boolean;
   doneLoading: boolean;
+  itemOpen: boolean;
 }
 
 export const LoadingBubble = ({
   delay,
   wasItemSelected,
   doneLoading,
+  itemOpen,
 }: LoadingBubbleProps) => {
   const bubbleController = useAnimation();
 
@@ -60,7 +62,7 @@ export const LoadingBubble = ({
         scale: [1, 0.4, 0.4, 0.4, 1],
         translateY: [-8, 0, -7, -3, -8],
         transition: {
-          duration: 2.5,
+          duration: 0.5,
           ease: 'easeInOut',
           times: [0, 0.3, 0.5, 0.7, 1],
           delay: delay,

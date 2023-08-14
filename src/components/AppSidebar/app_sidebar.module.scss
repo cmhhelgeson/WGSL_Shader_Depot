@@ -78,6 +78,7 @@
       }
       &__TextContainer {
         display: flex;
+        flex-direction: row;
         align-items: center;
         height: inherit;
         &__Text {
@@ -90,16 +91,19 @@
         margin-right: $DropdownMarginRight;
         height: inherit;
         display: flex;
-        justify-content: flex-start;
-        align-items: center;
         cursor: pointer !important;
         pointer-events: all;
       }
     }
+
+    &__MobileList {
+      color: rgb(234, 232, 232);
+      padding-left: 2px;
+    }
     &__List {
       padding-left: 35px !important;
       padding-top: 10px;
-      margin-left: 100px;
+      margin-left: 0px;
       color: rgb(234, 232, 232);
       &__ListItem {
         display: flex;
@@ -107,7 +111,6 @@
         font-size: 20px;
         margin-top: 5px;
         margin-bottom: 5px;
-        justify-content: space-between;
         align-items: center;
         &:first-child {
           margin-top: 0px;

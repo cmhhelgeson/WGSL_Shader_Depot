@@ -99,11 +99,20 @@ export const Item = ({
     >
       <div
         className={styles.SidebarArea__Menu__SelectableMenuItem__Layout}
-        style={{
-          gridTemplateColumns: isCollapsed ? '' : '20% 80%',
-          gridTemplateRows: isCollapsed ? '60% 40%' : '',
-          flexDirection: isCollapsed ? 'column' : 'row',
-        }}
+        style={
+          !mobile
+            ? {
+                gridTemplateColumns: isCollapsed ? '' : '20% 80%',
+                gridTemplateRows: isCollapsed ? '60% 40%' : '',
+                flexDirection: isCollapsed ? 'column' : 'row',
+              }
+            : {
+                display: 'flex',
+                width: '100%',
+                justifyContent: 'center',
+                alignItems: 'center',
+              }
+        }
         onClick={() => {
           if (!itemOpen && isCollapsed === true) {
             setItemOpen(!itemOpen);
@@ -111,6 +120,10 @@ export const Item = ({
           }
           if (itemOpen) {
             setItemOpen(!itemOpen);
+            setAnimationKeys((draft) => {
+              draft.triangle = 'close';
+              return draft;
+            });
           }
         }}
       >
@@ -121,10 +134,16 @@ export const Item = ({
           className={
             styles.SidebarArea__Menu__SelectableMenuItem__TextContainer
           }
-          style={{
-            justifyContent: isCollapsed ? 'center' : 'space-between',
-            marginTop: isCollapsed ? '5px' : '0px',
-          }}
+          style={
+            mobile
+              ? {
+                  justifyContent: 'space-between',
+                }
+              : {
+                  justifyContent: isCollapsed ? 'center' : 'space-between',
+                  marginTop: isCollapsed ? '5px' : '0px',
+                }
+          }
         >
           <Typography
             className={
@@ -137,6 +156,9 @@ export const Item = ({
           {isCollapsed ? null : (
             <motion.div
               className={styles.SidebarArea__Menu__SelectableMenuItem__Dropdown}
+              style={{
+                marginLeft: mobile ? '5px' : '0px',
+              }}
               variants={triangleVariants}
               transition={{ duration: 0.2 }}
               animate={triangleController}
@@ -153,24 +175,31 @@ export const Item = ({
           )}
         </div>
       </div>
-      <motion.ul
-        className={styles.SidebarArea__Menu__List}
-        variants={listVariants}
-        animate={listController}
-      >
-        {subItems.map((slug, idx) => {
-          return (
-            <SubItem
-              key={slug}
-              slug={slug}
-              idx={idx}
-              selected={selected}
-              setSelected={setSelected}
-              itemOpen={itemOpen}
-            ></SubItem>
-          );
-        })}
-      </motion.ul>
+      {mobile && !itemOpen ? null : (
+        <motion.ul
+          className={
+            mobile
+              ? styles.SidebarArea__Menu__MobileList
+              : styles.SidebarArea__Menu__List
+          }
+          variants={listVariants}
+          animate={listController}
+        >
+          {subItems.map((slug, idx) => {
+            return (
+              <SubItem
+                key={slug}
+                slug={slug}
+                idx={idx}
+                selected={selected}
+                setSelected={setSelected}
+                itemOpen={itemOpen}
+                mobile={mobile}
+              ></SubItem>
+            );
+          })}
+        </motion.ul>
+      )}
     </div>
   );
 };
