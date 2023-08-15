@@ -2,9 +2,11 @@
   &__BurgerArea {
     display: flex;
     height: auto;
+    position: relative;
     align-items: center;
     color: blue;
     padding-top: 10px;
+    overflow: visible;
 
     &__BurgerText {
       margin-left: 10px;
@@ -99,6 +101,8 @@
     &__MobileList {
       color: rgb(234, 232, 232);
       padding-left: 2px;
+      position: relative;
+      display: flex;
     }
     &__List {
       padding-left: 35px !important;

@@ -49,6 +49,7 @@ const NavContainer = ({
           className={styles.SidebarArea__BurgerArea}
           style={{
             justifyContent: 'space-between',
+            alignItems: mobile ? 'flex-start' : 'center',
             width: '100%',
           }}
         >
@@ -151,6 +152,8 @@ const MobileItemsContainer = ({
   computeNames,
   mobile,
 }: ItemsContainerProps) => {
+  const [itemOpenIndex, setItemOpenIndex] = useState<number>(-1);
+
   return (
     <div
       style={{
@@ -169,6 +172,9 @@ const MobileItemsContainer = ({
         setIsCollapsed={setIsCollapsed}
         subItems={fragmentNames}
         mobile={mobile}
+        currentItemOpenIndex={itemOpenIndex}
+        thisItemIndex={0}
+        setItemOpenIndex={setItemOpenIndex}
       />
       <Item
         title={'Vertex Shaders'}
@@ -180,6 +186,9 @@ const MobileItemsContainer = ({
         setIsCollapsed={setIsCollapsed}
         subItems={vertexNames}
         mobile={mobile}
+        currentItemOpenIndex={itemOpenIndex}
+        thisItemIndex={1}
+        setItemOpenIndex={setItemOpenIndex}
       />
       <Item
         title="Compute Shaders"
@@ -191,6 +200,9 @@ const MobileItemsContainer = ({
         setIsCollapsed={setIsCollapsed}
         subItems={computeNames}
         mobile={mobile}
+        currentItemOpenIndex={itemOpenIndex}
+        thisItemIndex={2}
+        setItemOpenIndex={setItemOpenIndex}
       />
     </div>
   );

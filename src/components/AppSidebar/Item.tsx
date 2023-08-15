@@ -23,6 +23,9 @@ interface ItemProps {
   setIsCollapsed: Dispatch<SetStateAction<boolean>>;
   subItems: string[];
   mobile?: boolean;
+  thisItemIndex: number;
+  currentItemOpenIndex?: number;
+  setItemOpenIndex?: Dispatch<SetStateAction<number>>,
 }
 
 export const Item = ({
@@ -35,6 +38,8 @@ export const Item = ({
   selected,
   setSelected,
   mobile,
+  thisItemIndex,
+  itemOpenIndex,
 }: ItemProps) => {
   if (!collapsedTitle) {
     collapsedTitle = title;
@@ -79,9 +84,10 @@ export const Item = ({
     }
   }, [isCollapsed]);
 
-  return (
+  {itemOpenIndex === -1 || itemOpenIndex === return (
     <div
       className={styles.SidebarArea__Menu__SelectableMenuItem}
+      style={{ justifyContent: 'flex-start'}}
       onClick={() => {
         if (!itemOpen) {
           setItemOpen(!itemOpen);

@@ -90,11 +90,6 @@ export const SampleInitFactoryCanvas2D = async (
     const device = await adapter.requestDevice();
     if (!pageState.active) return;
     const context = canvas.getContext('2d') as CanvasRenderingContext2D;
-    const devicePixelRatio = window.devicePixelRatio || 1;
-    canvas.width = canvas.clientWidth * devicePixelRatio;
-    canvas.height = canvas.clientHeight * devicePixelRatio;
-    console.log(canvas.clientWidth * devicePixelRatio);
-    const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
 
     callback({
       canvas,
@@ -105,7 +100,6 @@ export const SampleInitFactoryCanvas2D = async (
       canvasRef,
       device,
       context,
-      presentationFormat,
     });
 
     if (debugArray !== null && debugArray !== undefined) {
