@@ -100,6 +100,7 @@ const SampleLayout: React.FunctionComponent<
     props.sources
   );
 
+
   const dispatch = useAppDispatch();
   const debugExplanations = useAppSelector(
     (state) => state.debugInfo.debugExplanations
@@ -472,13 +473,17 @@ const SampleLayout: React.FunctionComponent<
           <ul>
             {sources.map((src, i) => {
               return (
-                <li key={i}>
+                <li 
+                  key={i} 
+                  draggable
+                  onClick={() => {
+                    setActiveHash(src.name);
+                  }}
+                >
                   <a
+                    style={{pointerEvents: 'none'}}
                     href={`#${src.name}`}
                     data-active={activeHash == src.name}
-                    onClick={() => {
-                      setActiveHash(src.name);
-                    }}
                   >
                     {src.name}
                   </a>

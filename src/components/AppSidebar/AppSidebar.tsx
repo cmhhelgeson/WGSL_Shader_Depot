@@ -137,6 +137,7 @@ interface ItemsContainerProps {
   setIsCollapsed: Dispatch<SetStateAction<boolean>>;
   fragmentNames: string[];
   vertexNames: string[];
+  computeNames: string[];
   mobile: boolean;
 }
 
@@ -147,6 +148,7 @@ const MobileItemsContainer = ({
   setIsCollapsed,
   fragmentNames,
   vertexNames,
+  computeNames,
   mobile,
 }: ItemsContainerProps) => {
   return (
@@ -187,7 +189,7 @@ const MobileItemsContainer = ({
         setSelected={setSelected}
         isCollapsed={isCollapsed}
         setIsCollapsed={setIsCollapsed}
-        subItems={computePages}
+        subItems={computeNames}
         mobile={mobile}
       />
     </div>
@@ -201,6 +203,7 @@ const DesktopItemsContainer = ({
   setIsCollapsed,
   fragmentNames,
   vertexNames,
+  computeNames,
   mobile,
 }: ItemsContainerProps) => {
   const theme = useTheme();
@@ -251,7 +254,7 @@ const DesktopItemsContainer = ({
             setSelected={setSelected}
             isCollapsed={isCollapsed}
             setIsCollapsed={setIsCollapsed}
-            subItems={[]}
+            subItems={computeNames}
             mobile={mobile}
           />
         </div>
@@ -323,6 +326,7 @@ const AppSidebar = () => {
   const [selected, setSelected] = useState<string>('Dashboard');
   const fragmentNames = Object.keys(fragmentPages);
   const vertexNames = Object.keys(vertexPages);
+  const computeNames = Object.keys(computePages)
 
   useEffect(() => {
     const resizeListener = () => {
@@ -353,6 +357,7 @@ const AppSidebar = () => {
           setIsCollapsed={setIsCollapsed}
           fragmentNames={fragmentNames}
           vertexNames={vertexNames}
+          computeNames={computeNames}
           mobile={mobile}
         />
       ) : (
@@ -363,6 +368,7 @@ const AppSidebar = () => {
           setIsCollapsed={setIsCollapsed}
           fragmentNames={fragmentNames}
           vertexNames={vertexNames}
+          computeNames={computeNames}
           mobile={mobile}
         />
       )}

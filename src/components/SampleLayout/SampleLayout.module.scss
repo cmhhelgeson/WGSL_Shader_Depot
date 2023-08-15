@@ -32,6 +32,10 @@ nav.sourceFileNav li:hover {
   border-radius: 10px
 }
 
+nav.sourceFileNav li .dragging {
+  background-color: red;
+}
+
 nav.sourceFileNav li a {
   display: block;
   margin: 0;

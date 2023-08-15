@@ -2,28 +2,35 @@
 import { makeSample, SampleInit } from '../../components/SampleLayout/SampleLayout';
 import { SampleInitFactoryCanvas2D } from '../../components/SampleLayout/SampleLayoutUtils';
 import BallsComputeWGSL from './balls.comp.wgsl';
-
+import ComputeBalls from './computeBalls';
 
 let init: SampleInit;
 SampleInitFactoryCanvas2D(
   ({
     pageState,
-    gui,
+    context,
     device,
   }) => {
+
+    const ComputeBallsRenderer = new ComputeBalls(
+      device,
+      ['Balls'],
+      'Balls',
+      context,
+      false,
+    )
     
     function frame() {
       // Sample is no longer the active page.
       if (!pageState.active) return;
-      const currentTime = performance.now();
-  
-  
-      lastTime = currentTime;
-
-  
+      
       const commandEncoder = device.createCommandEncoder();
-  
-      device.queue.submit([commandEncoder.finish()]);
+      ComputeBallsRenderer.startRun(commandEncoder, {
+        ballColorR: 255,
+        ballColorG: 0,
+        ballColorB: 0,
+        context: context
+      });
   
       requestAnimationFrame(frame);
     }
@@ -31,7 +38,7 @@ SampleInitFactoryCanvas2D(
 
   },
   [
-
+    "Test"
   ]
 ).then((resultInit) => (init = resultInit));
 

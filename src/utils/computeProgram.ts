@@ -1,5 +1,4 @@
 export interface BaseComputeProgramTypes {
-  readonly computePassDescriptor: GPUComputePassDescriptor;
   readonly pipeline: GPUComputePipeline;
   readonly bindGroupMap: Record<string, GPUBindGroup>;
   currentBindGroup: GPUBindGroup;
@@ -35,14 +34,11 @@ export abstract class BaseComputeProgramClass {
 
   executeRun(
     commandEncoder: GPUCommandEncoder,
-    computePassDescriptor: GPUComputePassDescriptor,
     pipeline: GPUComputePipeline,
     bindGroups: GPUBindGroup[],
     workgroups: number
   ) {
-    const computePassEncoder = commandEncoder.beginComputePass(
-      computePassDescriptor
-    );
+    const computePassEncoder = commandEncoder.beginComputePass();
     computePassEncoder.setPipeline(pipeline);
     for (let i = 0; i < bindGroups.length; i++) {
       computePassEncoder.setBindGroup(i, bindGroups[i]);

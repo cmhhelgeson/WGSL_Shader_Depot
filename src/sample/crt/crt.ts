@@ -1,7 +1,11 @@
 import { createBindGroupDescriptor } from '../../utils/bindGroup';
 import crtFragWGSL from './crt.frag.wgsl';
 import crtDebugFragWGSL from './crtDebug.frag.wgsl';
-import { Base2DRendererClass, BaseRenderer, create2DVertexModule } from '../../utils/renderProgram';
+import {
+  Base2DRendererClass,
+  BaseRenderer,
+  create2DVertexModule,
+} from '../../utils/renderProgram';
 
 interface CRTRendererArgs {
   time: number;
@@ -24,7 +28,7 @@ export default class CRTRenderer
   currentBindGroup: GPUBindGroup;
   currentBindGroupName: string;
   private readonly setTime: (time: number) => void;
-  private readonly switchBindGroup: (name: string) => void;
+  switchBindGroup: (name: string) => void;
   changeDebugStep: (step: number) => void;
 
   constructor(
@@ -107,20 +111,10 @@ export default class CRTRenderer
       device.queue.writeBuffer(uniformBuffer, 0, new Float32Array([time]));
     };
 
-    if (debug) {
-      this.changeDebugStep = (step: number) => {
-        const offset = (uniformElements - 1) * Float32Array.BYTES_PER_ELEMENT;
-        device.queue.writeBuffer(
-          uniformBuffer,
-          offset,
-          new Float32Array([step])
-        );
-      };
-    } else {
-      this.changeDebugStep = (step: number) => {
-        return;
-      };
-    }
+    this.changeDebugStep = (step: number) => {
+      const offset = (uniformElements - 1) * Float32Array.BYTES_PER_ELEMENT;
+      device.queue.writeBuffer(uniformBuffer, offset, new Float32Array([step]));
+    };
 
     this.switchBindGroup = (name: string) => {
       this.currentBindGroup = this.bindGroupMap[name];
