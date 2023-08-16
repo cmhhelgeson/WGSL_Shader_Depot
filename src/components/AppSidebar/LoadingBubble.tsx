@@ -14,7 +14,6 @@ export const LoadingBubble = ({
   delay,
   wasItemSelected,
   doneLoading,
-  itemOpen,
 }: LoadingBubbleProps) => {
   const bubbleController = useAnimation();
 

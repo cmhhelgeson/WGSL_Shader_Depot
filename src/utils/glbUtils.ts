@@ -1,4 +1,3 @@
-import { json } from 'stream/consumers';
 import { Accessor, BufferView, GlTf, Node } from './gltf';
 import { mat4, vec3, vec4 } from 'wgpu-matrix';
 import { ArrayLike } from 'wgpu-matrix/dist/1.x/array-like';
@@ -313,7 +312,7 @@ export class GLTFAccessor {
   }
 }
 
-export const createGPUBufferFromBufferView = (
+/*export const createGPUBufferFromBufferView = (
   device: GPUDevice,
   bufferView: BufferView,
   buffer: Uint8Array,
@@ -339,7 +338,7 @@ export const createGPUBufferFromBufferView = (
 
 type PrimitiveTest = {
   renderPipeline: GPURenderPipeline;
-};
+}; */
 
 export class GLTFPrimitive {
   positions: GLTFAccessor;
@@ -412,10 +411,12 @@ export class GLTFPrimitive {
 
     const layout: GPUPipelineLayout = device.createPipelineLayout({
       bindGroupLayouts: [uniformsBGLayout],
+      label: `${label}.pipelineLayout`,
     });
 
     const rpDescript: GPURenderPipelineDescriptor = {
       layout: layout,
+      label: `${label}.pipeline`,
       vertex: vertexState,
       fragment: fragmentState,
       primitive: primitive,
@@ -621,15 +622,15 @@ export const setNodeWorldTransformMatrix = (
 };
 
 type TempReturn = {
-  meshes: GLTFMesh[],
-  nodes: Node[],
+  meshes: GLTFMesh[];
+  nodes: Node[];
 };
 
 // Upload a GLB model and return it
 export const convertGLBToJSONAndBinary = async (
   buffer: ArrayBuffer,
   device: GPUDevice
-): TempReturn => {
+): Promise<TempReturn> => {
   const jsonHeader = new DataView(buffer, 0, 20);
   validateGLBHeader(jsonHeader);
 
