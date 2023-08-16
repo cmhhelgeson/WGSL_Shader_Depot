@@ -42,10 +42,7 @@ export default class CRTRenderer
   ) {
     super();
     this.renderPassDescriptor = renderPassDescriptor;
-    let uniformElements = 1;
-    if (debug) {
-      uniformElements += 1;
-    }
+    const uniformElements = 2;
 
     const uniformBufferSize = Float32Array.BYTES_PER_ELEMENT * uniformElements;
     const uniformBuffer = device.createBuffer({

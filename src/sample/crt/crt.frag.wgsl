@@ -5,6 +5,7 @@ struct VertexOutput {
 
 struct Uniforms {
   time: f32,
+  debugStep: f32,
 }
 
 fn inverseLerp(val: f32, minVal: f32, maxVal: f32) -> f32 {
@@ -25,7 +26,6 @@ fn remap(
 @group(0) @binding(0) var<uniform> uniforms: Uniforms;
 @group(0) @binding(1) var image_sampler: sampler;
 @group(0) @binding(2) var diffuse: texture_2d<f32>;
-
 
 @fragment
 fn fragmentMain(input: VertexOutput) -> @location(0) vec4<f32> {

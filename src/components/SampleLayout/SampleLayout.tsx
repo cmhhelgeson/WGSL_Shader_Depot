@@ -188,18 +188,43 @@ const SampleLayout: React.FunctionComponent<
 
   const [activeHash, setActiveHash] = useState<string | null>(null);
 
-  const mmDebugLeft = (event) => {
-    const button = debugButtonLeftRef.current
-    const buttonRect = button.getBoundingClientRect();
-    const coords = {
-      mouseX: event.pageX - buttonRect.left,
-      mouseY: event.pageY - buttonRect.top,
-      shadowY: event.pageY - buttonRect.top - Math.round(buttonRect.height / 2),
+  const handleKeyDown = (e: KeyboardEvent) => {
+    console.log(e.key)
+    switch(e.key) {
+      case 'ArrowLeft':
+      case 'A':
+      case 'a': {
+        onDecrementDebugStep();
+      } break;
+      case 'ArrowRight':
+      case 'D':
+      case 'd': {
+        onIncrementDebugStep();
+      } break;
+      case 'ArrowUp':
+      case 'W':
+      case 'w': {
+        if (debugOn) {
+          setDebugOn(false)
+        }
+      } break;
+      case 'ArrowDown':
+      case 'S':
+      case 's': {
+        if (!debugOn) {
+          setDebugOn(true);
+        }   
+      } break;
     }
-    coords.shadowY = Math.floor(coords.shadowY);
-    shadowY.set(coords.shadowY);
-    //debugButtonLeftAnimController.start({boxShadow: `100px ${coords.shadowY} 1px -10px rgba(0, 0, 100, 1.0)`})
   }
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [onDecrementDebugStep, onIncrementDebugStep])
+
   useEffect(() => {
     if (currentHash) {
       setActiveHash(currentHash[1]);
@@ -252,9 +277,6 @@ const SampleLayout: React.FunctionComponent<
     }
     return () => {
       pageState.active = false;
-      if (debugButtonLeftRef.current) {
-        debugButtonLeftRef.current.removeEventListener('mousemove', mmDebugLeft);
-      }
     };
   }, []);
   
