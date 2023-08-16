@@ -116,7 +116,6 @@ export const create2DVertexModule = (
 };
 
 export abstract class Base2DRendererClass {
-  abstract changeDebugStep(step: number): void;
   abstract switchBindGroup(name: string): void;
   abstract startRun(commandEncoder: GPUCommandEncoder, ...args: any[]): void;
 

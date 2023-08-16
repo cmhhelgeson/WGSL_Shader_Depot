@@ -6,8 +6,8 @@ struct VertexOutput {
 
 struct Uniforms {
   gridLineR: f32,
-  gridLineB: f32,
   gridLineG: f32,
+  gridLineB: f32,
   resolutionX: f32,
   resolutionY: f32,
   time: f32,
