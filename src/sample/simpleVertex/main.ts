@@ -205,25 +205,6 @@ SampleInitFactoryWebGPU(
     new Float32Array(uniformBuffer.getMappedRange()).set(transform);
     uniformBuffer.unmap();
 
-    const layout = device.createBindGroupLayout({
-      entries: [
-        {
-          binding: 0,
-          visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-          buffer: {
-            type: 'uniform'
-          }
-        },
-        {
-          binding: 1,
-          visibility: GPUShaderStage.FRAGMENT,
-          texture: {
-            sampleType: 'float'
-          }
-        }
-      ]
-    })
-
     const bindGroup = device.createBindGroup({
       layout: pipeline.getBindGroupLayout(1),
       entries: [
@@ -426,9 +407,9 @@ SampleInitFactoryWebGPU(
   requestAnimationFrame(frame);
 }, []).then((resultInit) => (init = resultInit));
 
-const RenderBundles: () => JSX.Element = () =>
+const VertexDeformation: () => JSX.Element = () =>
   makeSample({
-    name: 'Render Bundles',
+    name: 'Vertex Deformation',
     description: `This example shows how to use vertex shaders to manipulate vertex positions along a mesh.`,
     gui: true,
     stats: true,
@@ -452,4 +433,4 @@ const RenderBundles: () => JSX.Element = () =>
     filename: __filename,
   });
 
-export default RenderBundles;
+export default VertexDeformation;

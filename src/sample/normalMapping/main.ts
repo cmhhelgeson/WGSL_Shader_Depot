@@ -21,17 +21,7 @@ const MAT4X4_BYTES = 64;
 // https://toji.dev/webgpu-best-practices/bind-groups.html
 let init: SampleInit;
 SampleInitFactoryWebGPU(
-  async ({
-    canvas,
-    pageState,
-    gui,
-    debugValueRef,
-    debugOnRef,
-    canvasRef,
-    device,
-    context,
-    presentationFormat,
-  }) => {
+  async ({ canvas, pageState, gui, device, context, presentationFormat }) => {
     interface GUISettings {
       'Bump Mode': 'None' | 'Normal';
     }

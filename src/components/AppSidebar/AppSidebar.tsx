@@ -5,12 +5,10 @@ import {
   Dispatch,
   SetStateAction,
 } from 'react';
-import { motion, useAnimation } from 'framer-motion';
 import { ProSidebar, Menu } from 'react-pro-sidebar';
 import { Box, IconButton, useTheme } from '@mui/material';
 import 'react-pro-sidebar/dist/css/styles.css';
 import { tokens } from './theme';
-import HelpOutlineOutlinedIcon from '@mui/icons-material/HelpOutlineOutlined';
 import MenuOutlinedIcon from '@mui/icons-material/MenuOutlined';
 import AppsIcon from '@mui/icons-material/Apps';
 import GitHubIcon from '@mui/icons-material/GitHub';
@@ -41,7 +39,6 @@ const NavContainer = ({
 }: PropsWithChildren<NavContainerProps>) => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
-  const headerController = useAnimation();
 
   if (mobile) {
     return (
@@ -122,7 +119,6 @@ const MobileItemsContainer = ({
   computeNames,
   mobile,
 }: ItemsContainerProps) => {
-
   return (
     <div
       style={{
@@ -181,7 +177,6 @@ const DesktopItemsContainer = ({
   computeNames,
   mobile,
 }: ItemsContainerProps) => {
-  const theme = useTheme();
   return (
     <Menu iconShape="square">
       <Box>
@@ -283,7 +278,7 @@ const AppSidebar = () => {
   const [selected, setSelected] = useState<string>('Dashboard');
   const fragmentNames = Object.keys(fragmentPages);
   const vertexNames = Object.keys(vertexPages);
-  const computeNames = Object.keys(computePages)
+  const computeNames = Object.keys(computePages);
 
   useEffect(() => {
     const resizeListener = () => {

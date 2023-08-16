@@ -18,7 +18,6 @@ export const LinkItem = ({
   collapsedTitle,
   icon,
   isCollapsed,
-  setIsCollapsed,
   mobile,
 }: LinkItemProps) => {
   if (!collapsedTitle) {

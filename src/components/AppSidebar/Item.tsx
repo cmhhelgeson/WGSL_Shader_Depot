@@ -11,11 +11,7 @@ import {
   AppSidebarAnimationKeysType,
 } from './AppSidebarTypes';
 import { useImmer } from 'use-immer';
-import { useSelector } from 'react-redux';
-import {
-  selectItemOpen,
-  setItemOpenIndex,
-} from '../../features/itemOpen/itemOpenSlice';
+import { setItemOpenIndex } from '../../features/itemOpen/itemOpenSlice';
 import { useAppDispatch, useAppSelector } from '../../features/store';
 
 interface ItemProps {

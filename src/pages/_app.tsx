@@ -1,14 +1,11 @@
 import Head from 'next/head';
 import { AppProps } from 'next/app';
-import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { useState } from 'react';
 import { appStore, wrapper } from '../features/store';
 
 import './styles.css';
 import styles from './MainLayout.module.css';
 
-import { pages } from './samples/[slug]';
 import { Provider } from 'react-redux';
 import AppSidebar from '../components/AppSidebar/AppSidebar';
 
@@ -19,10 +16,7 @@ const MainLayout: React.FunctionComponent<AppProps> = ({
   pageProps,
 }) => {
   const router = useRouter();
-  const samplesNames = Object.keys(pages);
   const { store } = wrapper.useWrappedStore(appStore);
-
-  const [listExpanded, setListExpanded] = useState<boolean>(false);
 
   const oldPathSyntaxMatch = router.asPath.match(/(\?wgsl=[01])#(\S+)/);
   if (oldPathSyntaxMatch) {

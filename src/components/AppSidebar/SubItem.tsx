@@ -111,9 +111,9 @@ export const SubItem = ({
       </div>
       <div
         className={styles.SidebarArea__Menu__List__ListItem__LoadingGrid}
-        style={{ 
+        style={{
           marginRight: mobile ? '0px' : '10px',
-          marginTop: mobile ? '5px' : '0px'
+          marginTop: mobile ? '5px' : '0px',
         }}
       >
         <LoadingBubble
