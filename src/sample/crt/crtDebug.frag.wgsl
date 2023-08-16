@@ -27,7 +27,6 @@ fn remap(
 @group(0) @binding(1) var image_sampler: sampler;
 @group(0) @binding(2) var diffuse: texture_2d<f32>;
 
-
 @fragment
 fn fragmentMain(input: VertexOutput) -> @location(0) vec4<f32> {
   let beforeScale = sin(input.v_uv.y);
