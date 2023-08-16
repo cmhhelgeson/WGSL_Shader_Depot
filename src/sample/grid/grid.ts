@@ -30,6 +30,7 @@ export default class GridRenderer
   private originX: number;
   private originY: number;
   private lineWidth: number;
+  switchBindGroup: (name: string) => void;
   private readonly changeDimensions: (dimensions: number) => void;
   private readonly changeCellOriginX: (offset: number) => void;
   private readonly changeCellOriginY: (offset: number) => void;
@@ -144,6 +145,11 @@ export default class GridRenderer
       if (debug) {
         device.queue.writeBuffer(uniformBuffer, 16, new Float32Array([step]));
       }
+    };
+
+    this.switchBindGroup = (name: string) => {
+      this.currentBindGroup = this.bindGroupMap[name];
+      this.currentBindGroupName = name;
     };
   }
 

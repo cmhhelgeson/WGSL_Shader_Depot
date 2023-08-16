@@ -1,5 +1,5 @@
 /* https://github.com/bwasty/gltf-loader-ts/blob/master/source/gltf.ts */
-
+import { ArrayLike } from 'wgpu-matrix/dist/1.x/array-like';
 export type GlTfId = number;
 /**
  * Indices of those attributes that deviate from their initialization value.

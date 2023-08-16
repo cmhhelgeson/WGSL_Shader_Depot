@@ -1,6 +1,6 @@
 export const createTextureFromImage = (
   device: GPUDevice,
-  bitmap: ImageBitmap,
+  bitmap: ImageBitmap
 ) => {
   const texture: GPUTexture = device.createTexture({
     size: [bitmap.width, bitmap.height, 1],
