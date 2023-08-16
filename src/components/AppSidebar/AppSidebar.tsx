@@ -25,6 +25,7 @@ import {
   computePages,
 } from '../../pages/samples/[slug]';
 import { Item } from './Item';
+import { LinkItem } from './LinkItem';
 
 interface NavContainerProps {
   mobile: boolean;
@@ -54,37 +55,6 @@ const NavContainer = ({
           }}
         >
           {children}
-          <IconButton
-            onClick={() => {
-              if (!isCollapsed) {
-                headerController.start({
-                  opacity: [1, 0],
-                  translateX: [0, -20],
-                  transition: {
-                    duration: 0.3,
-                  },
-                });
-                setIsCollapsed(!isCollapsed);
-              } else {
-                headerController.start({
-                  opacity: [0, 1],
-                  translateX: [-20, 0],
-                  transition: {
-                    opacity: { duration: 0.3, ease: 'easeIn' },
-                    translateX: {
-                      duration: 0.3,
-                      type: 'spring',
-                      stiffness: 800,
-                      damping: 10,
-                    },
-                  },
-                });
-                setIsCollapsed(!isCollapsed);
-              }
-            }}
-          >
-            <MenuOutlinedIcon fontSize="large" />
-          </IconButton>
         </div>
       </div>
     );
@@ -152,7 +122,6 @@ const MobileItemsContainer = ({
   computeNames,
   mobile,
 }: ItemsContainerProps) => {
-  const [itemOpenIndex, setItemOpenIndex] = useState<number>(-1);
 
   return (
     <div
@@ -172,9 +141,7 @@ const MobileItemsContainer = ({
         setIsCollapsed={setIsCollapsed}
         subItems={fragmentNames}
         mobile={mobile}
-        currentItemOpenIndex={itemOpenIndex}
-        thisItemIndex={0}
-        setItemOpenIndex={setItemOpenIndex}
+        itemIndex={0}
       />
       <Item
         title={'Vertex Shaders'}
@@ -186,9 +153,7 @@ const MobileItemsContainer = ({
         setIsCollapsed={setIsCollapsed}
         subItems={vertexNames}
         mobile={mobile}
-        currentItemOpenIndex={itemOpenIndex}
-        thisItemIndex={1}
-        setItemOpenIndex={setItemOpenIndex}
+        itemIndex={1}
       />
       <Item
         title="Compute Shaders"
@@ -200,9 +165,7 @@ const MobileItemsContainer = ({
         setIsCollapsed={setIsCollapsed}
         subItems={computeNames}
         mobile={mobile}
-        currentItemOpenIndex={itemOpenIndex}
-        thisItemIndex={2}
-        setItemOpenIndex={setItemOpenIndex}
+        itemIndex={2}
       />
     </div>
   );
@@ -219,7 +182,6 @@ const DesktopItemsContainer = ({
   mobile,
 }: ItemsContainerProps) => {
   const theme = useTheme();
-  const colors = tokens(theme.palette.mode);
   return (
     <Menu iconShape="square">
       <Box>
@@ -246,6 +208,7 @@ const DesktopItemsContainer = ({
             setIsCollapsed={setIsCollapsed}
             subItems={fragmentNames}
             mobile={mobile}
+            itemIndex={0}
           />
           <Item
             title={'Vertex Shaders'}
@@ -257,6 +220,7 @@ const DesktopItemsContainer = ({
             setIsCollapsed={setIsCollapsed}
             subItems={vertexNames}
             mobile={mobile}
+            itemIndex={1}
           />
           <Item
             title="Compute Shaders"
@@ -268,6 +232,7 @@ const DesktopItemsContainer = ({
             setIsCollapsed={setIsCollapsed}
             subItems={computeNames}
             mobile={mobile}
+            itemIndex={2}
           />
         </div>
         <div
@@ -282,49 +247,29 @@ const DesktopItemsContainer = ({
           </div>
         </div>
         <div className={styles.SidebarArea__Menu}>
-          <Item
-            title="FAQ Page"
-            collapsedTitle="FAQ"
-            to="/problem_container"
-            isCollapsed={isCollapsed}
-            icon={<HelpOutlineOutlinedIcon fontSize="large" />}
-            selected={selected}
-            setSelected={setSelected}
-            setIsCollapsed={setIsCollapsed}
-            subItems={[]}
-          />
-          <Item
+          <LinkItem
             title="Github Page"
             collapsedTitle="Github"
             isCollapsed={isCollapsed}
-            to="https://github.com/cmhhelgeson/lc_slice/tree/master/frontend"
+            to="https://github.com/cmhhelgeson/WGSL_Shader_Depot"
             icon={<GitHubIcon fontSize="large" />}
-            selected={selected}
-            setSelected={setSelected}
             setIsCollapsed={setIsCollapsed}
-            subItems={[]}
           />
-          <Item
+          <LinkItem
             title="Linkedin Page"
             collapsedTitle="Linkedin"
             isCollapsed={isCollapsed}
             to="https://www.linkedin.com/in/christian-helgeson-02994b126/"
             icon={<LinkedInIcon fontSize="large" />}
-            selected={selected}
-            setSelected={setSelected}
             setIsCollapsed={setIsCollapsed}
-            subItems={[]}
           />
-          <Item
+          <LinkItem
             to="https://letterboxd.com/chrishelgie/"
             title="Letterboxd Page"
             collapsedTitle="Letterboxd"
             isCollapsed={isCollapsed}
             icon={<MoreHorizIcon fontSize="large" />}
-            selected={selected}
-            setSelected={setSelected}
             setIsCollapsed={setIsCollapsed}
-            subItems={[]}
           />
         </div>
       </Box>
@@ -344,6 +289,7 @@ const AppSidebar = () => {
     const resizeListener = () => {
       if (window.innerWidth < 768) {
         setMobile(true);
+        setIsCollapsed(false);
       } else {
         setMobile(false);
       }

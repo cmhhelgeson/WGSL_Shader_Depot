@@ -57,7 +57,7 @@
       padding-top: 5px;
       padding-bottom: 5px;
       cursor: pointer;
-      background-size: 500% 100%;
+      background-size: 1000% 100%;
       background-position: 100% 0;
       transition: background-position 0.3s ease;
       background-image: linear-gradient(to right, #207aa1 0%, #1c85aa) !important;
@@ -103,6 +103,10 @@
       padding-left: 2px;
       position: relative;
       display: flex;
+      width: 100%;
+      margin-top: 10px;
+      margin-bottom: 5px;
+      justify-content: space-around;
     }
     &__List {
       padding-left: 35px !important;
@@ -142,7 +146,6 @@
         &__LoadingGrid {
           display: grid;
           grid-template-columns: 33.3% 33.3% 33.3%;
-          margin-right: $DropdownMarginRight;
           &__Cell {
             width: 10px;
             height: 10px;

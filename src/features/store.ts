@@ -7,6 +7,7 @@ import {
   useSelector
 } from 'react-redux';
 import {createWrapper} from 'next-redux-wrapper';
+import { itemOpenReducer } from './itemOpen/itemOpenSlice';
 
 type DebugInfo = {
   debugStep: number;
@@ -16,12 +17,14 @@ type DebugInfo = {
 
 export type RootState = {
   debugInfo: DebugInfo;
+  itemOpen: number;
 };
 
 
 export const appStore = configureStore({
   reducer: {
-    debugInfo: debugInfoReducer
+    debugInfo: debugInfoReducer,
+    itemOpen: itemOpenReducer,
   },
   devTools: true,
 });

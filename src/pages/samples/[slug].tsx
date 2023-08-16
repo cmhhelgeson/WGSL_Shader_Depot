@@ -10,7 +10,7 @@ type Props = {
 };
 
 export const pages = {
-  renderBundles: dynamic(() => import('../../sample/renderBundles/main')),
+  simpleVertex: dynamic(() => import('../../sample/simpleVertex/main')),
   normalMapping: dynamic(() => import('../../sample/normalMapping/main')),
   comanche: dynamic(() => import('../../sample/comancheVoxel/main')),
   mixExample: dynamic(() => import('../../sample/mixExample/main')),
@@ -30,7 +30,7 @@ export const fragmentPages = {
 
 export const vertexPages = {
   gltf: dynamic(() => import('../../sample/gltfViewer/main')),
-  renderBundles: dynamic(() => import('../../sample/renderBundles/main')),
+  simpleVertex: dynamic(() => import('../../sample/simpleVertex/main')),
   normalMapping: dynamic(() => import('../../sample/normalMapping/main')),
 };
 

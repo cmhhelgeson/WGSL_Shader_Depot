@@ -58,6 +58,9 @@ export const SubItem = ({
       className={styles.SidebarArea__Menu__List__ListItem}
       style={{
         justifyContent: mobile ? 'flex-start' : 'space-between',
+        flexDirection: mobile ? 'column' : 'row',
+        marginTop: mobile ? '0px' : '5px',
+        marginBottom: mobile ? '0px' : '5px',
       }}
       variants={listItemVariants}
       onClick={() => {
@@ -108,7 +111,10 @@ export const SubItem = ({
       </div>
       <div
         className={styles.SidebarArea__Menu__List__ListItem__LoadingGrid}
-        style={{ marginLeft: mobile ? '5px' : '0px' }}
+        style={{ 
+          marginRight: mobile ? '0px' : '10px',
+          marginTop: mobile ? '5px' : '0px'
+        }}
       >
         <LoadingBubble
           delay={0}
