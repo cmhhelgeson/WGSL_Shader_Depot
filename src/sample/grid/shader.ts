@@ -6,8 +6,8 @@ import {
 //Different from SDFGridShader which will come later
 export const GridShader = (debug: boolean) => {
   const debugPackages: DebugValuePackage[] = [];
-  let debugVariableDeclarations = '';
-  let debugReturnStatements = '';
+  //let debugVariableDeclarations = '';
+  //let debugReturnStatements = '';
   if (debug) {
     debugPackages.push(createDebugValuePackage(0, 2, 'vUvDebug'));
     debugPackages.push(
@@ -20,8 +20,8 @@ export const GridShader = (debug: boolean) => {
     debugPackages.push(createDebugValuePackage(4, 1, 'scaleDistDebug'));
     debugPackages.push(createDebugValuePackage(5, 2, 'stepFiveUv'));
     for (let i = 0; i < debugPackages.length; i++) {
-      debugVariableDeclarations += debugPackages[i].variableDeclaration + '\n';
-      debugReturnStatements += debugPackages[i].returnStatement + '\n';
+      //debugVariableDeclarations += debugPackages[i].variableDeclaration + '\n';
+      //debugReturnStatements += debugPackages[i].returnStatement + '\n';
     }
   }
 

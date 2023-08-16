@@ -8,7 +8,7 @@ struct UniformData {
   canvasHeight: i32
 }
 @group(0) @binding(0)
-var<storage, read> input: array<Ball>;
+var<storage, > input: array<Ball>;
 @group(0) @binding(1)
 var<storage, read_write> output: array<Ball>;
 @group(0) @binding(2)

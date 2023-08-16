@@ -1,7 +1,7 @@
 /* eslint-disable prettier/prettier */
 import { makeSample, SampleInit } from '../../components/SampleLayout/SampleLayout';
 import { createBindGroupDescriptor } from '../../utils/bindGroup';
-import { convertGLBToJSONAndBinary, GLTFMesh } from '../../utils/glbUtils';
+import { convertGLBToJSONAndBinary } from '../../utils/glbUtils';
 import gltfVertWGSL from './gltf.vert.wgsl';
 import gltfFragWGSL from './gltf.frag.wgsl';
 import { mat4, vec3 } from 'wgpu-matrix';
@@ -70,15 +70,20 @@ const init: SampleInit = async ({
     .then((res) => res.arrayBuffer())
     .then((buffer) => convertGLBToJSONAndBinary(buffer, device));
 
-  const foxScene = await fetch('/gltf/Fox.glb')
-    .then((res) => res.arrayBuffer())
-    .then((buffer) => convertGLBToJSONAndBinary(buffer, device));
+  avocadoScene.meshes[0].buildRenderPipeline(
+    device,
+    device.createShaderModule({
+      code: gltfVertWGSL
+    }),
+    device.createShaderModule({
+      code: gltfFragWGSL
+    }),
+    presentationFormat,
+    depthTexture.format,
+    bgDescriptor.bindGroupLayout
+  );
 
-  const cylinderEngineScene = await fetch('/gltf/2CylinderEngine.glb')
-    .then((res) => res.arrayBuffer())
-    .then((buffer) => convertGLBToJSONAndBinary(buffer, device));
-
-  /*avocadoScene.meshes[0].buildRenderPipeline(
+  /*cylinderEngineScene.meshes[0].buildRenderPipeline(
     device,
     device.createShaderModule({
       code: gltfVertWGSL
@@ -90,19 +95,6 @@ const init: SampleInit = async ({
     depthTexture.format,
     bgDescriptor.bindGroupLayout
   ) */
-
-  cylinderEngineScene.meshes[0].buildRenderPipeline(
-    device,
-    device.createShaderModule({
-      code: gltfVertWGSL
-    }),
-    device.createShaderModule({
-      code: gltfFragWGSL
-    }),
-    presentationFormat,
-    depthTexture.format,
-    bgDescriptor.bindGroupLayout
-  )
 
   const aspect = canvas.width / canvas.height;
   const projectionMatrix = mat4.perspective(
@@ -187,7 +179,7 @@ const init: SampleInit = async ({
     const commandEncoder = device.createCommandEncoder();
     const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
     //mesh.render(passEncoder, bgDescriptor.bindGroups[0]);
-    cylinderEngineScene.meshes[0].render(passEncoder, bgDescriptor.bindGroups[0]);
+    avocadoScene.meshes[0].render(passEncoder, bgDescriptor.bindGroups[0]);
     passEncoder.end();
 
     device.queue.submit([commandEncoder.finish()]);

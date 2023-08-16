@@ -1,5 +1,3 @@
-import { ArrayLike } from 'wgpu-matrix/dist/1.x/array-like';
-
 type BindGroupBindingLayout =
   | GPUBufferBindingLayout
   | GPUTextureBindingLayout

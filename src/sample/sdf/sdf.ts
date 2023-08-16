@@ -5,6 +5,8 @@ import SDFFragWGSL from './sdf.frag.wgsl';
 import SDFFragDebugWGSL from './sdfDebug.frag.wgsl';
 
 type SDFRendererArgs = {
+  canvasWidth: number;
+  canvasHeight: number;
   time: number;
   debugStep: number;
 };
@@ -41,7 +43,7 @@ export default class CyberpunkGridRenderer
   ) {
     super();
     this.renderPassDescriptor = renderPassDescriptor;
-    const uniformElements = 1;
+    const uniformElements = 4;
 
     const uniformBufferSize = Float32Array.BYTES_PER_ELEMENT * uniformElements;
     const uniformBuffer = device.createBuffer({
@@ -116,7 +118,7 @@ export default class CyberpunkGridRenderer
   }
 
   startRun(commandEncoder: GPUCommandEncoder, args: SDFRendererArgs) {
-    this.changeCanvasWidth(args.);
+    this.changeCanvasWidth(args.canvasWidth);
     this.changeCanvasHeight(args.canvasHeight);
     this.changeTime(args.time);
     if (args.debugStep !== this.prevDebugStep) {

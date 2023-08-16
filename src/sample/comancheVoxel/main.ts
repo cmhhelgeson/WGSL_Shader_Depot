@@ -1,5 +1,7 @@
-import { vec2 } from 'wgpu-matrix';
-import { makeSample, SampleInit } from '../../components/SampleLayout/SampleLayout';
+import {
+  makeSample,
+  SampleInit,
+} from '../../components/SampleLayout/SampleLayout';
 
 import comancheWGSL from './comanche.wgsl';
 
@@ -260,7 +262,7 @@ const init: SampleInit = async ({ canvas, pageState }) => {
     rightRayX, //rightRayX,
     rightRayY, //rightRayY,
     // ALLIGNMENT 3
-    90.0,   //fovAngle
+    90.0, //fovAngle
     600.0, //zFar,
     16000.0, //heightScaleFactor,
     60.0, //horizon

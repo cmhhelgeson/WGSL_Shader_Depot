@@ -76,12 +76,16 @@ const init: SampleInit = async ({ canvas, pageState, debugValueRef, debugOnRef, 
     if (debugOnRef.current) {
       debugRenderer.startRun(commandEncoder, {
         time: timeElapsed,
-        debugStep: debugValueRef.current
+        debugStep: debugValueRef.current,
+        canvasWidth: canvas.width,
+        canvasHeight: canvas.height
       });
     } else {
       renderer.startRun(commandEncoder, {
         time: timeElapsed,
         debugStep: debugValueRef.current,
+        canvasWidth: canvas.width,
+        canvasHeight: canvas.height
       });
     }
 
