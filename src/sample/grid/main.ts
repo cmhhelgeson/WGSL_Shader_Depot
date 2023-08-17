@@ -30,7 +30,7 @@ SampleInitFactoryWebGPU(
       pulseLine: true,
       pulseSpeed: 10,
       hoveredCell: '0, 0',
-      resetValues: () => { return; }
+      "Reset Values": () => { return; }
     };
     
     const renderPassDescriptor: GPURenderPassDescriptor = {
@@ -73,7 +73,16 @@ SampleInitFactoryWebGPU(
       pulseSpeedPad.setValue(10);
       isPulsePad.setValue(true);
     }
-    gui.add(settings, 'resetValues').onChange(resetValues);
+    gui.add(settings, 'Reset Values').onChange(resetValues);
+    const liFunctionElements = document.getElementsByClassName('cr function');
+    console.log('lis');
+    console.log(liFunctionElements);
+    (liFunctionElements[0].children[0] as HTMLElement).style.display = 'flex';
+    (liFunctionElements[0].children[0] as HTMLElement).style.justifyContent = 'center';
+
+    (liFunctionElements[0].children[0].children[1] as HTMLElement).style.position = 'absolute';
+
+
     const hoveredCell = gui.add(settings, 'hoveredCell')
     hoveredCell.domElement.style.pointerEvents = "none";
   
