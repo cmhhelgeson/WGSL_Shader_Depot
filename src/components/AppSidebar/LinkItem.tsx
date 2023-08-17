@@ -19,6 +19,7 @@ export const LinkItem = ({
   icon,
   isCollapsed,
   mobile,
+  to,
 }: LinkItemProps) => {
   if (!collapsedTitle) {
     collapsedTitle = title;
@@ -64,6 +65,7 @@ export const LinkItem = ({
               }
         }
         onClick={() => {
+          window.location.href = to;
           if (!itemOpen && isCollapsed === true) {
             setItemOpen(true);
           }
