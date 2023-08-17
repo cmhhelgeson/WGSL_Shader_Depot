@@ -16,6 +16,7 @@ SampleInitFactoryWebGPU(
     debugOnRef,
     device,
     context,
+    canvas,
     presentationFormat,
   }) => {
     const settings = {
@@ -101,8 +102,8 @@ SampleInitFactoryWebGPU(
           cellSize: settings.cellSize,
           cellOffset: settings.cellOffset,
           borderMask: 0.3,
-          canvasWidth: context.canvas.width,
-          canvasHeight: context.canvas.height,
+          canvasWidth: canvas.width,
+          canvasHeight: canvas.height,
         });
       } else {
         crtRenderer.startRun(commandEncoder, {
@@ -112,8 +113,8 @@ SampleInitFactoryWebGPU(
           cellSize: settings.cellSize,
           cellOffset: settings.cellOffset,
           borderMask: 0.3,
-          canvasWidth: context.canvas.width,
-          canvasHeight: context.canvas.height,
+          canvasWidth: canvas.width,
+          canvasHeight: canvas.height,
         });
       }
   

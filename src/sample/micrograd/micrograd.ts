@@ -1,6 +1,6 @@
 interface MicroGradValue {
   data: number;
-  children: Value[];
+  children: MicroGradValue[];
   scalarOp: string;
   gradient: number;
 }
