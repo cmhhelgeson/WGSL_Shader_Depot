@@ -8,7 +8,7 @@ export interface DebugValuePackage {
 }
 
 export const createDebugValuePackage = (
-  stepRange: [number, number] | number,
+  stepRange: number[] | number,
   size: OutputSize,
   _variableName: string
 ): DebugValuePackage => {
@@ -28,7 +28,7 @@ export const createDebugValuePackage = (
           ? (returnStatement = `
             if (
               uniforms.debugStep >= ${stepRange[0]} && 
-              uniforms.debugStep <= ${stepRange[1]}
+              uniforms.debugStep <= ${stepRange[stepRange.length - 1]}
             ) {
               return vec4<f32>(${variableName}, 0.0, 0.0, 1.0);
             }
@@ -47,7 +47,7 @@ export const createDebugValuePackage = (
           ? (returnStatement = `
             if (
               uniforms.debugStep >= ${stepRange[0]} && 
-              uniforms.debugStep <= ${stepRange[1]}
+              uniforms.debugStep <= ${stepRange[stepRange.length - 1]}
             ) {
               return vec4<f32>(${variableName}, 0.0, 1.0);
             }
@@ -66,7 +66,7 @@ export const createDebugValuePackage = (
           ? (returnStatement = `
             if (
               uniforms.debugStep >= ${stepRange[0]} && 
-              uniforms.debugStep <= ${stepRange[1]}
+              uniforms.debugStep <= ${stepRange[stepRange.length - 1]}
             ) {
               return vec4<f32>(${variableName}, 1.0);
             }
@@ -85,7 +85,7 @@ export const createDebugValuePackage = (
           ? (returnStatement = `
             if (
               uniforms.debugStep >= ${stepRange[0]} && 
-              uniforms.debugStep <= ${stepRange[1]}
+              uniforms.debugStep <= ${stepRange[stepRange.length - 1]}
             ) {
               return ${variableName};
             }

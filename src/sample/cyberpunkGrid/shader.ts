@@ -7,20 +7,25 @@ import {
 export const CyberpunkGridExplanations = [
   'Move your uvs into a range of -1 to 1.',
   'Invert uv.y',
-  'Select uvs below the horizon line.',
+  'Select uvs below the horizon line at uv.y = -0.2',
+  'The output displayed above represents the function: 3.0 / (abs(uv.y + 0.2) + 0.05);',
+  'Accordingly, new uvs below the horizon are large at the horizon, then taper downward',
   'Define the general size of a single grid line, as determined by lineSize and lineGlow',
   'The falloff increases as lineGlow increases.',
-  'Add time',
-  'Get fractional component of time',
-  'step 7',
-  'step 8',
+  'Scale initial line by time',
+  'Get fractional component of time offset line',
+  'Smoothstep previous calculation to only get values within range of the line',
+  '(Add Explanation)',
+  '(Add Explanation)',
   'Moving above the line...',
   '...we adjust our uv.y (represented by increasing green values) above the horizon line...',
   '...offseting them from a -0.2 to 1 range into a -0.79 to 0.41 range.',
   'We then apply additional offsets to our uvs that indicate the bounds of our sun object',
-  'step 12',
-  'step 13',
+  'Final Output',
 ];
+
+//TODO: Whole debugPackage idea needs to be reworked. Everything just needs to be done inline.
+//Abstraction is unecessary
 
 //Maybe this function should return an object that contains both the code and the debug instructions
 export const CyberpunkGridShader = (debug: boolean) => {
@@ -30,18 +35,20 @@ export const CyberpunkGridShader = (debug: boolean) => {
   if (debug) {
     debugPackages.push(createDebugValuePackage(0, 2, 'uvRangeUv'));
     debugPackages.push(createDebugValuePackage(1, 2, 'invertRangeUv'));
-    debugPackages.push(createDebugValuePackage(2, 2, 'underHorizonSelectUv'));
-    debugPackages.push(createDebugValuePackage([3, 4], 2, 'lineSizeDefineUv'));
-    debugPackages.push(createDebugValuePackage(5, 2, 'stepFiveUv'));
-    debugPackages.push(createDebugValuePackage(6, 2, 'stepSixUv'));
-    debugPackages.push(createDebugValuePackage(7, 2, 'stepSevenUv'));
-    debugPackages.push(createDebugValuePackage(8, 2, 'stepEightUv'));
-    debugPackages.push(createDebugValuePackage(9, 2, 'aboveHorizonSelectUv'));
     debugPackages.push(
-      createDebugValuePackage([10, 11], 2, 'offsetAboveHorizonUv')
+      createDebugValuePackage([2, 3, 4], 2, 'underHorizonSelectUv')
     );
-    debugPackages.push(createDebugValuePackage(12, 2, 'sunDebugUv'));
-    debugPackages.push(createDebugValuePackage(13, 2, 'fujiDebugUv'));
+    debugPackages.push(createDebugValuePackage([5, 6], 2, 'lineSizeDefineUv'));
+    debugPackages.push(createDebugValuePackage(7, 2, 'stepFiveUv'));
+    debugPackages.push(createDebugValuePackage(8, 2, 'stepSixUv'));
+    debugPackages.push(createDebugValuePackage(9, 2, 'stepSevenUv'));
+    debugPackages.push(createDebugValuePackage(10, 2, 'stepEightUv'));
+    debugPackages.push(createDebugValuePackage(11, 2, 'clampLineUv'));
+    debugPackages.push(createDebugValuePackage(12, 2, 'aboveHorizonSelectUv'));
+    debugPackages.push(
+      createDebugValuePackage([13, 14], 2, 'offsetAboveHorizonUv')
+    );
+    debugPackages.push(createDebugValuePackage(15, 2, 'sunDebugUv'));
     for (let i = 0; i < debugPackages.length; i++) {
       debugVariableDeclarations += debugPackages[i].variableDeclaration + '\n';
       debugReturnStatements += debugPackages[i].returnStatement + '\n';
@@ -68,7 +75,7 @@ export const CyberpunkGridShader = (debug: boolean) => {
     if (uv.y < -0.2) {
       uv.x = 1.0;
       uv.y = 3.0 / (abs(uv.y + 0.2) + 0.05);
-      ${debug ? createAssignmentStatement(debugPackages[2], 'uv') : ``}
+      ${debug ? createAssignmentStatement(debugPackages[2], 'uv / 20') : ``}
       gridVal = grid(uv, battery, uniforms.time, uniforms.lineSize, uniforms.lineGlow, uniforms.gridLineSpeed);
       //As uv.y gets closer to -0.2, y will get closer to one
       ${
@@ -111,20 +118,24 @@ export const CyberpunkGridShader = (debug: boolean) => {
             )
           : ``
       }
+      ${
+        debug
+          ? 'clampLineUv = vec2<f32>(0.0, clamp(stepEightUv.x + stepEightUv.y, 0.0, 3.0));'
+          : ``
+      }
       color = mix(color, vec3(1.0, 0.5, 1.0), gridVal);
     } else {
-      ${debug ? createAssignmentStatement(debugPackages[8], 'uv') : ``}
+      ${debug ? createAssignmentStatement(debugPackages[9], 'uv') : ``}
       var fujiD: f32 = min(uv.y * 4.5 - 0.5, 1.0);
       uv.y -= 1.0 * 1.1 - 0.51;
-      ${debug ? createAssignmentStatement(debugPackages[9], 'uv') : ``}
+      ${debug ? createAssignmentStatement(debugPackages[10], 'uv') : ``}
 
       var sunUV: vec2<f32> = uv;
       var fujiUV: vec2<f32> = uv;
 
       // Sun
       sunUV += vec2(uniforms.sunX, uniforms.sunY);
-      ${debug ? createAssignmentStatement(debugPackages[10], 'sunUV') : ``}
-      ${debug ? createAssignmentStatement(debugPackages[11], 'fujiUV') : ``}
+      ${debug ? createAssignmentStatement(debugPackages[11], 'sunUV') : ``}
       //uv.y -= 1.1 - 0.51;
       color = vec3(1.0, 0.2, 1.0);
       var sunVal = sun(sunUV, battery, uniforms.time);

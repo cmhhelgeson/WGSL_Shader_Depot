@@ -19,8 +19,9 @@ SampleInitFactoryWebGPU(
     presentationFormat,
   }) => {
     const settings = {
-      shaderType: 'crt',
       textureName: 'dog',
+      cellSize: 12.0,
+      cellOffset: 0.5,
     };
   
     const renderPassDescriptor: GPURenderPassDescriptor = {
@@ -37,6 +38,9 @@ SampleInitFactoryWebGPU(
   
   
     gui.add(settings, 'textureName', ['dog', 'cat'])
+    gui.add(settings, 'cellSize', 2.0, 24.0).step(1.0);
+    gui.add(settings, 'cellOffset', 0.0, 1.0).step(0.1);
+
   
     let dogTexture: GPUTexture 
     {
@@ -94,12 +98,22 @@ SampleInitFactoryWebGPU(
           time: timeElapsed,
           textureName: settings.textureName,
           debugStep: debugValueRef.current,
+          cellSize: settings.cellSize,
+          cellOffset: settings.cellOffset,
+          borderMask: 0.3,
+          canvasWidth: context.canvas.width,
+          canvasHeight: context.canvas.height,
         });
       } else {
         crtRenderer.startRun(commandEncoder, {
           time: timeElapsed,
           textureName: settings.textureName,
           debugStep: debugValueRef.current,
+          cellSize: settings.cellSize,
+          cellOffset: settings.cellOffset,
+          borderMask: 0.3,
+          canvasWidth: context.canvas.width,
+          canvasHeight: context.canvas.height,
         });
       }
   
