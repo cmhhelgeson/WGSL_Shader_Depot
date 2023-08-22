@@ -3,7 +3,7 @@ import { v1 as uuidv4 } from 'uuid';
 interface MicroGradValue {
   data: number;
   children: Set<MicroGradValue>;
-  scalarOp: '+' | '*' | 'tanh' | '';
+  scalarOp: string;
   gradient?: number;
   label?: string;
   backwards: null | (() => void);
@@ -14,7 +14,7 @@ interface MVGInit {
   data: number;
   label?: string;
   children?: MicroGradValue[];
-  op?: '+' | '*' | 'tanh' | '';
+  op?: string;
 }
 
 export const MVGCreate = (init: MVGInit): MicroGradValue => {
@@ -36,6 +36,38 @@ export const MVGCreate = (init: MVGInit): MicroGradValue => {
   };
 };
 
+export const MVGExp = (a: MicroGradValue, label?: string): MicroGradValue => {
+  const output = MVGCreate({
+    data: Math.exp(a.data),
+    children: [a],
+    op: 'e',
+  });
+  if (label) {
+    output.label = label;
+  }
+  output.gradient += output.data * output.gradient;
+  return output;
+};
+
+export const MVGPow = (
+  a: MicroGradValue,
+  b: number,
+  label?: string,
+): MicroGradValue => {
+  const output = MVGCreate({
+    data: a.data ** b,
+    label: label ? label : '',
+    children: [a],
+    op: '**',
+  });
+
+  output.backwards = () => {
+    output.gradient += b * a.data ** (b - 1) * output.gradient;
+  };
+
+  return output;
+};
+
 //Local gradient: Derivative of output node with respect to inputs
 export const MGVMultiply = (
   a: MicroGradValue,
@@ -48,8 +80,10 @@ export const MGVMultiply = (
     children: [a, b],
   });
   output.backwards = () => {
-    a.gradient = b.data * output.gradient;
-    b.gradient = a.data * output.gradient;
+    a.gradient += b.data * output.gradient;
+    b.gradient += a.data * output.gradient;
+    console.log(`${a.label}'s gradient is: ${a.gradient}`);
+    console.log(`${b.label}'s gradient is: ${b.gradient}`);
   };
   if (productLabel) {
     output.label = productLabel;
@@ -68,8 +102,8 @@ export const MGVAdd = (
     op: '+',
   });
   output.backwards = () => {
-    a.gradient = 1.0 * output.gradient;
-    b.gradient = 1.0 * output.gradient;
+    a.gradient += 1.0 * output.gradient;
+    b.gradient += 1.0 * output.gradient;
   };
   if (sumLabel) {
     output.label = sumLabel;
@@ -85,7 +119,7 @@ export const MGVTanh = (a: MicroGradValue, label?: string): MicroGradValue => {
     children: [a],
   });
   output.backwards = () => {
-    a.gradient = (1 - t ** 2) * output.gradient;
+    a.gradient += (1 - t ** 2) * output.gradient;
   };
   if (label) {
     output.label = label;
@@ -134,21 +168,27 @@ const traceMVG = (root: MicroGradValue): MVGGraphData => {
   };
 };
 
-export const topoMVG = (root: MicroGradValue): MicroGradValue[] => {
-  const visited = new Set<MicroGradValue>();
-  const topo = [];
+export const completeBackwards = (root: MicroGradValue) => {
+  const topo: MicroGradValue[] = [];
+  const visited = new Set();
 
   const buildTopo = (mvg: MicroGradValue) => {
-    if (!visited.has(mvg)) {
-      visited.add(mvg);
-      for (const child of mvg.children) {
-        buildTopo(child);
-      }
-      topo.push(mvg);
+    if (visited.has(mvg)) {
+      return;
     }
+    visited.add(mvg);
+    for (const child of mvg.children) {
+      buildTopo(child);
+    }
+    topo.push(mvg);
   };
   buildTopo(root);
-  return topo;
+  topo.reverse();
+  root.gradient = 1.0;
+  for (const node of topo) {
+    console.log(`Backpropogating on node ${node.label}`);
+    node.backwards();
+  }
 };
 
 const getOpIdString = (uuid: string, op: string): string => {

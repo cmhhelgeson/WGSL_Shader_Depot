@@ -5,7 +5,7 @@ import fullscreenVertWebGLWGSL from '../../shaders/fullscreenWebGL.vert.wgsl';
 import { SampleInitFactoryCanvas2D } from '../../components/SampleLayout/SampleLayoutUtils';
 import { vec2 } from 'wgpu-matrix';
 import { instance} from '@viz-js/viz';
-import { createMVGGraph, MGVAdd, MGVMultiply, MGVTanh, MVGCreate, topoMVG } from './micrograd';
+import { completeBackwards, createMVGGraph, MGVAdd, MGVMultiply, MGVTanh, MVGCreate, topoMVG } from './micrograd';
 
 
 const rectPoints: [number, number][] = [
@@ -96,15 +96,9 @@ SampleInitFactoryCanvas2D(
     const o = MGVTanh(n, 'o');
     o.gradient = 1.0;
 
+    completeBackwards(o);
+
     const digraph = createMVGGraph(o, 'CMH', 0.5, 'LR', 'black', 'white');
-    const topoDiagraph = topoMVG(o);
-    for (const node of topoDiagraph.reverse()) {
-      node.backwards();
-    }
-    
-    console.log(topoDiagraph);
-
-
 
     instance().then(viz => {
       const svgContainer = document.createElement('div');
@@ -195,3 +189,6 @@ const microGradExample: () => JSX.Element = () =>
   });
 
 export default microGradExample;
+
+//var<storage, read_write> input
+//var<storage,read_write> training_labels = [1, -1, -1, 1]
