@@ -91,7 +91,6 @@ const SampleLayout: React.FunctionComponent<
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const debugButtonLeftRef = useRef<HTMLButtonElement | null>();
   const debugButtonRightRef = useRef<HTMLButtonElement | null>();
-  const shadowY = useMotionValue(0);
   const sources = useMemo(
     () =>
       props.sources.map(({ name, contents }) => {
@@ -320,7 +319,7 @@ const SampleLayout: React.FunctionComponent<
           </>
         ) : null}
       </div>
-      <motion.div className={styles.canvasContainer}>
+      <motion.div className={styles.canvasContainer} id={'WGSL_CANVAS_CONTAINER'}>
         <div
           style={{
             position: 'absolute',
@@ -339,6 +338,7 @@ const SampleLayout: React.FunctionComponent<
         <motion.canvas
           variants={canvasVariants}
           animate={canvasAnimControls}
+          id="WGSL_CANVAS"
           onAnimationComplete={() => {
             if (debugOn) {
               debugOnRef.current = true;

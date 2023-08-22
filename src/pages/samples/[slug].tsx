@@ -19,6 +19,7 @@ export const pages = {
   cyberpunkGrid: dynamic(() => import('../../sample/cyberpunkGrid/main')),
   gltf: dynamic(() => import('../../sample/gltfViewer/main')),
   computeBalls: dynamic(() => import('../../sample/computeBalls/main')),
+  micrograd: dynamic(() => import('../../sample/micrograd/main')),
 };
 
 export const fragmentPages = {

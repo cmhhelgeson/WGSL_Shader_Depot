@@ -9,6 +9,8 @@
   aspect-ratio: 1;
   max-width: 640px;
   max-height: 480px;
+  pointer-events: all;
+  overflow-x: scroll;
 }
 
 nav.sourceFileNav ul {
