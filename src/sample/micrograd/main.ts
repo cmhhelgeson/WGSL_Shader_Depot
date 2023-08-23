@@ -5,7 +5,7 @@ import fullscreenVertWebGLWGSL from '../../shaders/fullscreenWebGL.vert.wgsl';
 import { SampleInitFactoryCanvas2D } from '../../components/SampleLayout/SampleLayoutUtils';
 import { vec2 } from 'wgpu-matrix';
 import { instance} from '@viz-js/viz';
-import { completeBackwards, createMVGGraph, MGVAdd, MGVMultiply, MGVTanh, MVGCreate, topoMVG } from './micrograd';
+import { createMVGGraph, Value } from './engine';
 
 
 const rectPoints: [number, number][] = [
@@ -57,46 +57,26 @@ SampleInitFactoryCanvas2D(
     context,
   }) => {
 
-    /*const a = MVGCreate({data: 2.0, label: 'a'});
-    const b = MVGCreate({data: 3.0, label: 'b'});
-    const c = MVGCreate({data: 10.0, label: 'c'});
+    const x1 = new Value(2.0, {
+      label: 'x1'
+    })
+    const x2 = new Value(0.0, {label: 'x2'});
 
-    const e = MGVMultiply(a, b, 'e');
-    e.label = 'e';
+    const w1 = new Value(-3.0, {label: 'w1'});
+    const w2 = new Value(1.0, {label: 'w2'});
 
-    const d = MGVAdd(e, c, 'd');
-    d.label = 'd';
-    const f = MVGCreate({data: -2.0, label: 'f'});
+    const b = new Value(6.8813735870195432, {label: 'b'});
 
-    const L = MGVMultiply(d, f, 'L');
-    L.gradient = 1.0;
+    const x1w1 = x1.mul(w1, 'x1w1');
+    const x2w2 = x2.mul(w2, 'x2w2');
 
-    L.backwards();
-    d.backwards();
-    e.backwards();
+    const x1w1x2w2 = x1w1.add(x2w2, 'x1w1x2w2');
 
-    const digraph = createMVGGraph(L, 'CMH', 0.1, 'LR', 'black', 'white');
-    console.log("Digraph debug")
-    console.log(digraph) */
+    const n = x1w1x2w2.add(b, 'n');
+    const o = n.tanh('o');
+    o.grad = 1.0;
 
-    const x1 = MVGCreate({data: 2.0, label: "x1"});
-    const x2 = MVGCreate({data: 0.0, label: 'x2'});
-
-    const w1 = MVGCreate({data: -3.0, label: 'w1'});
-    const w2 = MVGCreate({data: 1.0, label: 'w2'});
-
-    const b = MVGCreate({data: 6.8813735870195432, label: 'b'});
-
-    const x1w1 = MGVMultiply(x1, w1, 'x1w1');
-    const x2w2 = MGVMultiply(x2, w2, 'x2w2');
-
-    const x1w1x2w2 = MGVAdd(x1w1, x2w2, 'x1w1x2w2');
-
-    const n = MGVAdd(x1w1x2w2, b, 'n');
-    const o = MGVTanh(n, 'o');
-    o.gradient = 1.0;
-
-    completeBackwards(o);
+    o.backward();
 
     const digraph = createMVGGraph(o, 'CMH', 0.5, 'LR', 'black', 'white');
 
