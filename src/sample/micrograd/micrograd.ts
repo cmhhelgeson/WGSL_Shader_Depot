@@ -52,7 +52,7 @@ export const MVGExp = (a: MicroGradValue, label?: string): MicroGradValue => {
 export const MVGPow = (
   a: MicroGradValue,
   b: number,
-  label?: string,
+  label?: string
 ): MicroGradValue => {
   const output = MVGCreate({
     data: a.data ** b,
@@ -251,3 +251,14 @@ export const createMVGGraph = (
   digraphString += '}';
   return digraphString;
 };
+
+export class Neuron {
+  w: MicroGradValue[] = [];
+  b: MicroGradValue;
+  constructor(nin: number) {
+    for (let i = 0; i < nin; i++) {
+      const wi = MVGCreate({ data: Math.random() * 2 - 1, label: `w${i}`});
+      this.w.push(wi);
+    }
+  }
+}
