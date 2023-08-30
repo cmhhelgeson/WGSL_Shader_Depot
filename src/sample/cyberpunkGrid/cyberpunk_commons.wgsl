@@ -4,13 +4,13 @@ struct VertexOutput {
   @location(0) v_uv: vec2<f32>
 }
 
-struct Uniforms {
+/*struct Uniforms {
   gridLineR: f32,
   gridLineG: f32,
   gridLineB: f32,
+  time: f32,
   resolutionX: f32,
   resolutionY: f32,
-  time: f32,
   fog: f32,
   lineSize: f32,
   lineGlow: f32,
@@ -18,7 +18,7 @@ struct Uniforms {
   sunX: f32,
   sunY: f32,
   gridLineSpeed: f32,
-}
+} */
 
 fn inverseLerpF32(minVal: f32, maxVal: f32, val: f32) -> f32 {
   return (val - minVal) / (maxVal - minVal);

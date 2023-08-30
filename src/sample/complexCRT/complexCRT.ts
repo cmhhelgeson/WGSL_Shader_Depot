@@ -2,13 +2,7 @@ import { createBindGroupDescriptor } from '../../utils/bindGroup';
 import crtFragWGSL from './complexCRT.frag.wgsl';
 import { Base2DRendererClass, BaseRenderer } from '../../utils/renderProgram';
 
-//TODO: Pass arguments to shader and have shader define itself based on the arguments
-//in the interface through Object.keys. That way, we can just iterate over the
-//object's keys and write to the appropriate locations in the buffer
-//without having to write each uniforms individual location within said buffer
-//We can't just iterate over Object.keys() because certain browsers do not iterate over
-//key objects in the same order unless they are passed in in the same order
-//which just reintroduces the mental overhead such an approach would be trying to avoid
+//TODO: lo hizo
 
 interface ComplexCRTRendererArgs {
   debugStep: number;

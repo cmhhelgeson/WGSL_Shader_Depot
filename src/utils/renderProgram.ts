@@ -140,13 +140,13 @@ export abstract class Base2DRendererClass {
 
   setUniformArguments<T, K extends readonly string[]>(
     device: GPUDevice,
-    buffer: GPUBuffer,
+    uniformBuffer: GPUBuffer,
     instance: T,
     keys: K
   ) {
     for (let i = 0; i < keys.length; i++) {
       device.queue.writeBuffer(
-        buffer,
+        uniformBuffer,
         i * 4,
         new Float32Array([instance[keys[i]]])
       );

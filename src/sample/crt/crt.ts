@@ -58,7 +58,6 @@ export default class CRTRenderer
     const resourceArr = textures.map((texture) => {
       return [{ buffer: uniformBuffer }, sampler, texture.createView()];
     });
-    console.log(resourceArr);
 
     const bgDescript = createBindGroupDescriptor(
       [0, 1, 2],
@@ -78,8 +77,6 @@ export default class CRTRenderer
     bgDescript.bindGroups.forEach((bg, idx) => {
       this.bindGroupMap[bindGroupNames[idx]] = bg;
     });
-
-    console.log(this.bindGroupMap);
 
     this.pipeline = device.createRenderPipeline({
       label: `${label}.pipeline`,

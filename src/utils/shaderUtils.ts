@@ -112,3 +112,13 @@ export const createAssignmentStatement = (
 ) => {
   return `${debugPackage.variableName} = ${assignment};`;
 };
+
+export const createWGSLUniform = (structName: string, keys: string[]) => {
+  let retString = `struct ${structName} {\n`;
+  for (let i = 0; i < keys.length; i++) {
+    retString += `\t${keys[i]}: f32,\n`;
+  }
+  retString += `}\n`;
+  console.log(retString);
+  return retString;
+};

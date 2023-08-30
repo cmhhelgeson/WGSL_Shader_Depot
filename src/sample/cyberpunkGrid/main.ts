@@ -112,7 +112,7 @@ SampleInitFactoryWebGPU(
           lineSize: settings.lineSize,
           lineGlow: settings.lineGlow,
           fog: settings.fog,
-          sunX: settings.sunX,
+          sunX: -settings.sunX,
           sunY: settings.sunY,
           gridLineSpeed: settings.gridLineSpeed,
         });

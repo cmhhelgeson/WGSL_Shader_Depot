@@ -2,6 +2,7 @@ import {
   createDebugValuePackage,
   DebugValuePackage,
   createAssignmentStatement,
+  createWGSLUniform,
 } from '../../utils/shaderUtils';
 
 export const CyberpunkGridExplanations = [
@@ -22,6 +23,22 @@ export const CyberpunkGridExplanations = [
   '...offseting them from a -0.2 to 1 range into a -0.79 to 0.41 range.',
   'We then apply additional offsets to our uvs that indicate the bounds of our sun object',
   'Final Output',
+];
+
+export const argKeys = [
+  'gridLineR',
+  'gridLineG',
+  'gridLineB',
+  'time',
+  'canvasWidth',
+  'canvasHeight',
+  'debugStep',
+  'fog',
+  'lineSize',
+  'lineGlow',
+  'sunX',
+  'sunY',
+  'gridLineSpeed',
 ];
 
 //TODO: Whole debugPackage idea needs to be reworked. Everything just needs to be done inline.
@@ -56,12 +73,15 @@ export const CyberpunkGridShader = (debug: boolean) => {
   }
 
   return `
+
+  ${createWGSLUniform('Uniforms', argKeys)}
+
   @group(0) @binding(0) var<uniform> uniforms: Uniforms;
 
   @fragment
   fn fragmentMain(input: VertexOutput) -> @location(0) vec4<f32> {
     //var uv: vec2<f32> = -(input.v_uv * 2.0 - 1.0) * vec2<f32>(-1.0, -1.0);
-    var uv = (input.Position.xy * 2.0 - vec2<f32>(uniforms.resolutionX, uniforms.resolutionY) + vec2<f32>(-35.0, -35.0)) / uniforms.resolutionY;
+    var uv = (input.Position.xy * 2.0 - vec2<f32>(uniforms.canvasWidth, uniforms.canvasHeight) + vec2<f32>(-35.0, -35.0)) / uniforms.canvasHeight;
     ${debugVariableDeclarations}
     ${debug ? createAssignmentStatement(debugPackages[0], 'uv') : ``}
     uv.y = -uv.y;
