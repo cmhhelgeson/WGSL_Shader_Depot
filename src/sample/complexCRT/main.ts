@@ -23,6 +23,7 @@ SampleInitFactoryWebGPU(
       textureName: 'dog',
       cellSize: 12.0,
       cellOffset: 0.5,
+      borderMask: 1.0,
     };
   
     const renderPassDescriptor: GPURenderPassDescriptor = {
@@ -39,8 +40,9 @@ SampleInitFactoryWebGPU(
   
   
     gui.add(settings, 'textureName', ['dog', 'cat'])
-    gui.add(settings, 'cellSize', 2.0, 24.0).step(1.0);
+    gui.add(settings, 'cellSize', 2.0, 50.0).step(1.0);
     gui.add(settings, 'cellOffset', 0.0, 1.0).step(0.1);
+    gui.add(settings, 'borderMask', 0.0, 5.0).step(0.1)
 
   
     let dogTexture: GPUTexture 
@@ -102,7 +104,7 @@ SampleInitFactoryWebGPU(
           debugStep: debugValueRef.current,
           cellSize: settings.cellSize,
           cellOffset: settings.cellOffset,
-          borderMask: 0.3,
+          borderMask: settings.borderMask,
           canvasWidth: canvas.width,
           canvasHeight: canvas.height,
         });
@@ -114,7 +116,7 @@ SampleInitFactoryWebGPU(
           debugStep: debugValueRef.current,
           cellSize: settings.cellSize,
           cellOffset: settings.cellOffset,
-          borderMask: 0.3,
+          borderMask: settings.borderMask,
           canvasWidth: canvas.width,
           canvasHeight: canvas.height,
         });

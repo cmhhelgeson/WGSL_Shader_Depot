@@ -5,7 +5,7 @@ struct Uniforms {
   time: f32,
   cellOffset: f32,
   cellSize: f32,
-  borderMask: f32;
+  borderMask: f32
 }
 
 @group(0) @binding(0) uniforms: Uniforms;
@@ -37,5 +37,4 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4<f32> {
   mask_color.rgb *= border.x * border.y;
 
   return vec4<f32>(mask_color, 1.0);
-  
 }

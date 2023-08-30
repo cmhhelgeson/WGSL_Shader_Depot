@@ -1,7 +1,6 @@
 import { createBindGroupDescriptor } from '../../utils/bindGroup';
-import crtFragWGSL from './complexCRT.frag.wgsl';
 import { Base2DRendererClass } from '../../utils/renderProgram';
-import { argKeys } from './shader';
+import { ComplexCRTShader, argKeys } from './shader';
 import { ShaderKeyInterface } from '../../utils/shaderUtils';
 
 type ComplexCRTRendererArgs = ShaderKeyInterface<typeof argKeys> & {
@@ -63,12 +62,12 @@ export default class ComplexCRTRenderer extends Base2DRendererClass {
       this.bindGroupMap[bindGroupNames[idx]] = bg;
     });
 
-    super.create2DRenderPipeline(
+    this.pipeline = super.create2DRenderPipeline(
       device,
       label,
       [bgDescript.bindGroupLayout],
       'WEBGPU',
-      debug ? crtFragWGSL : crtFragWGSL,
+      ComplexCRTShader(debug),
       presentationFormat
     );
 

@@ -20,6 +20,7 @@ export const pages = {
   gltf: dynamic(() => import('../../sample/gltfViewer/main')),
   computeBalls: dynamic(() => import('../../sample/computeBalls/main')),
   micrograd: dynamic(() => import('../../sample/micrograd/main')),
+  complexCRT: dynamic(() => import('../../sample/complexCRT/main')),
 };
 
 export const fragmentPages = {
@@ -27,6 +28,7 @@ export const fragmentPages = {
   CRT: dynamic(() => import('../../sample/crt/main')),
   grid: dynamic(() => import('../../sample/grid/main')),
   cyberpunkGrid: dynamic(() => import('../../sample/cyberpunkGrid/main')),
+  complexCRT: dynamic(() => import('../../sample/complexCRT/main')),
 };
 
 export const vertexPages = {
