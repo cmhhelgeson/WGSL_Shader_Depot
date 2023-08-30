@@ -115,6 +115,10 @@ export const create2DVertexModule = (
   return vertexState;
 };
 
+type DynamicInterface<T extends readonly string[]> = {
+  [K in T[number]]: number;
+};
+
 export abstract class Base2DRendererClass {
   abstract switchBindGroup(name: string): void;
   abstract startRun(commandEncoder: GPUCommandEncoder, ...args: any[]): void;
@@ -132,5 +136,52 @@ export abstract class Base2DRendererClass {
     }
     passEncoder.draw(6, 1, 0, 0);
     passEncoder.end();
+  }
+
+  setUniformArguments<T, K extends readonly string[]>(
+    device: GPUDevice,
+    buffer: GPUBuffer,
+    instance: T,
+    keys: K
+  ) {
+    for (let i = 0; i < keys.length; i++) {
+      device.queue.writeBuffer(
+        buffer,
+        i * 4,
+        new Float32Array([instance[keys[i]]])
+      );
+    }
+  }
+
+  create2DRenderPipeline(
+    device: GPUDevice,
+    label: string,
+    bgLayouts: GPUBindGroupLayout[],
+    mode: 'WEBGL' | 'WEBGPU',
+    code: string,
+    presentationFormat: GPUTextureFormat
+  ) {
+    return device.createRenderPipeline({
+      label: `${label}.pipeline`,
+      layout: device.createPipelineLayout({
+        bindGroupLayouts: bgLayouts,
+      }),
+      vertex: create2DVertexModule(device, mode),
+      fragment: {
+        module: device.createShaderModule({
+          code: code,
+        }),
+        entryPoint: 'fragmentMain',
+        targets: [
+          {
+            format: presentationFormat,
+          },
+        ],
+      },
+      primitive: {
+        topology: 'triangle-list',
+        cullMode: 'none',
+      },
+    });
   }
 }

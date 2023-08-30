@@ -35,5 +35,7 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4<f32> {
   var border: vec2<f32> = 1.0 - cell_uv * cell_uv * uniforms.borderMask;
 
   mask_color.rgb *= border.x * border.y;
+
+  return vec4<f32>(mask_color, 1.0);
   
 }

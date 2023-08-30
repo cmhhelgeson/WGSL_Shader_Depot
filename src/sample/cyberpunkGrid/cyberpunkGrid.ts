@@ -1,8 +1,36 @@
 import { createBindGroupDescriptor } from '../../utils/bindGroup';
-import { BaseRenderer, create2DVertexModule } from '../../utils/renderProgram';
+import { BaseRenderer } from '../../utils/renderProgram';
 import { Base2DRendererClass } from '../../utils/renderProgram';
 import CyberpunkCommonsWGSL from './cyberpunk_commons.wgsl';
 import { CyberpunkGridShader } from './shader';
+
+type DynamicInterface<T extends readonly string[]> = {
+  [K in T[number]]: number;
+};
+
+const CyberpunkGridRendererArgsKeys = [
+  'gridLineR',
+  'gridLineG',
+  'gridLineB',
+  'time',
+  'canvasWidth',
+  'canvasHeight',
+  'debugStep',
+  'fog',
+  'lineSize',
+  'lineGlow',
+  'sunX',
+  'sunY',
+  'gridLineSpeed',
+] as const;
+
+
+
+for (let i = 0; i < CyberpunkGridRendererArgsKeys.length; i++) {
+  console.log(CyberpunkGridRendererArgsKeys[i]);
+}
+
+type CPGRendererArgs = DynamicInterface<typeof CyberpunkGridRendererArgsKeys>;
 
 interface CyberpunkGridRenderArgs {
   gridLineR: number;
@@ -38,6 +66,7 @@ export default class CyberpunkGridRenderer
   private readonly setTime: (time: number) => void;
   switchBindGroup: (name: string) => void;
   prevDebugStep: number;
+  changeArgs: (args: CyberpunkGridRenderArgs) => void;
   changeCanvasWidth: (width: number) => void;
   changeCanvasHeight: (height: number) => void;
   changeTime: (time: number) => void;
@@ -90,28 +119,14 @@ export default class CyberpunkGridRenderer
       this.bindGroupMap[bindGroupNames[idx]] = bg;
     });
 
-    this.pipeline = device.createRenderPipeline({
-      label: `${label}.pipeline`,
-      layout: device.createPipelineLayout({
-        bindGroupLayouts: [bgDescript.bindGroupLayout],
-      }),
-      vertex: create2DVertexModule(device, 'WEBGL'),
-      fragment: {
-        module: device.createShaderModule({
-          code: CyberpunkGridShader(debug) + CyberpunkCommonsWGSL,
-        }),
-        entryPoint: 'fragmentMain',
-        targets: [
-          {
-            format: presentationFormat,
-          },
-        ],
-      },
-      primitive: {
-        topology: 'triangle-list',
-        cullMode: 'none',
-      },
-    });
+    this.pipeline = super.create2DRenderPipeline(
+      device,
+      label,
+      [bgDescript.bindGroupLayout],
+      'WEBGL',
+      CyberpunkGridShader(debug) + CyberpunkCommonsWGSL,
+      presentationFormat
+    );
 
     this.prevArguments = {
       gridLineR: 0,
@@ -133,6 +148,10 @@ export default class CyberpunkGridRenderer
       this.currentBindGroup = this.bindGroupMap[name];
       this.currentBindGroupName = name;
     };
+
+    this.changeArgs = (args: CyberpunkGridRenderArgs) => {
+
+    }
 
     this.changeGridLineColor = (r: number, g: number, b: number) => {
       device.queue.writeBuffer(uniformBuffer, 0, new Float32Array([r, g, b]));

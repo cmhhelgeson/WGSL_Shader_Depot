@@ -1,11 +1,6 @@
 import { createBindGroupDescriptor } from '../../utils/bindGroup';
-import crtFragWGSL from './crt.frag.wgsl';
-import crtDebugFragWGSL from './crtDebug.frag.wgsl';
-import {
-  Base2DRendererClass,
-  BaseRenderer,
-  create2DVertexModule,
-} from '../../utils/renderProgram';
+import crtFragWGSL from './complexCRT.frag.wgsl';
+import { Base2DRendererClass, BaseRenderer } from '../../utils/renderProgram';
 
 //TODO: Pass arguments to shader and have shader define itself based on the arguments
 //in the interface through Object.keys. That way, we can just iterate over the
@@ -107,28 +102,14 @@ export default class ComplexCRTRenderer
 
     console.log(this.bindGroupMap);
 
-    this.pipeline = device.createRenderPipeline({
-      label: `${label}.pipeline`,
-      layout: device.createPipelineLayout({
-        bindGroupLayouts: [bgDescript.bindGroupLayout],
-      }),
-      vertex: create2DVertexModule(device, 'WEBGPU'),
-      fragment: {
-        module: device.createShaderModule({
-          code: debug ? crtDebugFragWGSL : crtFragWGSL,
-        }),
-        entryPoint: 'fragmentMain',
-        targets: [
-          {
-            format: presentationFormat,
-          },
-        ],
-      },
-      primitive: {
-        topology: 'triangle-list',
-        cullMode: 'none',
-      },
-    });
+    super.create2DRenderPipeline(
+      device,
+      label,
+      [bgDescript.bindGroupLayout],
+      'WEBGPU',
+      crtFragWGSL,
+      presentationFormat
+    );
 
     this.switchBindGroup = (name: string) => {
       this.currentBindGroup = this.bindGroupMap[name];

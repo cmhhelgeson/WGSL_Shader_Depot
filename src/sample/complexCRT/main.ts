@@ -130,7 +130,7 @@ SampleInitFactoryWebGPU(
 ).then((resultInit) => (init = resultInit));
 
 //Effectively the equivalent of returning <SampleLayout>
-const crtExample: () => JSX.Element = () =>
+const complexCRTExample: () => JSX.Element = () =>
   makeSample({
     name: 'Complex CRT Shader',
     description: 'A more accurate CRT Shader simulating the phosphor cells of the display.',
@@ -154,4 +154,4 @@ const crtExample: () => JSX.Element = () =>
     ],
     filename: __filename,
   });
-export default crtExample;
+export default complexCRTExample;
