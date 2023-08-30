@@ -23,7 +23,6 @@ export const createUniformDescriptor = (
   guiParams?: GuiParams
 ): UniformDescriptor => {
   if (size != values.length) {
-    //Do something
   }
 
   const buffer = device.createBuffer({

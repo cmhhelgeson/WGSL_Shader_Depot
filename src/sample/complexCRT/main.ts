@@ -95,6 +95,7 @@ SampleInitFactoryWebGPU(
   
       const commandEncoder = device.createCommandEncoder();
       if (debugOnRef.current) {
+        //@ts-ignore
         crtDebugRenderer.startRun(commandEncoder, {
           time: timeElapsed,
           textureName: settings.textureName,
@@ -106,6 +107,7 @@ SampleInitFactoryWebGPU(
           canvasHeight: canvas.height,
         });
       } else {
+        //@ts-ignore
         crtRenderer.startRun(commandEncoder, {
           time: timeElapsed,
           textureName: settings.textureName,

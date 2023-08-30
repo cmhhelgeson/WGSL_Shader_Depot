@@ -115,13 +115,14 @@ export const create2DVertexModule = (
   return vertexState;
 };
 
-type DynamicInterface<T extends readonly string[]> = {
-  [K in T[number]]: number;
-};
-
 export abstract class Base2DRendererClass {
   abstract switchBindGroup(name: string): void;
   abstract startRun(commandEncoder: GPUCommandEncoder, ...args: any[]): void;
+  renderPassDescriptor: GPURenderPassDescriptor; // | GPURENDERPASSDESCRIPTOR[]
+  pipeline: GPURenderPipeline; // GPURenderPipelien[]
+  bindGroupMap: Record<string, GPUBindGroup>;
+  currentBindGroup: GPUBindGroup;
+  currentBindGroupName: string;
 
   executeRun(
     commandEncoder: GPUCommandEncoder,

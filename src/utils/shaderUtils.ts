@@ -119,6 +119,9 @@ export const createWGSLUniform = (structName: string, keys: string[]) => {
     retString += `\t${keys[i]}: f32,\n`;
   }
   retString += `}\n`;
-  console.log(retString);
   return retString;
+};
+
+export type ShaderKeyInterface<T extends string[]> = {
+  [K in T[number]]: number;
 };

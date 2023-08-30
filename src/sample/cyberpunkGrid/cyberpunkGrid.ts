@@ -1,33 +1,19 @@
 import { createBindGroupDescriptor } from '../../utils/bindGroup';
-import { BaseRenderer } from '../../utils/renderProgram';
 import { Base2DRendererClass } from '../../utils/renderProgram';
 import CyberpunkCommonsWGSL from './cyberpunk_commons.wgsl';
 import { CyberpunkGridShader } from './shader';
 import { argKeys } from './shader';
+import { ShaderKeyInterface } from '../../utils/shaderUtils';
 
-type DynamicInterface<T extends string[]> = {
-  [K in T[number]]: number;
-};
+type CyberpunkGridRenderArgs = ShaderKeyInterface<typeof argKeys>;
 
-type CyberpunkGridRenderArgs = DynamicInterface<typeof argKeys>;
-
-export default class CyberpunkGridRenderer
-  extends Base2DRendererClass
-  implements BaseRenderer
-{
+export default class CyberpunkGridRenderer extends Base2DRendererClass {
   static sourceInfo = {
     name: __filename.substring(__dirname.length + 1),
     contents: __SOURCE__,
   };
 
-  readonly renderPassDescriptor: GPURenderPassDescriptor;
-  readonly pipeline: GPURenderPipeline;
-  readonly bindGroupMap: Record<string, GPUBindGroup>;
-  currentBindGroup: GPUBindGroup;
-  currentBindGroupName: string;
-  prevArguments: CyberpunkGridRenderArgs;
   switchBindGroup: (name: string) => void;
-  prevDebugStep: number;
   changeArgs: (args: CyberpunkGridRenderArgs) => void;
 
   constructor(
@@ -40,12 +26,9 @@ export default class CyberpunkGridRenderer
   ) {
     super();
     this.renderPassDescriptor = renderPassDescriptor;
-    const uniformElements = 13;
-    console.log(`Uniform Elements: ${uniformElements}`);
 
-    const uniformBufferSize = Float32Array.BYTES_PER_ELEMENT * uniformElements;
     const uniformBuffer = device.createBuffer({
-      size: uniformBufferSize,
+      size: Float32Array.BYTES_PER_ELEMENT * argKeys.length,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 

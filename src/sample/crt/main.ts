@@ -90,12 +90,14 @@ SampleInitFactoryWebGPU(
   
       const commandEncoder = device.createCommandEncoder();
       if (debugOnRef.current) {
+        // @ts-ignore
         crtDebugRenderer.startRun(commandEncoder, {
           time: timeElapsed,
           textureName: settings.textureName,
           debugStep: debugValueRef.current,
         });
       } else {
+        // @ts-ignore
         crtRenderer.startRun(commandEncoder, {
           time: timeElapsed,
           textureName: settings.textureName,
