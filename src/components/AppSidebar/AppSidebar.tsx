@@ -61,7 +61,7 @@ const NavContainer = ({
         display="flex"
         sx={{
           '& .pro-sidebar-inner': {
-            background: `${colors.primary[400]} !important`,
+            background: `${colors.primary[100]} !important`,
           },
           '& .pro-icon-wrapper': {
             backgroundColor: 'transparent !important',
@@ -88,7 +88,7 @@ const NavContainer = ({
               </h1>
             )}
             <IconButton onClick={() => setIsCollapsed(!isCollapsed)}>
-              <MenuOutlinedIcon fontSize="large" />
+              <MenuOutlinedIcon fontSize="large" style={{color: 'white'}} />
             </IconButton>
           </div>
           {children}

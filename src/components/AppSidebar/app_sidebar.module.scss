@@ -57,13 +57,6 @@
       padding-top: 5px;
       padding-bottom: 5px;
       cursor: pointer;
-      background-size: 1000% 100%;
-      background-position: 100% 0;
-      transition: background-position 0.3s ease;
-      background-image: linear-gradient(to right, #207aa1 0%, #1c85aa) !important;
-      &:hover {
-        background-position: 0% 0;
-      }
       &__Layout {
         display: grid;
         width: inherit;

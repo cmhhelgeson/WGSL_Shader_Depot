@@ -179,13 +179,8 @@ export const Item = ({
                 transition={{ duration: 0.2 }}
                 animate={triangleController}
               >
-                <svg
-                  width="15"
-                  height="15"
-                  viewBox="0 0 20 20"
-                  style={{ color: 'white' }}
-                >
-                  <path d="M0 7 L 20 7 L 10 16" />
+                <svg width="15" height="15" viewBox="0 0 20 20">
+                  <path d="M0 7 L 20 7 L 10 16" fill="white" />
                 </svg>
               </motion.div>
             )}
