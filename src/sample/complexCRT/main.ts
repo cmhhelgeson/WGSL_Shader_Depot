@@ -1,12 +1,12 @@
 /* eslint-disable prettier/prettier */
 import { makeSample, SampleInit } from '../../components/SampleLayout/SampleLayout';
-import fullscreenVertWebGPU from '../../shaders/fullscreenWebGPU.vert.wgsl';
+import fullscreenVertNDCFlipped from '../../shaders/fullscreenNDCFlipped.vert.wgsl';
 import complexCRTFragShader from './complexCRT.frag.wgsl';
 
 import ComplexCRTRenderer from './complexCRT';
 import { createTextureFromImage } from '../../utils/texture';
 import { SampleInitFactoryWebGPU } from '../../components/SampleLayout/SampleLayoutUtils';
-import { ComplexCRTExplanations } from './shader';
+import { ComplexCRTExplanations, ComplexCRTShader } from './shader';
 
 let init: SampleInit;
 SampleInitFactoryWebGPU(
@@ -151,13 +151,13 @@ const complexCRTExample: () => JSX.Element = () =>
         contents: __SOURCE__,
       },
       {
-        name: '../../shaders/fullscreenWebGPU.vert.wgsl',
-        contents: fullscreenVertWebGPU,
+        name: '../../shaders/fullscreenNDCFlipped.vert.wgsl',
+        contents: fullscreenVertNDCFlipped,
         editable: true,
       },
       {
         name: './complexCRT.frag.wgsl',
-        contents: complexCRTFragShader,
+        contents: ComplexCRTShader(false),
         editable: true,
       },
     ],
