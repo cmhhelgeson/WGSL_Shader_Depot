@@ -6,6 +6,7 @@ import complexCRTFragShader from './complexCRT.frag.wgsl';
 import ComplexCRTRenderer from './complexCRT';
 import { createTextureFromImage } from '../../utils/texture';
 import { SampleInitFactoryWebGPU } from '../../components/SampleLayout/SampleLayoutUtils';
+import { ComplexCRTExplanations } from './shader';
 
 let init: SampleInit;
 SampleInitFactoryWebGPU(
@@ -134,9 +135,7 @@ SampleInitFactoryWebGPU(
     }
     requestAnimationFrame(frame);
   },
-  [
-    'Test'
-  ],
+  ComplexCRTExplanations,
 ).then((resultInit) => (init = resultInit));
 
 //Effectively the equivalent of returning <SampleLayout>

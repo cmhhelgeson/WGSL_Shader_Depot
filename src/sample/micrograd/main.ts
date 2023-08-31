@@ -137,7 +137,7 @@ SampleInitFactoryCanvas2D(
       if (!pageState.active) return;
       context.fillStyle = "blue"
 
-      drawCanvas(context, zoomScale, offset);
+      drawCanvas(context, zoomScale as [number, number], offset as [number, number]);
   
       requestAnimationFrame(frame);
     }
