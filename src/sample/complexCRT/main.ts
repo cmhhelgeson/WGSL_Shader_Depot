@@ -17,6 +17,7 @@ SampleInitFactoryWebGPU(
     device,
     context,
     canvas,
+    canvasRef,
     presentationFormat,
   }) => {
     const settings = {
@@ -24,6 +25,7 @@ SampleInitFactoryWebGPU(
       cellSize: 12.0,
       cellOffset: 0.5,
       borderMask: 1.0,
+      screenCurvature: 0.08,
     };
   
     const renderPassDescriptor: GPURenderPassDescriptor = {
@@ -40,9 +42,11 @@ SampleInitFactoryWebGPU(
   
   
     gui.add(settings, 'textureName', ['dog', 'cat'])
-    gui.add(settings, 'cellSize', 2.0, 50.0).step(1.0);
+    const cellSizeController = gui.add(settings, 'cellSize', 0.1, 50.0).step(1.0);
     gui.add(settings, 'cellOffset', 0.0, 1.0).step(0.1);
-    gui.add(settings, 'borderMask', 0.0, 5.0).step(0.1)
+    gui.add(settings, 'borderMask', 0.0, 5.0).step(0.1);
+    gui.add(settings, 'screenCurvature', 0.01, 0.50).step(0.01);
+
 
   
     let dogTexture: GPUTexture 
@@ -107,6 +111,7 @@ SampleInitFactoryWebGPU(
           borderMask: settings.borderMask,
           canvasWidth: canvas.width,
           canvasHeight: canvas.height,
+          screenCurvature: settings.screenCurvature,
         });
       } else {
         //@ts-ignore
@@ -117,8 +122,9 @@ SampleInitFactoryWebGPU(
           cellSize: settings.cellSize,
           cellOffset: settings.cellOffset,
           borderMask: settings.borderMask,
-          canvasWidth: canvas.width,
-          canvasHeight: canvas.height,
+          canvasWidth: canvasRef ? canvasRef.current.width : canvas.width,
+          canvasHeight: canvasRef ? canvasRef.current.height : canvas.height,
+          screenCurvature: settings.screenCurvature,
         });
       }
   

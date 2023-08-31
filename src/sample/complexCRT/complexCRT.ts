@@ -66,7 +66,7 @@ export default class ComplexCRTRenderer extends Base2DRendererClass {
       device,
       label,
       [bgDescript.bindGroupLayout],
-      'WEBGPU',
+      'NDCFlipped',
       ComplexCRTShader(debug),
       presentationFormat
     );

@@ -1,6 +1,7 @@
 import fullscreenWebGLVertShader from '../shaders/fullscreenWebGL.vert.wgsl';
 import fullScreenWebGPUVertShader from '../shaders/fullscreenWebGPU.vert.wgsl';
 import fullScreenNDCVertShader from '../shaders/fullscreenNDC.vert.wgsl';
+import fullscreenNDCFlippedVertShader from '../shaders/fullscreenNDCFlipped.vert.wgsl';
 
 export interface BaseRenderer {
   readonly renderPassDescriptor: GPURenderPassDescriptor;
@@ -15,7 +16,7 @@ export type RenderPipelineDescriptor = {
   renderDescriptors: GPURenderPassDescriptor[];
 };
 
-type FullScreenVertexShaderType = 'WEBGPU' | 'WEBGL' | 'NDC';
+type FullScreenVertexShaderType = 'WEBGPU' | 'WEBGL' | 'NDC' | 'NDCFlipped';
 
 export const create2DRenderPipelineDescriptor = (
   vertexShaderType: FullScreenVertexShaderType,
@@ -105,6 +106,11 @@ export const create2DVertexModule = (
         vertexCode = fullScreenNDCVertShader;
       }
       break;
+    case 'NDCFlipped':
+      {
+        vertexCode = fullscreenNDCFlippedVertShader;
+      }
+      break;
   }
   const vertexState = {
     module: device.createShaderModule({
@@ -158,7 +164,7 @@ export abstract class Base2DRendererClass {
     device: GPUDevice,
     label: string,
     bgLayouts: GPUBindGroupLayout[],
-    mode: 'WEBGL' | 'WEBGPU',
+    mode: FullScreenVertexShaderType,
     code: string,
     presentationFormat: GPUTextureFormat
   ) {

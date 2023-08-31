@@ -17,7 +17,16 @@ fn vertexMain(
     vec2(-1.0, -1.0),
   );
 
+  const uv = array(
+    vec2( 1.0,  -1.0),
+    vec2(-1.0, 1.0),
+    vec2(-1.0,  -1.0),
+    vec2( 1.0,  -1.0),
+    vec2( 1.0, 1.0),
+    vec2(-1.0, 1.0),
+  );
+
   output.Position = vec4<f32>(pos[VertexIndex], 0.0, 1.0);
-  output.v_uv = pos[VertexIndex];
+  output.v_uv = uv[VertexIndex];
   return output;
 }
