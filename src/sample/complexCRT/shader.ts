@@ -10,6 +10,7 @@ export const argKeys = [
   'time',
   'debugStep',
   'screenCurvature',
+  'zoom',
 ];
 
 export const ComplexCRTExplanations = [
@@ -18,11 +19,13 @@ export const ComplexCRTExplanations = [
   'Our first step is to get the dot product of input.v_uv by input.v_uv.',
   'The dot product of a vector by itself gets us the square of its magnitude from the origin.',
   'Accordingly our magnitude increases the further away from the center of the screen',
-  'We then decrease the squared magnitude from the origin at each point by 1',
-  'Output of dot -1 * curve',
-  'Output of var pixel',
-  'Output of var coord',
-  'Output of var subcoord',
+  'We then decrease the squared magnitude from the origin at each point by 1...',
+  '...and multiply by the screenCurvature',
+  'Once our uvs are set, we can use them to derive our canvas pixel coordinates',
+  'If you only see yellow, do not be worried. Pixels peak beyond the range of 0.0 to 1.0 used to represent color in our vec3 output.',
+  'If working with pixels, take the output\'s fractional component to get a better sense of what\'s going on.',
+  'Get the coordinates of each CRT phosphor cell by dividing the pixel value by the cellSize.',
+  'Further subdivide each phosphor cell on the x-axis to get the positions of each cell\'s red, green, blue sub-cells',
   'Final output',
 ]
 
@@ -89,8 +92,9 @@ struct VertexOutput {
 
 @fragment
 fn fragmentMain(input: VertexOutput) -> @location(0) vec4<f32> {
-  var uv = input.v_uv * (1.0 + (dot(input.v_uv,input.v_uv) - 1.0) * uniforms.screenCurvature);
-  var pixel = (uv * 0.5 + 0.5)  * vec2<f32>(
+  //Zoom effect hack, doesn't work past certain screen curvatures
+  var uv = input.v_uv * (uniforms.zoom + (dot(input.v_uv,input.v_uv) - 1.0) * uniforms.screenCurvature);
+  var pixel = (uv * 0.5 + 0.5) * vec2<f32>(
     uniforms.canvasWidth, 
     uniforms.canvasHeight
   );
@@ -114,9 +118,7 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4<f32> {
   var color = abberation;
 
   //current implementation does not give an even amount of space to each r, g, b unit of a cell
-  //cellSize 9 -> 3 pixel red, 3 pixel green, 2 pixel blue,
-  //At larger sizes the difference is imperceptible, but at smaller sizes issues arise
-  //cellSize 4 2 red, 
+  //Fix/hack this by multiplying subCoord.x by cellSize at cellSizes below 6
   var ind = floor(subcoord.x) % 3;
 
   var mask_color = vec3<f32>(
@@ -139,9 +141,10 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4<f32> {
     ${createDebugStepArea({ start: 2, end: 4 }, 1, 'dot(input.v_uv, input.v_uv)')}
     ${createDebugStepArea({ start: 5, end: 5 }, 1, 'dot(input.v_uv, input.v_uv) - 1')}
     ${createDebugStepArea({ start: 6, end: 6 }, 1, '(dot(input.v_uv, input.v_uv) - 1) * uniforms.screenCurvature')}
-    ${createDebugStepArea({ start: 7, end: 7 }, 2, 'pixel')}
-    ${createDebugStepArea({ start: 8, end: 8 }, 2, 'vec2<f32>(fract(coord.x), fract(subcoord.y))')}
-    ${createDebugStepArea({ start: 9, end: 9 }, 2, 'vec2<f32>(fract(subcoord.x), fract(subcoord.y))')}
+    ${createDebugStepArea({ start: 7, end: 8 }, 2, 'pixel')}
+    ${createDebugStepArea({ start: 9, end: 9 }, 2, 'vec2<f32>(fract(pixel.x), fract(pixel.y))')}
+    ${createDebugStepArea({ start: 10, end: 10}, 2, 'vec2<f32>(fract(coord.x), fract(subcoord.y))')}
+    ${createDebugStepArea({ start: 11, end: 11 }, 2, 'vec2<f32>(fract(subcoord.x), fract(subcoord.y))')}
     return vec4<f32>(color, 1.0);
   `
       : `

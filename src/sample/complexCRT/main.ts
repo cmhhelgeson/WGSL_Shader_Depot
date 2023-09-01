@@ -1,7 +1,6 @@
 /* eslint-disable prettier/prettier */
 import { makeSample, SampleInit } from '../../components/SampleLayout/SampleLayout';
 import fullscreenVertNDCFlipped from '../../shaders/fullscreenNDCFlipped.vert.wgsl';
-import complexCRTFragShader from './complexCRT.frag.wgsl';
 
 import ComplexCRTRenderer from './complexCRT';
 import { createTextureFromImage } from '../../utils/texture';
@@ -27,6 +26,7 @@ SampleInitFactoryWebGPU(
       cellOffset: 0.5,
       borderMask: 1.0,
       screenCurvature: 0.08,
+      zoom: 1.0,
     };
   
     const renderPassDescriptor: GPURenderPassDescriptor = {
@@ -42,11 +42,12 @@ SampleInitFactoryWebGPU(
     };
   
   
-    gui.add(settings, 'textureName', ['dog', 'cat'])
+    gui.add(settings, 'textureName', ['dog', 'cat', 'pukh'])
     gui.add(settings, 'cellSize', 0.1, 50.0).step(1.0);
     gui.add(settings, 'cellOffset', 0.0, 1.0).step(0.1);
     gui.add(settings, 'borderMask', 0.0, 5.0).step(0.1);
     gui.add(settings, 'screenCurvature', 0.00, 0.50).step(0.01);
+    gui.add(settings, 'zoom', 0.0, 1.0).step(0.1);
 
 
   
@@ -62,13 +63,20 @@ SampleInitFactoryWebGPU(
       const bitmap = await createImageBitmap(await response.blob());
       catTexture = createTextureFromImage(device, bitmap);
     }
+
+    let pukhTexture: GPUTexture;
+    {
+      const response = await fetch(new URL('../../../assets/img/pukh.png', import.meta.url).toString());
+      const bitmap = await createImageBitmap(await response.blob());
+      pukhTexture = createTextureFromImage(device, bitmap);
+    }
   
     const crtRenderer = new ComplexCRTRenderer(
       device,
       presentationFormat,
       renderPassDescriptor,
-      ['dog', 'cat'],
-      [dogTexture, catTexture],
+      ['dog', 'cat', 'pukh'],
+      [dogTexture, catTexture, pukhTexture],
       'CRT',
     );
   
@@ -76,8 +84,8 @@ SampleInitFactoryWebGPU(
       device,
       presentationFormat,
       renderPassDescriptor,
-      ['dog', 'cat'],
-      [dogTexture, catTexture],
+      ['dog', 'cat', 'pukh'],
+      [dogTexture, catTexture, pukhTexture],
       'CRT',
       true
     )
@@ -113,6 +121,7 @@ SampleInitFactoryWebGPU(
           canvasWidth: canvas.width,
           canvasHeight: canvas.height,
           screenCurvature: settings.screenCurvature,
+          zoom: settings.zoom,
         });
       } else {
         //@ts-ignore
@@ -126,6 +135,7 @@ SampleInitFactoryWebGPU(
           canvasWidth: canvasRef ? canvasRef.current.width : canvas.width,
           canvasHeight: canvasRef ? canvasRef.current.height : canvas.height,
           screenCurvature: settings.screenCurvature,
+          zoom: settings.zoom,
         });
       }
   
