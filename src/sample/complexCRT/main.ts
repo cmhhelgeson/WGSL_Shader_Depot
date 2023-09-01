@@ -43,10 +43,10 @@ SampleInitFactoryWebGPU(
   
   
     gui.add(settings, 'textureName', ['dog', 'cat'])
-    const cellSizeController = gui.add(settings, 'cellSize', 0.1, 50.0).step(1.0);
+    gui.add(settings, 'cellSize', 0.1, 50.0).step(1.0);
     gui.add(settings, 'cellOffset', 0.0, 1.0).step(0.1);
     gui.add(settings, 'borderMask', 0.0, 5.0).step(0.1);
-    gui.add(settings, 'screenCurvature', 0.01, 0.50).step(0.01);
+    gui.add(settings, 'screenCurvature', 0.00, 0.50).step(0.01);
 
 
   

@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import { createWGSLUniform } from '../../utils/shaderUtils';
 
 export const argKeys = [
@@ -96,7 +97,7 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4<f32> {
 
   var coord = pixel / uniforms.cellSize;
 
-  var subcoord = coord * vec2<f32>(3, 1);
+  var subcoord = coord * vec2<f32>(select(uniforms.cellSize, 3.0, uniforms.cellSize >= 6.0), 1);
 
   var cell_offset = vec2<f32>(0, fract(floor(coord.x) * uniforms.cellOffset));
 
@@ -112,6 +113,10 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4<f32> {
 
   var color = abberation;
 
+  //current implementation does not give an even amount of space to each r, g, b unit of a cell
+  //cellSize 9 -> 3 pixel red, 3 pixel green, 2 pixel blue,
+  //At larger sizes the difference is imperceptible, but at smaller sizes issues arise
+  //cellSize 4 2 red, 
   var ind = floor(subcoord.x) % 3;
 
   var mask_color = vec3<f32>(
