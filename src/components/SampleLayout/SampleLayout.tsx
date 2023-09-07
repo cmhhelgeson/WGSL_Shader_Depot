@@ -370,7 +370,7 @@ const SampleLayout: React.FunctionComponent<
         <a
           target="_blank"
           rel="noreferrer"
-          href={`https://github.com/${process.env.REPOSITORY_NAME}/tree/main/src/sample${props.filename}`}
+          href={`https://github.com/cmhhelgeson/tree/main/${props.filename}`}
         >
           See it on Github!
         </a>
