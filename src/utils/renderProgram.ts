@@ -16,7 +16,11 @@ export type RenderPipelineDescriptor = {
   renderDescriptors: GPURenderPassDescriptor[];
 };
 
-type FullScreenVertexShaderType = 'WEBGPU' | 'WEBGL' | 'NDC' | 'NDCFlipped';
+export type FullScreenVertexShaderType =
+  | 'WEBGPU'
+  | 'WEBGL'
+  | 'NDC'
+  | 'NDCFlipped';
 
 export const create2DRenderPipelineDescriptor = (
   vertexShaderType: FullScreenVertexShaderType,

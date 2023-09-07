@@ -16,6 +16,7 @@ import styles from './SampleLayout.module.scss';
 import { useAppDispatch, useAppSelector } from '../../features/store';
 import { changeDebugExplanations } from '../../features/debugInfo/debugInfoSlice';
 import { useImmer } from 'use-immer';
+import { FullScreenVertexShaderType } from '../../utils/renderProgram';
 
 type SourceFileInfo = {
   name: string;
@@ -76,6 +77,13 @@ function makeCodeMirrorEditor(source: string) {
   };
 }
 
+interface NDCCoordinates {
+  UL: string;
+  UR: string;
+  BL: string;
+  BR: string;
+}
+
 const SampleLayout: React.FunctionComponent<
   React.PropsWithChildren<{
     name: string;
@@ -85,6 +93,7 @@ const SampleLayout: React.FunctionComponent<
     gui?: boolean;
     stats?: boolean;
     init: SampleInit;
+    coordinateSystem?: FullScreenVertexShaderType | 'Canvas2D';
     sources: SourceFileInfo[];
   }>
 > = (props) => {
@@ -98,6 +107,60 @@ const SampleLayout: React.FunctionComponent<
       }),
     props.sources
   );
+
+  const coords: NDCCoordinates = useMemo(() => {
+    switch(props.coordinateSystem) {
+      case 'NDCFlipped': { 
+        return {
+          UL: '(-1,-1)',
+          UR: '(1,-1)',
+          BL: '(-1,1)',
+          BR: '(1,1)'
+        }
+      } break;
+      case 'NDC': {
+        return {
+          UL: '(-1,1)',
+          UR: '(1,1)',
+          BL: '(-1,-1)',
+          BR: '(1,-1)'
+        }
+      } break;
+      case 'WEBGL': {
+        return {
+          UL: '(0,1)',
+          UR: '(1,1)',
+          BL: '(0,0)',
+          BR: '(1,0)'
+        }
+      } break;
+      case 'WEBGPU': {
+        return {
+          UL: '(0,0)',
+          UR: '(1,0)',
+          BL: '(0, 1)',
+          BR: '(1, 1)'
+        }
+      } break;
+      case 'Canvas2D': {
+        return {
+          UL: canvasRef.current ? canvasRef.current.height.toString() : 'UL',
+          UR: '',
+          BL: '0',
+          BR: canvasRef.current ? canvasRef.current.width.toString() : 'BR',
+        }
+      }
+      default: {
+        return {
+          UL: 'UL',
+          UR: 'UR',
+          BL: 'BL',
+          BR: 'BR'
+        }
+      } break;
+    }
+
+  }, [props.coordinateSystem, canvasRef.current])
 
 
   const dispatch = useAppDispatch();
@@ -320,6 +383,10 @@ const SampleLayout: React.FunctionComponent<
         ) : null}
       </div>
       <motion.div className={styles.canvasContainer} id={'WGSL_CANVAS_CONTAINER'}>
+        <div className={styles.Coord_Column} style={{marginRight: '10px'}}>
+          <div className={styles.Coord_Column__Upper}>{coords.UL}</div>
+          <div className={styles.Coord_Column__Lower}>{coords.BL}</div>
+        </div>
         <div
           style={{
             position: 'absolute',
@@ -355,7 +422,12 @@ const SampleLayout: React.FunctionComponent<
             }
           }}
           ref={canvasRef}
-        ></motion.canvas>
+        >
+        </motion.canvas>
+        <div className={styles.Coord_Column} style={{marginLeft: '10px'}}>
+          <div className={styles.Coord_Column__Upper}>{coords.UR}</div>
+          <div className={styles.Coord_Column__Lower}>{coords.BR}</div>
+        </div>
       </motion.div>
       {debugOn ? (
         <div className={styles.debugArea}>
@@ -374,21 +446,9 @@ const SampleLayout: React.FunctionComponent<
             }}
           >
             <motion.button
-              className={styles.debugArea__Button__Left}
+              style={{height: '100%'}}
               onClick={onDecrementDebugStep}
-              animate={debugButtonLeftAnimController}
-              variants={debugButtonVariants}
               ref={debugButtonLeftRef}
-              onMouseMove={(event) => {
-                const button = event.currentTarget;
-                let offset = event.pageY - button.getBoundingClientRect().top - Math.round(button.clientHeight / 2);
-                offset = Math.min(Math.max(offset, -4.0), 4.0);
-                button.style.boxShadow = `30px ${offset * -1 / 2}px 1px -8px rgba(0, 0, 0, 0.3)`;
-              }}
-              onMouseLeave={(event) => {
-                const button = event.currentTarget;
-                button.style.boxShadow = '';
-              }}
             >
               {`<`}
             </motion.button>
@@ -442,10 +502,8 @@ const SampleLayout: React.FunctionComponent<
             }}
           >
             <motion.button
-              className={styles.debugArea__Button__Right}
+              style={{height: '100%'}}
               onClick={onIncrementDebugStep}
-              variants={debugButtonVariants}
-              animate={debugButtonRightAnimController}
               ref={debugButtonRightRef}
             >
               {`>`}

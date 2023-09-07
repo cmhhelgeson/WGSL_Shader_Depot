@@ -181,6 +181,7 @@ const gridExample: () => JSX.Element = () =>
     description: 'A shader that renders a basic, graph style grid.',
     init,
     gui: true,
+    coordinateSystem: 'WEBGL',
     sources: [
       {
         name: __filename.substring(__dirname.length + 1),

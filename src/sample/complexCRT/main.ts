@@ -41,7 +41,6 @@ SampleInitFactoryWebGPU(
       ],
     };
   
-  
     gui.add(settings, 'textureName', ['dog', 'cat', 'pukh'])
     gui.add(settings, 'cellSize', 0.1, 50.0).step(1.0);
     gui.add(settings, 'cellOffset', 0.0, 1.0).step(0.1);
@@ -49,8 +48,6 @@ SampleInitFactoryWebGPU(
     gui.add(settings, 'screenCurvature', 0.00, 0.50).step(0.01);
     gui.add(settings, 'zoom', 0.0, 1.0).step(0.1);
 
-
-  
     let dogTexture: GPUTexture 
     {
       const response = await fetch(new URL('../../../assets/img/dog.jpg', import.meta.url).toString());
@@ -118,8 +115,8 @@ SampleInitFactoryWebGPU(
           cellSize: settings.cellSize,
           cellOffset: settings.cellOffset,
           borderMask: settings.borderMask,
-          canvasWidth: canvas.width,
-          canvasHeight: canvas.height,
+          canvasWidth: canvasRef.current ? canvasRef.current.width : canvas.width,
+          canvasHeight: canvasRef.current ? canvasRef.current.height : canvas.height,
           screenCurvature: settings.screenCurvature,
           zoom: settings.zoom,
         });
@@ -132,8 +129,8 @@ SampleInitFactoryWebGPU(
           cellSize: settings.cellSize,
           cellOffset: settings.cellOffset,
           borderMask: settings.borderMask,
-          canvasWidth: canvasRef ? canvasRef.current.width : canvas.width,
-          canvasHeight: canvasRef ? canvasRef.current.height : canvas.height,
+          canvasWidth: canvasRef.current ? canvasRef.current.width : canvas.width,
+          canvasHeight: canvasRef.current ? canvasRef.current.height : canvas.height,
           screenCurvature: settings.screenCurvature,
           zoom: settings.zoom,
         });
@@ -154,6 +151,7 @@ const complexCRTExample: () => JSX.Element = () =>
     name: 'Complex CRT Shader',
     description: 'A more accurate CRT Shader simulating the phosphor cells of the display.',
     init,
+    coordinateSystem: 'NDCFlipped',
     gui: true,
     sources: [
       {

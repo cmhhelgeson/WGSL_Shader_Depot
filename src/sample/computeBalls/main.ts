@@ -190,6 +190,7 @@ const computeBallsExample: () => JSX.Element = () =>
     description:
       "A compute shader which performs basic position and velocity calculations on a series of ball objects. Based on Surma's tutorial: https://surma.dev/things/webgpu/",
     init,
+    coordinateSystem: 'Canvas2D',
     gui: true,
     sources: [
       {

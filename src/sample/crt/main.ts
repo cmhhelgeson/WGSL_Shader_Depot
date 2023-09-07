@@ -127,6 +127,7 @@ const crtExample: () => JSX.Element = () =>
     name: 'CRT Shader',
     description: 'A basic shader emulating a CRT-style effect',
     init,
+    coordinateSystem: 'WEBGPU',
     gui: true,
     sources: [
       {

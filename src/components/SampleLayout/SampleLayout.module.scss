@@ -2,6 +2,8 @@
   text-align: center;
   position: relative;
   margin-top: 10px;
+  display: flex;
+  justify-content: center;
 }
 
 .canvasContainer>canvas {
@@ -65,7 +67,7 @@ nav.sourceFileNav li a[data-active=true] {
 
 @mixin debugBlockNormals() {
   flex-direction: row;
-  background-color: darkblue;
+  background-color: rgb(39,40,34);
   width: auto;
   height: auto;
   text-align: center;
@@ -94,13 +96,34 @@ nav.sourceFileNav li a[data-active=true] {
   align-items: center;
 }
 
+.Coord_Column {
+  height: inherit;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  z-index: 8;
+
+  &__Upper {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+  }
+
+  &__Lower {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+}
+
+
 .debugArea {
   //display: flex;
   //flex-direction: column;
   display: grid;
   grid-template-columns: 10% auto 10%;
   grid-template-rows: auto auto;
-  background-color: darkblue;
+  background-color: rgb(39,40,34);
   &__DebugBlock {
     grid-row: 1 / span 2;
     &__Explanation {

@@ -6,6 +6,7 @@ import { SampleInitFactoryCanvas2D } from '../../components/SampleLayout/SampleL
 import { vec2 } from 'wgpu-matrix';
 import { instance} from '@viz-js/viz';
 import { createMVGGraph, Value } from './engine';
+import { createProbabilityArray } from './makemoreone';
 
 
 const rectPoints: [number, number][] = [
@@ -78,6 +79,8 @@ SampleInitFactoryCanvas2D(
 
     o.backward();
 
+    createProbabilityArray([1, 2, 3, 4, 5, 6, 7, 8]);
+
     const digraph = createMVGGraph(o, 'CMH', 0.5, 'LR', 'black', 'white');
 
     instance().then(viz => {
@@ -102,7 +105,6 @@ SampleInitFactoryCanvas2D(
     canvas.addEventListener('mousedown', function(event) {
       startOffsetting = true;
       touchInit = [event.pageX, event.pageY];
-      console.log(touchInit);
     });
     
     window.addEventListener('mousemove', function(event) {

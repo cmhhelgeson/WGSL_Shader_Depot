@@ -148,6 +148,7 @@ const mixExample: () => JSX.Element = () =>
     name: 'Fullscreen Shader',
     description: 'Shader examples',
     init,
+    coordinateSystem: 'WEBGL',
     gui: true,
     sources: [
       {

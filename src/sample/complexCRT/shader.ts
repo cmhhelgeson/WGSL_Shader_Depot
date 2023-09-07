@@ -1,5 +1,6 @@
 /* eslint-disable prettier/prettier */
 import { createWGSLUniform } from '../../utils/shaderUtils';
+import { createDebugStepArea,  } from '../../utils/shaderUtils';
 
 export const argKeys = [
   'canvasWidth',
@@ -28,53 +29,6 @@ export const ComplexCRTExplanations = [
   'Further subdivide each phosphor cell on the x-axis to get the positions of each cell\'s red, green, blue sub-cells',
   'Final output',
 ]
-
-interface StepRange {
-  start: number;
-  end: number;
-}
-
-const createDebugStepReturnStatement = (
-  dataSize: 1 | 2 | 3 | 4,
-  value: string
-) => {
-  switch (dataSize) {
-    case 1:
-      {
-        return `return vec4<f32>(${value}, 0.0, 0.0, 1.0);`;
-      }
-      break;
-    case 2:
-      {
-        return `return vec4<f32>(${value}, 0.0, 1.0);`;
-      }
-      break;
-    case 3:
-      {
-        return `return vec4<f32>(${value}, 1.0);`;
-      }
-      break;
-    case 4:
-      {
-        return `return ${value};`;
-      }
-      break;
-  }
-};
-
-const createDebugStepArea = (
-  stepRange: StepRange,
-  dataSize: 1 | 2 | 3 | 4,
-  value: string
-) => {
-  return `
-  if (uniforms.debugStep ${
-    stepRange.start === stepRange.end
-      ? `== ${stepRange.start}`
-      : `>= ${stepRange.start} && uniforms.debugStep<= ${stepRange.end}`
-  }) {\n\t${createDebugStepReturnStatement(dataSize, value)}\n}\n
-  `;
-};
 
 export const ComplexCRTShader = (debug: boolean) => {
   return `
@@ -146,12 +100,7 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4<f32> {
     ${createDebugStepArea({ start: 10, end: 10}, 2, 'vec2<f32>(fract(coord.x), fract(subcoord.y))')}
     ${createDebugStepArea({ start: 11, end: 11 }, 2, 'vec2<f32>(fract(subcoord.x), fract(subcoord.y))')}
     return vec4<f32>(color, 1.0);
-  `
-      : `
-      if (pixel.x < 1 || pixel.y < 1) {
-        return vec4<f32>(0.0, 0.0, 0.0, 1.0);
-      }
-      return vec4<f32>(color, 1.0);`
+  ` : `return vec4<f32>(color, 1.0);`
   }
 }
 `;

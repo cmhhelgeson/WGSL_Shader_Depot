@@ -125,3 +125,50 @@ export const createWGSLUniform = (structName: string, keys: string[]) => {
 export type ShaderKeyInterface<T extends string[]> = {
   [K in T[number]]: number;
 };
+
+export const createDebugStepReturnStatement = (
+  dataSize: 1 | 2 | 3 | 4,
+  value: string
+) => {
+  switch (dataSize) {
+    case 1:
+      {
+        return `return vec4<f32>(${value}, 0.0, 0.0, 1.0);`;
+      }
+      break;
+    case 2:
+      {
+        return `return vec4<f32>(${value}, 0.0, 1.0);`;
+      }
+      break;
+    case 3:
+      {
+        return `return vec4<f32>(${value}, 1.0);`;
+      }
+      break;
+    case 4:
+      {
+        return `return ${value};`;
+      }
+      break;
+  }
+};
+
+interface StepRange {
+  start: number;
+  end: number;
+}
+
+export const createDebugStepArea = (
+  stepRange: StepRange,
+  dataSize: 1 | 2 | 3 | 4,
+  value: string
+) => {
+  return `
+  if (uniforms.debugStep ${
+    stepRange.start === stepRange.end
+      ? `== ${stepRange.start}`
+      : `>= ${stepRange.start} && uniforms.debugStep<= ${stepRange.end}`
+  }) {\n\t${createDebugStepReturnStatement(dataSize, value)}\n}\n
+  `;
+};
