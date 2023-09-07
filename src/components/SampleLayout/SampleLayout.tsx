@@ -430,85 +430,16 @@ const SampleLayout: React.FunctionComponent<
         </div>
       </motion.div>
       {debugOn ? (
-        <div className={styles.debugArea}>
-          <motion.div className={styles.debugArea__Button__HoverAreaLeft}
-            onHoverStart={() =>
-              setAnimationKeys((draft) => {
-                draft.debugButtonLeft = 'shiftLeft';
-                return draft;
-              })
-            }
-            onHoverEnd={() => {
-              setAnimationKeys((draft) => {
-                draft.debugButtonLeft = 'shiftBackFromLeft';
-                return draft;
-              });
-            }}
-          >
-            <motion.button
-              style={{height: '100%'}}
-              onClick={onDecrementDebugStep}
-              ref={debugButtonLeftRef}
-            >
-              {`<`}
-            </motion.button>
-          </motion.div>
-          <div className={styles.debugArea__DebugBlock}>
-            <div className={styles.debugArea__DebugBlock__Explanation}>
-              <motion.div
-                style={{
-                  alignItems: 'center',
-                  marginTop: '4px',
-                  textShadow: '2px 2px 2px 2px black',
-                  marginRight: '2px',
-                  height: 'auto',
-                }}
-              >
-                {debugExplanations[debugStep]}
-              </motion.div>
+        <div style={{marginTop: '10px'}}>
+          <div className={styles.DebugArea}>
+            <div className={styles.DebugArea__Block}>
+              <button onClick={onDecrementDebugStep} className={styles.DebugArea__Button}>{`<-`}</button>
+              <div style={{display: 'flex', alignItems: 'center', width: '80%', justifyContent: 'center'}}>
+                <div style={{padding: '5px', textAlign: 'center'}}>{debugExplanations[debugStep]}</div>
+              </div>
+              <button onClick={onIncrementDebugStep} className={styles.DebugArea__Button}>{`->`}</button>
             </div>
-            <div className={styles.debugArea__DebugBlock__Close}>
-              <motion.div
-                style={{
-                  textDecoration: `${hoverDebug ? 'underline' : 'none'}`,
-                  cursor: 'pointer',
-                }}
-                onHoverStart={() => {
-                  setHoverDebug(true);
-                }}
-                onHoverEnd={() => {
-                  setHoverDebug(false);
-                }}
-                onClick={() => {
-                  setDebugOn(false);
-                }}
-              >
-                {'(Close Debug)'}
-              </motion.div>
-            </div>
-          </div>
-          <motion.div className={styles.debugArea__Button__HoverAreaRight}
-            onHoverStart={() =>
-              setAnimationKeys((draft) => {
-                draft.debugButtonRight = 'shiftRight';
-                return draft;
-              })
-            }
-            onHoverEnd={() => {
-              setAnimationKeys((draft) => {
-                draft.debugButtonRight = 'shiftBackFromRight';
-                return draft;
-              });
-            }}
-          >
-            <motion.button
-              style={{height: '100%'}}
-              onClick={onIncrementDebugStep}
-              ref={debugButtonRightRef}
-            >
-              {`>`}
-            </motion.button>
-          </motion.div>
+          </div>      
         </div>
       ) : (
         <div

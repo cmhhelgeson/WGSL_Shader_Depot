@@ -117,7 +117,7 @@ nav.sourceFileNav li a[data-active=true] {
 }
 
 
-.debugArea {
+/*.debugArea {
   //display: flex;
   //flex-direction: column;
   display: grid;
@@ -162,7 +162,43 @@ nav.sourceFileNav li a[data-active=true] {
       margin-right: 10px;
     }
   }
-}
+} */
+
+.DebugArea {
+  display: flex;
+  border-radius: 26px;
+  height: 50px;
+  justify-content: center;
+
+  &__Block {
+    background-color: rgb(39,40,34);
+    border-radius: 30px;
+    flex: 0.8;
+    display: flex;
+    justify-content: space-between;
+  }
+  &__Button {
+    background-color: rgb(39, 40, 34);
+    box-shadow: none;
+    padding: 0;
+	  font: inherit;
+    border: none;
+	  cursor: pointer;
+	  outline: inherit;
+    color: white;
+    border-radius: 30px;
+    width: 40px;
+    &:hover {
+      background-color: #403e3e;
+    }
+    &__Left {
+      padding-left: 10px;
+    }
+    &__Right {
+      padding-right: 10px;
+    }
+  }
+} 
 
 .debug_output {
   display: flex;
