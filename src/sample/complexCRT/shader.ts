@@ -1,6 +1,6 @@
 /* eslint-disable prettier/prettier */
 import { createWGSLUniform } from '../../utils/shaderUtils';
-import { createDebugStepArea,  } from '../../utils/shaderUtils';
+import { createDebugStepAreaCollection} from '../../utils/shaderUtils';
 
 export const argKeys = [
   'canvasWidth',
@@ -23,8 +23,12 @@ const s2Exp = [
   'Our first step is to get the dot product of input.v_uv by input.v_uv.',
   'The dot product of a vector by itself gets us the square of its magnitude from the origin.',
   'Accordingly, the magnitude increases the further away the pixel is from the center of the screen.',
-  'Magnitudes from the center currently lie between 0->2. Our screenCuravture transformation will become stronger at the edges...',
-  'However we want our effect to work in the inverse towards the center, then normally at the edges',
+  'All magnitudes currently lie between 0->2. Our curvature transformation will become stronger at the edges...',
+]
+
+const curveAwayExps = [
+  'This is what the shader will output with the current range of magnitudes',
+  'However we want our effect to warp the screen out at the center, and in at the edges',
 ]
 
 const s3Exp = [
@@ -35,16 +39,12 @@ const s4Exp = [
   '...and only then do we multiply by the screenCurvature.',
 ]
 
-const s5Exp = [
-  'color'
-]
-
 const s6Exp = [
-  'add zoom step'
+  'To complete our curvature, we add a zoom step that makes our magnitudes positive.'
 ]
 
 const s7Exp = [
-  'Multiply by v_uv to get uv step',
+  '...and we multiply our curvature calculation by the vertex shader\'s input uvs.',
   'Try setting the zoom and screenCuravture individually to see how each affects the final uvs',
 ]
 
@@ -65,49 +65,20 @@ const s11Exp = [
   'Further subdivide each phosphor cell on the x-axis to get the positions of each cell\'s red, green, blue sub-cells',
 ]
 
-
-
 export const ComplexCRTExplanations = [
   ...s1Exp,
   ...s2Exp,
+  ...curveAwayExps,
   ...s3Exp,
   ...s4Exp,
-  ...s5Exp,
   ...s6Exp,
   ...s7Exp,
   ...s8Exp,
   ...s9Exp,
   ...s10Exp,
-  'Further subdivide each phosphor cell on the x-axis to get the positions of each cell\'s red, green, blue sub-cells',
+  ...s11Exp,
   'Final output',
 ]
-
-interface Step {
-  exps: string[],
-  size: 1 | 2 | 3 | 4,
-  val: string,
-}
-
-const DebugAreaTestFunc = (steps: Step[]): string => {
-  let retString = ``;
-  let stepsCompleted = 0;
-  for (const step of steps) {
-    const {exps, size, val} = step;
-    retString += createDebugStepArea(
-      {start: stepsCompleted, end: stepsCompleted + exps.length - 1},
-      size,
-      val
-    )
-    stepsCompleted = stepsCompleted + exps.length - 1;
-  }
-  return retString;
-}
-
-DebugAreaTestFunc([
-  {exps: s1Exp, size: 2, val: 'input.v_uv'},
-  {exps: s2Exp, size: 2, val: 'input.v_uv'},
-
-])
 
 export const ComplexCRTShader = (debug: boolean) => {
   return `
@@ -127,7 +98,13 @@ struct VertexOutput {
 fn fragmentMain(input: VertexOutput) -> @location(0) vec4<f32> {
   //Zoom effect hack, doesn't work past certain screen curvatures
   //Add select statement at -1.0 to show what would happen if -1.0 was - 0.0
-  var uv = input.v_uv * (uniforms.zoom + (dot(input.v_uv,input.v_uv) - 1.0) * uniforms.screenCurvature);
+  var uv = input.v_uv * (
+    uniforms.zoom + (
+      dot(input.v_uv,input.v_uv) - select(
+        1.0, 0.0, uniforms.debugStep >= 6 && uniforms.debugStep <= 7
+      )
+    ) * uniforms.screenCurvature
+  );
   var pixel = (uv * 0.5 + 0.5) * vec2<f32>(
     uniforms.canvasWidth, 
     uniforms.canvasHeight
@@ -171,28 +148,22 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4<f32> {
   ${
     debug
       ? `
-    ${createDebugStepArea({ start: 0, end: 1 }, 2, 'input.v_uv')}
-    ${createDebugStepArea({ start: 2, end: 6 }, 1, 'dot(input.v_uv, input.v_uv)')}
-    ${createDebugStepArea({ start: 7, end: 7 }, 1, 'dot(input.v_uv, input.v_uv) - 1')}
-    ${createDebugStepArea({ start: 8, end: 8 }, 1, '(dot(input.v_uv, input.v_uv) - 1) * uniforms.screenCurvature')}
-    ${createDebugStepArea({ start: 9, end: 9 }, 3, 'color')}
-    ${createDebugStepArea({ start: 10, end: 10 }, 1, 'uniforms.zoom + (dot(input.v_uv, input.v_uv) - 1) * uniforms.screenCurvature')}
-    ${createDebugStepArea({ start: 11, end: 12 }, 2, 'uv')}
-    ${createDebugStepArea({ start: 13, end: 14 }, 2, 'pixel')}
-    ${createDebugStepArea({ start: 15, end: 15 }, 2, 'vec2<f32>(fract(pixel.x), fract(pixel.y))')}
-    ${createDebugStepArea({ start: 16, end: 16 }, 2, 'vec2<f32>(fract(coord.x), fract(subcoord.y))')}
-    ${createDebugStepArea({ start: 17, end: 17 }, 2, 'vec2<f32>(fract(subcoord.x), fract(subcoord.y))')}
+    ${createDebugStepAreaCollection([
+      {exps: s1Exp, size: 2, val: 'input.v_uv'},
+      {exps: s2Exp, size: 1, val: 'dot(input.v_uv, input.v_uv)'},
+      {exps: curveAwayExps, size: 3, val: 'color'},
+      {exps: s3Exp, size: 1, val: 'dot(input.v_uv, input.v_uv) - 1'},
+      {exps: s4Exp, size: 1, val: '(dot(input.v_uv, input.v_uv) - 1) * uniforms.screenCurvature'},
+      {exps: s6Exp, size: 1, val: 'uniforms.zoom + (dot(input.v_uv, input.v_uv) - 1) * uniforms.screenCurvature'},
+      {exps: s7Exp, size: 2, val: 'uv'},
+      {exps: s8Exp, size: 2, val: 'pixel'},
+      {exps: s9Exp, size: 2, val: 'vec2<f32>(fract(pixel.x), fract(pixel.y))'},
+      {exps: s10Exp, size: 2, val: 'vec2<f32>(fract(coord.x), fract(coord.y))'},
+      {exps: s11Exp, size: 2, val: 'vec2<f32>(fract(subcoord.x), fract(subcoord.y))'}
+    ])}
     return vec4<f32>(color, 1.0);
   ` : `return vec4<f32>(color, 1.0);`
   }
 }
 `;
 };
-
-/*    ${DebugAreaTestFunc([
-      {exps: s1Exp, size: 2, val: 'input.v_uv'},
-      {exps: s2Exp, size: 1, val: 'dot(input.v_uv, input.v_uv)'},
-      {exps: s3Exp, size: 1, val: 'dot(input.v_uv, input.v_uv) - 1'},
-      {exps: s4Exp, size: 2, val: '(dot(input.v_uv, input.v_uv) - 1) * uniforms.screenCurvature'},
-
-    ])} */

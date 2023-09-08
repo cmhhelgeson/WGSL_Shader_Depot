@@ -159,6 +159,28 @@ interface StepRange {
   end: number;
 }
 
+interface Step {
+  exps: string[];
+  size: 1 | 2 | 3 | 4;
+  val: string;
+}
+
+export const createDebugStepAreaCollection = (steps: Step[]): string => {
+  let retString = ``;
+  let stepsCompleted = 0;
+  for (const step of steps) {
+    const { exps, size, val } = step;
+    retString += createDebugStepArea(
+      { start: stepsCompleted, end: stepsCompleted + exps.length - 1 },
+      size,
+      val
+    );
+    stepsCompleted = stepsCompleted + exps.length;
+  }
+  console.log(retString);
+  return retString;
+};
+
 export const createDebugStepArea = (
   stepRange: StepRange,
   dataSize: 1 | 2 | 3 | 4,

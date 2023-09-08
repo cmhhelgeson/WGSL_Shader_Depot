@@ -5,8 +5,8 @@ import { MutableRefObject, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { GUI } from 'dat.gui';
 import type { Stats } from 'stats-js';
-import { motion, useAnimation, useMotionValue } from 'framer-motion';
-import { canvasVariants, debugButtonVariants, AnimationKeysType } from './SampleLayoutTypes';
+import { motion, useAnimation } from 'framer-motion';
+import { canvasVariants, AnimationKeysType } from './SampleLayoutTypes';
 import type { Editor, EditorConfiguration } from 'codemirror';
 interface CodeMirrorEditor extends Editor {
   updatedSource: (source: string) => void;
@@ -98,8 +98,6 @@ const SampleLayout: React.FunctionComponent<
   }>
 > = (props) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const debugButtonLeftRef = useRef<HTMLButtonElement | null>();
-  const debugButtonRightRef = useRef<HTMLButtonElement | null>();
   const sources = useMemo(
     () =>
       props.sources.map(({ name, contents }) => {
