@@ -194,3 +194,15 @@ export const createDebugStepArea = (
   }) {\n\t${createDebugStepReturnStatement(dataSize, value)}\n}\n
   `;
 };
+
+export const createFragmentShaderResources = (argKeys: string[]) => {
+  return `
+${createWGSLUniform('Uniforms', argKeys)}
+
+struct VertexOutput {
+  @builtin(position) Position: vec4<f32>,
+  @location(0) v_uv: vec2<f32>
+}
+
+@group(0) @binding(0) var<uniform> uniforms: Uniforms;`;
+};
