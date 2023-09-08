@@ -4,7 +4,7 @@ export const argKeys = ['radius', 'xOffset', 'yOffset', 'debugStep'];
 
 export const SDFCircleShader = (debug: boolean) => {
   return `
-fn sdCircle(p: vec2<f32>, r: f32) -> f32 {
+fn sdfCircle(p: vec2<f32>, r: f32) -> f32 {
   return length(p)-r;
 }
 
@@ -13,7 +13,7 @@ ${createFragmentShaderResources(argKeys)}
 @fragment
 fn fragmentMain(input: VertexOutput) -> @location(0) vec4<f32> {
   var d: f32 = sdfCircle(
-    vec2<f32>(input.v_uv.x - xOffset, input.v_uv.y - yOffset), r
+    vec2<f32>(input.v_uv.x - uniforms.xOffset, input.v_uv.y - uniforms.yOffset), uniforms.radius
   );
 
   var color: vec3<f32> = select(
@@ -24,7 +24,7 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4<f32> {
     d > 0.0
   );
 
-  return color;
+  return vec4<f32>(color, 1.0);
 }
 `;
 };
