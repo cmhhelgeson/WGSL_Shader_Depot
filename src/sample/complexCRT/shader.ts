@@ -111,7 +111,6 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4<f32> {
   );
 
   var coord = pixel / uniforms.cellSize;
-
   var subcoord = coord * vec2<f32>(select(uniforms.cellSize, 3.0, uniforms.cellSize >= 6.0), 1);
 
   var cell_offset = vec2<f32>(0, fract(floor(coord.x) * uniforms.cellOffset));
