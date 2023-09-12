@@ -30,7 +30,6 @@ export const fragmentPages = {
   grid: dynamic(() => import('../../sample/grid/main')),
   cyberpunkGrid: dynamic(() => import('../../sample/cyberpunkGrid/main')),
   complexCRT: dynamic(() => import('../../sample/complexCRT/main')),
-  sdfCircle: dynamic(() => import('../../sample/sdfCircle/main')),
 };
 
 export const vertexPages = {

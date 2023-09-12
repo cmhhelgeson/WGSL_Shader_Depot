@@ -27,6 +27,9 @@ SampleInitFactoryWebGPU(
       borderMask: 1.0,
       screenCurvature: 0.08,
       zoom: 1.0,
+      pulseIntensity: 0.03,
+      pulseWidth: 60,
+      pulseRate: 20,
     };
   
     const renderPassDescriptor: GPURenderPassDescriptor = {
@@ -41,10 +44,15 @@ SampleInitFactoryWebGPU(
       ],
     };
   
+    const cellFolder = gui.addFolder('Cell')
+    cellFolder.add(settings, 'cellSize', 0.1, 50.0).step(1.0);
+    cellFolder.add(settings, 'cellOffset', 0.0, 1.0).step(0.1);
+    cellFolder.add(settings, 'borderMask', 0.0, 5.0).step(0.1);
+    const pulseFolder = gui.addFolder('Pulse');
+    pulseFolder.add(settings, 'pulseIntensity', 0.0, 0.5).step(0.01);
+    pulseFolder.add(settings, 'pulseWidth', 0.0, 100).step(5);
+    pulseFolder.add(settings, 'pulseRate', 0, 100).step(10);
     gui.add(settings, 'textureName', ['dog', 'cat', 'pukh'])
-    gui.add(settings, 'cellSize', 0.1, 50.0).step(1.0);
-    gui.add(settings, 'cellOffset', 0.0, 1.0).step(0.1);
-    gui.add(settings, 'borderMask', 0.0, 5.0).step(0.1);
     gui.add(settings, 'screenCurvature', 0.00, 0.50).step(0.01);
     gui.add(settings, 'zoom', 0.0, 1.0).step(0.1);
 
@@ -110,29 +118,19 @@ SampleInitFactoryWebGPU(
         //@ts-ignore
         crtDebugRenderer.startRun(commandEncoder, {
           time: timeElapsed,
-          textureName: settings.textureName,
           debugStep: debugValueRef.current,
-          cellSize: settings.cellSize,
-          cellOffset: settings.cellOffset,
-          borderMask: settings.borderMask,
           canvasWidth: canvasRef.current ? canvasRef.current.width : canvas.width,
           canvasHeight: canvasRef.current ? canvasRef.current.height : canvas.height,
-          screenCurvature: settings.screenCurvature,
-          zoom: settings.zoom,
+          ...settings,
         });
       } else {
         //@ts-ignore
         crtRenderer.startRun(commandEncoder, {
           time: timeElapsed,
-          textureName: settings.textureName,
           debugStep: debugValueRef.current,
-          cellSize: settings.cellSize,
-          cellOffset: settings.cellOffset,
-          borderMask: settings.borderMask,
           canvasWidth: canvasRef.current ? canvasRef.current.width : canvas.width,
           canvasHeight: canvasRef.current ? canvasRef.current.height : canvas.height,
-          screenCurvature: settings.screenCurvature,
-          zoom: settings.zoom,
+          ...settings
         });
       }
   

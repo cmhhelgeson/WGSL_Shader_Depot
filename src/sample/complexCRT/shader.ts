@@ -12,6 +12,9 @@ export const argKeys = [
   'debugStep',
   'screenCurvature',
   'zoom',
+  'pulseIntensity',
+  'pulseWidth',
+  'pulseRate',
 ];
 
 const s1Exp = [
@@ -143,6 +146,10 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4<f32> {
   mask_color *= vec3f(clamp(border.x, 0.0, 1.0) * clamp(border.y, 0.0, 1.0));
 
   color *= vec3f(1.0 + (mask_color - 1.0) * 1.0);
+
+  color.r *= 1.0 + uniforms.pulseIntensity * sin(pixel.y / uniforms.pulseWidth + uniforms.time * uniforms.pulseRate);
+  color.b *= 1.0 + uniforms.pulseIntensity * sin(pixel.y / uniforms.pulseWidth + uniforms.time * uniforms.pulseRate);
+  color.g *= 1.0 + uniforms.pulseIntensity * sin(pixel.y / uniforms.pulseWidth + uniforms.time * uniforms.pulseRate);
 
   ${
     debug
