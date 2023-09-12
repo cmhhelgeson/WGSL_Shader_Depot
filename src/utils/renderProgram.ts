@@ -250,9 +250,10 @@ export const create3DRenderPipeline = (
   vertexShader: string,
   vBufferFormats: GPUVertexFormat[],
   fragmentShader: string,
-  presentationFormat: GPUTextureFormat
+  presentationFormat: GPUTextureFormat,
+  depthTest = false
 ) => {
-  return device.createRenderPipeline({
+  const pipelineDescriptor: GPURenderPipelineDescriptor = {
     label: `${label}.pipeline`,
     layout: device.createPipelineLayout({
       bindGroupLayouts: bgLayouts,
@@ -279,10 +280,13 @@ export const create3DRenderPipeline = (
       topology: 'triangle-list',
       cullMode: 'back',
     },
-    depthStencil: {
-      depthWriteEnabled: true,
+  };
+  if (depthTest) {
+    pipelineDescriptor.depthStencil = {
       depthCompare: 'less',
+      depthWriteEnabled: true,
       format: 'depth24plus',
-    },
-  });
+    };
+  }
+  return device.createRenderPipeline(pipelineDescriptor);
 };

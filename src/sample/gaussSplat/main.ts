@@ -4,13 +4,12 @@ import {
   SampleInit,
 } from '../../components/SampleLayout/SampleLayout';
 import normalMapWGSL from './normalMap.wgsl';
-import { createMeshRenderable } from '../../meshes/mesh';
-import { createBoxMeshWithTangents } from '../../meshes/box';
 import { SampleInitFactoryWebGPU } from '../../components/SampleLayout/SampleLayoutUtils';
-import { createTextureFromImage } from '../../utils/texture';
 import { createBindGroupDescriptor } from '../../utils/bindGroup';
 import { create3DRenderPipeline } from '../../utils/renderProgram';
-import { write32ToBuffer, writeMat4ToBuffer } from '../../utils/buffer';
+import { writeMat4ToBuffer } from '../../utils/buffer';
+
+import GaussianSplatShader from './gaussSplat.wgsl';
 
 const MAT4X4_BYTES = 64;
 
@@ -21,15 +20,6 @@ const MAT4X4_BYTES = 64;
 let init: SampleInit;
 SampleInitFactoryWebGPU(
   async ({ canvas, pageState, gui, device, context, presentationFormat }) => {
-    interface GUISettings {
-      'Bump Mode': 'None' | 'Normal';
-    }
-
-    const settings: GUISettings = {
-      'Bump Mode': 'Normal',
-    };
-    gui.add(settings, 'Bump Mode', ['None', 'Normal']);
-
     const depthTexture = device.createTexture({
       size: [canvas.width, canvas.height],
       format: 'depth24plus',
@@ -39,54 +29,6 @@ SampleInitFactoryWebGPU(
     const uniformBuffer = device.createBuffer({
       size: MAT4X4_BYTES * 4,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-    });
-
-    const mapMethodBuffer = device.createBuffer({
-      size: Float32Array.BYTES_PER_ELEMENT * 2,
-      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-    });
-
-    // Fetch the image and upload it into a GPUTexture.
-    let woodTexture: GPUTexture;
-    {
-      const response = await fetch(
-        new URL(
-          '../../../assets/img/toy_box_diffuse.png',
-          import.meta.url
-        ).toString()
-      );
-      const imageBitmap = await createImageBitmap(await response.blob());
-      woodTexture = createTextureFromImage(device, imageBitmap);
-    }
-
-    let woodNormalTexture: GPUTexture;
-    {
-      const response = await fetch(
-        new URL(
-          '../../../assets/img/toy_box_normal.png',
-          import.meta.url
-        ).toString()
-      );
-      const imageBitmap = await createImageBitmap(await response.blob());
-      woodNormalTexture = createTextureFromImage(device, imageBitmap);
-    }
-
-    let woodDepthTexture: GPUTexture;
-    {
-      const response = await fetch(
-        new URL(
-          '../../../assets/img/toy_box_disp.png',
-          import.meta.url
-        ).toString()
-      );
-      const imageBitmap = await createImageBitmap(await response.blob());
-      woodDepthTexture = createTextureFromImage(device, imageBitmap);
-    }
-
-    // Create a sampler with linear filtering for smooth interpolation.
-    const sampler = device.createSampler({
-      magFilter: 'linear',
-      minFilter: 'linear',
     });
 
     const renderPassDescriptor: GPURenderPassDescriptor = {
@@ -108,41 +50,37 @@ SampleInitFactoryWebGPU(
       },
     };
 
-    const toybox = createMeshRenderable(
-      device,
-      createBoxMeshWithTangents(1.0, 1.0, 1.0)
-    );
+    const matBuffer = device.createBuffer({
+      size: 64 * 2,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    });
 
-    const frameBGDescriptor = createBindGroupDescriptor(
+    const vec2Buffer = device.createBuffer({
+      size: Float32Array.BYTES_PER_ELEMENT * 2 * 2,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    });
+
+    const bgDescript = createBindGroupDescriptor(
       [0, 1],
-      [GPUShaderStage.VERTEX, GPUShaderStage.FRAGMENT],
+      [
+        GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+        GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+      ],
       ['buffer', 'buffer'],
       [{ type: 'uniform' }, { type: 'uniform' }],
-      [[{ buffer: uniformBuffer }, { buffer: mapMethodBuffer }]],
-      'Frame',
+      [[{ buffer: matBuffer }, { buffer: vec2Buffer }]],
+      'GaussianSplat',
       device
     );
 
-    const toyboxBGDescriptor = createBindGroupDescriptor(
-      [0, 1, 2, 3],
-      [GPUShaderStage.FRAGMENT],
-      ['sampler', 'texture', 'texture', 'texture'],
-      [
-        { type: 'filtering' },
-        { sampleType: 'float' },
-        { sampleType: 'float' },
-        { sampleType: 'float' },
-      ],
-      [
-        [
-          sampler,
-          woodTexture.createView(),
-          woodNormalTexture.createView(),
-          woodDepthTexture.createView(),
-        ],
-      ],
-      'Toybox',
-      device
+    const pipeline = create3DRenderPipeline(
+      device,
+      'GaussianSplat',
+      [bgDescript.bindGroupLayout],
+      GaussianSplatShader,
+      ['float32x4', 'float32x4', 'float32x4', 'float32x4'],
+      GaussianSplatShader,
+      presentationFormat
     );
 
     const aspect = canvas.width / canvas.height;
@@ -168,36 +106,8 @@ SampleInitFactoryWebGPU(
       return modelMatrix;
     }
 
-    const getMappingType = (arr: Uint32Array) => {
-      switch (settings['Bump Mode']) {
-        case 'None':
-          arr[0] = 0;
-          break;
-        case 'Normal':
-          arr[0] = 1;
-          break;
-      }
-    };
-
-    const getParallaxScale = (arr: Float32Array) => {
-      arr[0] = settings['Parallax Scale'];
-    };
-
-    const mappingType: Uint32Array = new Uint32Array([0]);
-    const parallaxScale: Float32Array = new Float32Array([0]);
-
     const viewMatrixTemp = getViewMatrix();
     const viewMatrix = viewMatrixTemp as Float32Array;
-
-    const pipeline = create3DRenderPipeline(
-      device,
-      'NormalMappingRender',
-      [frameBGDescriptor.bindGroupLayout, toyboxBGDescriptor.bindGroupLayout],
-      normalMapWGSL,
-      ['float32x3', 'float32x3', 'float32x2', 'float32x3', 'float32x3'],
-      normalMapWGSL,
-      presentationFormat
-    );
 
     function frame() {
       // Sample is no longer the active page.
@@ -216,11 +126,6 @@ SampleInitFactoryWebGPU(
         modelMatrix,
       ]);
 
-      getMappingType(mappingType);
-      getParallaxScale(parallaxScale);
-
-      write32ToBuffer(device, mapMethodBuffer, [mappingType, parallaxScale]);
-
       renderPassDescriptor.colorAttachments[0].view = context
         .getCurrentTexture()
         .createView();
@@ -228,11 +133,7 @@ SampleInitFactoryWebGPU(
       const commandEncoder = device.createCommandEncoder();
       const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
       passEncoder.setPipeline(pipeline);
-      passEncoder.setBindGroup(0, frameBGDescriptor.bindGroups[0]);
-      passEncoder.setBindGroup(1, toyboxBGDescriptor.bindGroups[0]);
-      passEncoder.setVertexBuffer(0, toybox.vertexBuffer);
-      passEncoder.setIndexBuffer(toybox.indexBuffer, 'uint16');
-      passEncoder.drawIndexed(toybox.indexCount);
+      passEncoder.setBindGroup(0, bgDescript.bindGroups[0]);
       passEncoder.end();
       device.queue.submit([commandEncoder.finish()]);
 

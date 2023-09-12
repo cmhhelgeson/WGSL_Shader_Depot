@@ -3,7 +3,7 @@ struct MatUniforms {
   viewMat: mat4x4f,
 }
 
-struct F32Uniforms {
+struct VecUniforms {
   focal: vec2<f32>,
   viewport: vec2<f32>,
 }
@@ -23,6 +23,9 @@ struct VertexOutput {
   @location(2) center: vec2<f32>,
   @location(3) cPos: vec2<f32>,
 }
+
+@group(0) @binding(0) var matUniforms: MatUniforms;
+@group(0) @binding(1) var vecUniforms: VecUniforms;
 
 @vertex
 fn vertexMain(input: VertexInput) -> VertexOutput {
@@ -52,7 +55,7 @@ fn vertexMain(input: VertexInput) -> VertexOutput {
 
 @fragment
 fn fragmentMain(input: VertexOutput) -> @location(0) vec4<f32> {
-  vec2 d = (vCenter - 2.0 * (gl_FragCoord.xy/viewport - vec2(0.5, 0.5))) * viewport * 0.5;
+  vec2 d = (vCenter - 2.0 * (input.Position.xy/viewport - vec2(0.5, 0.5))) * viewport * 0.5;
 	var power: f32 = -0.5 * (
     input.conic.x * d.x * d.x + 
     input.conic.z * d.y * d.y
