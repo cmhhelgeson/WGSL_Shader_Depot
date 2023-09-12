@@ -116,7 +116,7 @@ export const createAssignmentStatement = (
 export const createWGSLUniform = (structName: string, keys: string[]) => {
   let retString = `struct ${structName} {\n`;
   for (let i = 0; i < keys.length; i++) {
-    retString += `\t${keys[i]}: f32,\n`;
+    retString += `  ${keys[i]}: f32,\n`;
   }
   retString += `}\n`;
   return retString;
@@ -198,7 +198,6 @@ export const createDebugStepArea = (
 export const createFragmentShaderResources = (argKeys: string[]) => {
   return `
 ${createWGSLUniform('Uniforms', argKeys)}
-
 struct VertexOutput {
   @builtin(position) Position: vec4<f32>,
   @location(0) v_uv: vec2<f32>

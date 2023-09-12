@@ -187,6 +187,7 @@ const gridExample: () => JSX.Element = () =>
         name: __filename.substring(__dirname.length + 1),
         contents: __SOURCE__,
       },
+      GridRenderer.sourceInfo,
       {
         name: '../../shaders/fullscreen.vert.wgsl',
         contents: fullscreenVertWebGLWGSL,

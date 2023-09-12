@@ -156,6 +156,7 @@ const complexCRTExample: () => JSX.Element = () =>
         name: __filename.substring(__dirname.length + 1),
         contents: __SOURCE__,
       },
+      ComplexCRTRenderer.sourceInfo,
       {
         name: '../../shaders/fullscreenNDCFlipped.vert.wgsl',
         contents: fullscreenVertNDCFlipped,

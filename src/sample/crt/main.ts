@@ -134,6 +134,7 @@ const crtExample: () => JSX.Element = () =>
         name: __filename.substring(__dirname.length + 1),
         contents: __SOURCE__,
       },
+      CRTRenderer.sourceInfo,
       {
         name: '../../shaders/fullscreenWebGPU.vert.wgsl',
         contents: fullscreenVertWebGPU,

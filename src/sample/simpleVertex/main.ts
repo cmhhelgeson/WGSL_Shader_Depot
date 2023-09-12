@@ -414,6 +414,7 @@ const VertexDeformation: () => JSX.Element = () =>
     gui: true,
     stats: true,
     init,
+    coordinateSystem: 'NDC',
     sources: [
       {
         name: __filename.substring(__dirname.length + 1),

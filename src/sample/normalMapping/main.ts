@@ -12,6 +12,8 @@ import {
 } from '../../meshes/mesh';
 import { createBoxMeshWithTangents } from '../../meshes/box';
 import { SampleInitFactoryWebGPU } from '../../components/SampleLayout/SampleLayoutUtils';
+import { createTextureFromImage } from '../../utils/texture';
+import { createBindGroupDescriptor } from '../../utils/bindGroup';
 
 const MAT4X4_BYTES = 64;
 
@@ -30,40 +32,6 @@ SampleInitFactoryWebGPU(
       'Bump Mode': 'Normal',
     };
     gui.add(settings, 'Bump Mode', ['None', 'Normal']);
-
-    const pipeline = device.createRenderPipeline({
-      layout: 'auto',
-      vertex: {
-        module: device.createShaderModule({
-          code: normalMapWGSL,
-        }),
-        entryPoint: 'vertexMain',
-        buffers: createMeshVertexBufferLayout({
-          features: MESH_VERTEX_FEATURE.TANGENT | MESH_VERTEX_FEATURE.BITANGENT,
-        }),
-      },
-      fragment: {
-        module: device.createShaderModule({
-          code: normalMapWGSL,
-        }),
-        entryPoint: 'fragmentMain',
-        targets: [
-          {
-            format: presentationFormat,
-          },
-        ],
-      },
-      primitive: {
-        topology: 'triangle-list',
-        cullMode: 'back',
-      },
-
-      depthStencil: {
-        depthWriteEnabled: true,
-        depthCompare: 'less',
-        format: 'depth24plus',
-      },
-    });
 
     const depthTexture = device.createTexture({
       size: [canvas.width, canvas.height],
@@ -84,24 +52,6 @@ SampleInitFactoryWebGPU(
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
-    const copyImageToTexture = (
-      imageBitmap: ImageBitmap,
-      format: GPUTextureFormat,
-      usage: number
-    ): GPUTexture => {
-      const texture = device.createTexture({
-        size: [imageBitmap.width, imageBitmap.height, 1],
-        format: format,
-        usage: usage,
-      });
-      device.queue.copyExternalImageToTexture(
-        { source: imageBitmap },
-        { texture: texture },
-        [imageBitmap.width, imageBitmap.height]
-      );
-      return texture;
-    };
-
     // Fetch the image and upload it into a GPUTexture.
     let woodTexture: GPUTexture;
     {
@@ -112,13 +62,7 @@ SampleInitFactoryWebGPU(
         ).toString()
       );
       const imageBitmap = await createImageBitmap(await response.blob());
-      woodTexture = copyImageToTexture(
-        imageBitmap,
-        'rgba8unorm',
-        GPUTextureUsage.TEXTURE_BINDING |
-          GPUTextureUsage.COPY_DST |
-          GPUTextureUsage.RENDER_ATTACHMENT
-      );
+      woodTexture = createTextureFromImage(device, imageBitmap);
     }
 
     let woodNormalTexture: GPUTexture;
@@ -130,17 +74,10 @@ SampleInitFactoryWebGPU(
         ).toString()
       );
       const imageBitmap = await createImageBitmap(await response.blob());
-
-      woodNormalTexture = copyImageToTexture(
-        imageBitmap,
-        'rgba8unorm',
-        GPUTextureUsage.TEXTURE_BINDING |
-          GPUTextureUsage.COPY_DST |
-          GPUTextureUsage.RENDER_ATTACHMENT
-      );
+      woodNormalTexture = createTextureFromImage(device, imageBitmap);
     }
 
-    let woodDiffuseTexture: GPUTexture;
+    let woodDepthTexture: GPUTexture;
     {
       const response = await fetch(
         new URL(
@@ -149,14 +86,7 @@ SampleInitFactoryWebGPU(
         ).toString()
       );
       const imageBitmap = await createImageBitmap(await response.blob());
-
-      woodDiffuseTexture = copyImageToTexture(
-        imageBitmap,
-        'rgba8unorm',
-        GPUTextureUsage.TEXTURE_BINDING |
-          GPUTextureUsage.COPY_DST |
-          GPUTextureUsage.RENDER_ATTACHMENT
-      );
+      woodDepthTexture = createTextureFromImage(device, imageBitmap);
     }
 
     // Create a sampler with linear filtering for smooth interpolation.
@@ -184,64 +114,41 @@ SampleInitFactoryWebGPU(
       },
     };
 
-    const createToyboxBindGroup = (
-      meshTexture: GPUTexture,
-      normalTexture: GPUTexture,
-      diffuseTexture: GPUTexture
-    ): GPUBindGroup => {
-      const bindGroup = device.createBindGroup({
-        //NOTE: Pipeline.getBindGroupLayout will only work if
-        // 1. All the bindings are defined
-        // 2. All the resources passed in through the bindGroup are used
-        layout: pipeline.getBindGroupLayout(1),
-        entries: [
-          {
-            binding: 0,
-            resource: sampler,
-          },
-          {
-            binding: 1,
-            resource: meshTexture.createView(),
-          },
-          {
-            binding: 2,
-            resource: normalTexture.createView(),
-          },
-          {
-            binding: 3,
-            resource: diffuseTexture.createView(),
-          },
-        ],
-      });
-      return bindGroup;
-    };
-
-    const frameBindGroup = device.createBindGroup({
-      layout: pipeline.getBindGroupLayout(0),
-      entries: [
-        {
-          binding: 0,
-          resource: {
-            buffer: uniformBuffer,
-          },
-        },
-        {
-          binding: 1,
-          resource: {
-            buffer: mapMethodBuffer,
-          },
-        },
-      ],
-    });
-
     const toybox = createMeshRenderable(
       device,
       createBoxMeshWithTangents(1.0, 1.0, 1.0)
     );
-    const toyboxBindGroup = createToyboxBindGroup(
-      woodTexture,
-      woodNormalTexture,
-      woodDiffuseTexture
+
+    const frameBGDescriptor = createBindGroupDescriptor(
+      [0, 1],
+      [GPUShaderStage.VERTEX, GPUShaderStage.FRAGMENT],
+      ['buffer', 'buffer'],
+      [{ type: 'uniform' }, { type: 'uniform' }],
+      [[{ buffer: uniformBuffer }, { buffer: mapMethodBuffer }]],
+      'Frame',
+      device
+    );
+
+    const toyboxBGDescriptor = createBindGroupDescriptor(
+      [0, 1, 2, 3],
+      [GPUShaderStage.FRAGMENT],
+      ['sampler', 'texture', 'texture', 'texture'],
+      [
+        { type: 'filtering' },
+        { sampleType: 'float' },
+        { sampleType: 'float' },
+        { sampleType: 'float' },
+      ],
+      [
+        [
+          sampler,
+          woodTexture.createView(),
+          woodNormalTexture.createView(),
+          woodDepthTexture.createView(),
+        ],
+      ],
+      'Toybox',
+      device
     );
 
     const aspect = canvas.width / canvas.height;
@@ -287,6 +194,45 @@ SampleInitFactoryWebGPU(
 
     const viewMatrixTemp = getViewMatrix();
     const viewMatrix = viewMatrixTemp as Float32Array;
+
+    const pipeline = device.createRenderPipeline({
+      layout: device.createPipelineLayout({
+        bindGroupLayouts: [
+          frameBGDescriptor.bindGroupLayout,
+          toyboxBGDescriptor.bindGroupLayout,
+        ],
+      }),
+      vertex: {
+        module: device.createShaderModule({
+          code: normalMapWGSL,
+        }),
+        entryPoint: 'vertexMain',
+        buffers: createMeshVertexBufferLayout({
+          features: MESH_VERTEX_FEATURE.TANGENT | MESH_VERTEX_FEATURE.BITANGENT,
+        }),
+      },
+      fragment: {
+        module: device.createShaderModule({
+          code: normalMapWGSL,
+        }),
+        entryPoint: 'fragmentMain',
+        targets: [
+          {
+            format: presentationFormat,
+          },
+        ],
+      },
+      primitive: {
+        topology: 'triangle-list',
+        cullMode: 'back',
+      },
+
+      depthStencil: {
+        depthWriteEnabled: true,
+        depthCompare: 'less',
+        format: 'depth24plus',
+      },
+    });
 
     function frame() {
       // Sample is no longer the active page.
@@ -358,8 +304,8 @@ SampleInitFactoryWebGPU(
       const commandEncoder = device.createCommandEncoder();
       const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
       passEncoder.setPipeline(pipeline);
-      passEncoder.setBindGroup(0, frameBindGroup);
-      passEncoder.setBindGroup(1, toyboxBindGroup);
+      passEncoder.setBindGroup(0, frameBGDescriptor.bindGroups[0]);
+      passEncoder.setBindGroup(1, toyboxBGDescriptor.bindGroups[0]);
       passEncoder.setVertexBuffer(0, toybox.vertexBuffer);
       passEncoder.setIndexBuffer(toybox.indexBuffer, 'uint16');
       passEncoder.drawIndexed(toybox.indexCount);
@@ -380,6 +326,7 @@ const NormalMapping: () => JSX.Element = () =>
       'This example shows how to apply normal maps to a textured mesh.',
     gui: true,
     init,
+    coordinateSystem: 'NDC',
     sources: [
       {
         name: __filename.substring(__dirname.length + 1),

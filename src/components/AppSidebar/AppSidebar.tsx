@@ -42,7 +42,7 @@ const NavContainer = ({
 
   if (mobile) {
     return (
-      <div style={{ display: 'flex', backgroundColor: colors.primary[400] }}>
+      <div style={{ display: 'flex', backgroundColor: colors.primary[100] }}>
         <div
           className={styles.SidebarArea__BurgerArea}
           style={{
