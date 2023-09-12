@@ -39,10 +39,6 @@ export const createBindGroupDescriptor = (
     layoutEntry.visibility = visibilities[i % visibilities.length];
     layoutEntry[resourceTypes[i]] = resourceLayouts[i];
     layoutEntries.push(layoutEntry);
-    //const groupEntry: any = {};
-    //groupEntry.binding = bindings[i];
-    //groupEntry.resource = resources[i];
-    //groupEntries.push(groupEntry);
   }
 
   const bindGroupLayout = device.createBindGroupLayout({

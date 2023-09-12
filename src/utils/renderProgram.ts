@@ -32,7 +32,6 @@ export const create2DRenderPipelineDescriptor = (
 ): RenderPipelineDescriptor => {
   const perPipelineTargetGroups = targetGroups.map((targets) => {
     const targetGroups: GPUColorTargetState[] = targets.map((target) => {
-      console.log(target);
       if (target === null) {
         return { format: navigator.gpu.getPreferredCanvasFormat() };
       }
@@ -196,3 +195,94 @@ export abstract class Base2DRendererClass {
     });
   }
 }
+
+export const convertVertexFormatToBytes = (vf: GPUVertexFormat): number => {
+  const splitFormat = vf.split('x');
+  const bytesPerElement = parseInt(splitFormat[0].replace(/[^0-9]/g, '')) / 8;
+
+  const bytesPerVec =
+    bytesPerElement *
+    (splitFormat[1] !== undefined ? parseInt(splitFormat[1]) : 1);
+
+  return bytesPerVec;
+};
+
+interface AttribAcc {
+  attributes: GPUVertexAttribute[];
+  arrayStride: number;
+}
+
+export const createVBuffers = (
+  vertexFormats: GPUVertexFormat[]
+): GPUVertexBufferLayout[] => {
+  const initialValue: AttribAcc = { attributes: [], arrayStride: 0 };
+
+  const vertexBuffer = vertexFormats.reduce(
+    (acc: AttribAcc, curr: GPUVertexFormat, idx: number) => {
+      const newAttribute: GPUVertexAttribute = {
+        shaderLocation: idx,
+        offset: acc.arrayStride,
+        format: curr,
+      };
+      const nextOffset: number =
+        acc.arrayStride + convertVertexFormatToBytes(curr);
+
+      const retVal: AttribAcc = {
+        attributes: [...acc.attributes, newAttribute],
+        arrayStride: nextOffset,
+      };
+      return retVal;
+    },
+    initialValue
+  );
+  return [
+    {
+      arrayStride: vertexBuffer.arrayStride,
+      attributes: vertexBuffer.attributes,
+    },
+  ];
+};
+
+export const create3DRenderPipeline = (
+  device: GPUDevice,
+  label: string,
+  bgLayouts: GPUBindGroupLayout[],
+  vertexShader: string,
+  vBufferFormats: GPUVertexFormat[],
+  fragmentShader: string,
+  presentationFormat: GPUTextureFormat
+) => {
+  return device.createRenderPipeline({
+    label: `${label}.pipeline`,
+    layout: device.createPipelineLayout({
+      bindGroupLayouts: bgLayouts,
+    }),
+    vertex: {
+      module: device.createShaderModule({
+        code: vertexShader,
+      }),
+      entryPoint: 'vertexMain',
+      buffers: createVBuffers(vBufferFormats),
+    },
+    fragment: {
+      module: device.createShaderModule({
+        code: fragmentShader,
+      }),
+      entryPoint: 'fragmentMain',
+      targets: [
+        {
+          format: presentationFormat,
+        },
+      ],
+    },
+    primitive: {
+      topology: 'triangle-list',
+      cullMode: 'back',
+    },
+    depthStencil: {
+      depthWriteEnabled: true,
+      depthCompare: 'less',
+      format: 'depth24plus',
+    },
+  });
+};

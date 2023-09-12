@@ -3,17 +3,14 @@ import {
   makeSample,
   SampleInit,
 } from '../../components/SampleLayout/SampleLayout';
-
 import normalMapWGSL from './normalMap.wgsl';
-import {
-  MESH_VERTEX_FEATURE,
-  createMeshRenderable,
-  createMeshVertexBufferLayout,
-} from '../../meshes/mesh';
+import { createMeshRenderable } from '../../meshes/mesh';
 import { createBoxMeshWithTangents } from '../../meshes/box';
 import { SampleInitFactoryWebGPU } from '../../components/SampleLayout/SampleLayoutUtils';
 import { createTextureFromImage } from '../../utils/texture';
 import { createBindGroupDescriptor } from '../../utils/bindGroup';
+import { create3DRenderPipeline } from '../../utils/renderProgram';
+import { write32ToBuffer, writeMat4ToBuffer } from '../../utils/buffer';
 
 const MAT4X4_BYTES = 64;
 
@@ -39,16 +36,13 @@ SampleInitFactoryWebGPU(
       usage: GPUTextureUsage.RENDER_ATTACHMENT,
     });
 
-    //4 4x4 mats, proj, view, normal, model
-    const uniformBufferSize = MAT4X4_BYTES * 4;
     const uniformBuffer = device.createBuffer({
-      size: uniformBufferSize,
+      size: MAT4X4_BYTES * 4,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
-    const mapMethodBufferSize = 8; // u32
     const mapMethodBuffer = device.createBuffer({
-      size: mapMethodBufferSize,
+      size: Float32Array.BYTES_PER_ELEMENT * 2,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
@@ -195,66 +189,19 @@ SampleInitFactoryWebGPU(
     const viewMatrixTemp = getViewMatrix();
     const viewMatrix = viewMatrixTemp as Float32Array;
 
-    const pipeline = device.createRenderPipeline({
-      layout: device.createPipelineLayout({
-        bindGroupLayouts: [
-          frameBGDescriptor.bindGroupLayout,
-          toyboxBGDescriptor.bindGroupLayout,
-        ],
-      }),
-      vertex: {
-        module: device.createShaderModule({
-          code: normalMapWGSL,
-        }),
-        entryPoint: 'vertexMain',
-        buffers: createMeshVertexBufferLayout({
-          features: MESH_VERTEX_FEATURE.TANGENT | MESH_VERTEX_FEATURE.BITANGENT,
-        }),
-      },
-      fragment: {
-        module: device.createShaderModule({
-          code: normalMapWGSL,
-        }),
-        entryPoint: 'fragmentMain',
-        targets: [
-          {
-            format: presentationFormat,
-          },
-        ],
-      },
-      primitive: {
-        topology: 'triangle-list',
-        cullMode: 'back',
-      },
-
-      depthStencil: {
-        depthWriteEnabled: true,
-        depthCompare: 'less',
-        format: 'depth24plus',
-      },
-    });
+    const pipeline = create3DRenderPipeline(
+      device,
+      'NormalMappingRender',
+      [frameBGDescriptor.bindGroupLayout, toyboxBGDescriptor.bindGroupLayout],
+      normalMapWGSL,
+      ['float32x3', 'float32x3', 'float32x2', 'float32x3', 'float32x3'],
+      normalMapWGSL,
+      presentationFormat
+    );
 
     function frame() {
       // Sample is no longer the active page.
       if (!pageState.active) return;
-      //I really wish all these different APIS
-      //were consistent when they talk about bytes and elements
-
-      device.queue.writeBuffer(
-        uniformBuffer,
-        MAT4X4_BYTES * 0,
-        projectionMatrix.buffer,
-        projectionMatrix.byteOffset,
-        projectionMatrix.byteLength
-      );
-
-      device.queue.writeBuffer(
-        uniformBuffer,
-        MAT4X4_BYTES * 1,
-        viewMatrix.buffer,
-        viewMatrix.byteOffset,
-        viewMatrix.byteLength
-      );
 
       const modelMatrixTemp = getModelMatrix();
       const normalMatrix = mat4.transpose(
@@ -262,40 +209,18 @@ SampleInitFactoryWebGPU(
       ) as Float32Array;
       const modelMatrix = modelMatrixTemp as Float32Array;
 
-      device.queue.writeBuffer(
-        uniformBuffer,
-        MAT4X4_BYTES * 2,
-        normalMatrix.buffer,
-        normalMatrix.byteOffset,
-        normalMatrix.byteLength
-      );
-
-      device.queue.writeBuffer(
-        uniformBuffer,
-        MAT4X4_BYTES * 3,
-        modelMatrix.buffer,
-        modelMatrix.byteOffset,
-        modelMatrix.byteLength
-      );
+      writeMat4ToBuffer(device, uniformBuffer, [
+        projectionMatrix,
+        viewMatrix,
+        normalMatrix,
+        modelMatrix,
+      ]);
 
       getMappingType(mappingType);
       getParallaxScale(parallaxScale);
 
-      device.queue.writeBuffer(
-        mapMethodBuffer,
-        0,
-        mappingType.buffer,
-        mappingType.byteOffset,
-        mappingType.byteLength
-      );
+      write32ToBuffer(device, mapMethodBuffer, [mappingType, parallaxScale]);
 
-      device.queue.writeBuffer(
-        mapMethodBuffer,
-        4,
-        parallaxScale.buffer,
-        parallaxScale.byteOffset,
-        parallaxScale.byteLength
-      );
 
       renderPassDescriptor.colorAttachments[0].view = context
         .getCurrentTexture()
