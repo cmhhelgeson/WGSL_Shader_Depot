@@ -43,7 +43,7 @@ SampleInitFactoryWebGPU(
         },
       ],
     };
-  
+    //
     const cellFolder = gui.addFolder('Cell')
     cellFolder.add(settings, 'cellSize', 0.1, 50.0).step(1.0);
     cellFolder.add(settings, 'cellOffset', 0.0, 1.0).step(0.1);
