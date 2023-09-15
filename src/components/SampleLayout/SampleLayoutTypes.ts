@@ -80,8 +80,34 @@ export const debugButtonVariants: DebugVariantType = {
   },
 };
 
+type DebugAreaVariantKeys = 'appearBelow' | 'appearAbove';
+
+type DebugAreaVariantType = {
+  [key in DebugAreaVariantKeys]: Variant;
+};
+
+export const debugAreaVariants: DebugAreaVariantType = {
+  appearBelow: {
+    y: [20, 0],
+    opacity: [0, 1],
+    transition: {
+      ease: 'easeIn',
+      duration: 0.5,
+    },
+  },
+  appearAbove: {
+    y: [-20, 0],
+    opacity: [0, 1],
+    transition: {
+      ease: 'easeIn',
+      duration: 0.5,
+    },
+  },
+};
+
 export type AnimationKeysType = {
   canvas: CanvasVariantKeys | '';
   debugButtonLeft: DebugButtonVariantKeys | '';
   debugButtonRight: DebugButtonVariantKeys | '';
+  debugArea: DebugAreaVariantKeys | '';
 };
