@@ -256,6 +256,7 @@ export const create3DRenderPipeline = (
   const pipelineDescriptor: GPURenderPipelineDescriptor = {
     label: `${label}.pipeline`,
     layout: device.createPipelineLayout({
+      label: `${label}.pipelineLayout`,
       bindGroupLayouts: bgLayouts,
     }),
     vertex: {

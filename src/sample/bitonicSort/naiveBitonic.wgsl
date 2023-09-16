@@ -77,6 +77,7 @@ fn LoadSplatPosTex(
 //SV_DispatchThreadID roughly equivalent to WGSL's global_invocation_id
 fn computeMain(
   @builtin(global_invocation_id) global_id: vec3<u32>,
+  @builtin(local_invocation_id) local_id: vec3<u32>,
 ) {
   var idx: u32 = global_id.x
   //If idx is greater than the highest power of two derived from our splat count
