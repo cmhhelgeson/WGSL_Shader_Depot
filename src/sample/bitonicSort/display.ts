@@ -1,4 +1,7 @@
-import { createBindGroupDescriptor } from '../../utils/bindGroup';
+import {
+  BindGroupDescriptor,
+  createBindGroupDescriptor,
+} from '../../utils/bindGroup';
 import { Base2DRendererClass } from '../../utils/renderProgram';
 import { ShaderKeyInterface } from '../../utils/shaderUtils';
 import { BitonicDisplayShader, argKeys } from './shader';
@@ -13,16 +16,19 @@ export default class BitonicDisplayRenderer extends Base2DRendererClass {
 
   switchBindGroup: (name: string) => void;
   setArguments: (args: BitonicDisplayRenderArgs) => void;
+  computeBGDescript: BindGroupDescriptor;
 
   constructor(
     device: GPUDevice,
     presentationFormat: GPUTextureFormat,
     renderPassDescriptor: GPURenderPassDescriptor,
     bindGroupNames: string[],
+    computeBGDescript: BindGroupDescriptor,
     label: string
   ) {
     super();
     this.renderPassDescriptor = renderPassDescriptor;
+    this.computeBGDescript = computeBGDescript;
 
     const uniformBuffer = device.createBuffer({
       size: Float32Array.BYTES_PER_ELEMENT * argKeys.length,
@@ -51,7 +57,7 @@ export default class BitonicDisplayRenderer extends Base2DRendererClass {
     this.pipeline = super.create2DRenderPipeline(
       device,
       label,
-      [bgDescript.bindGroupLayout],
+      [bgDescript.bindGroupLayout, this.computeBGDescript.bindGroupLayout],
       'WEBGL',
       BitonicDisplayShader(),
       presentationFormat
@@ -71,6 +77,7 @@ export default class BitonicDisplayRenderer extends Base2DRendererClass {
     this.setArguments(args);
     super.executeRun(commandEncoder, this.renderPassDescriptor, this.pipeline, [
       this.currentBindGroup,
+      this.computeBGDescript.bindGroups[0],
     ]);
   }
 }

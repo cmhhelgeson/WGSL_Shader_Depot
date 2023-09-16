@@ -22,6 +22,7 @@ export const pages = {
   micrograd: dynamic(() => import('../../sample/micrograd/main')),
   complexCRT: dynamic(() => import('../../sample/complexCRT/main')),
   sdfCircle: dynamic(() => import('../../sample/sdfCircle/main')),
+  bitonicSort: dynamic(() => import('../../sample/bitonicSort/main')),
 };
 
 export const fragmentPages = {
@@ -40,6 +41,7 @@ export const vertexPages = {
 
 export const computePages = {
   computeBalls: dynamic(() => import('../../sample/computeBalls/main')),
+  bitonicSort: dynamic(() => import('../../sample/bitonicSort/main')),
 };
 
 function Page({ slug }: Props): JSX.Element {

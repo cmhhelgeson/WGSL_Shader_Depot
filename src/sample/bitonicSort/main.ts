@@ -7,28 +7,24 @@ import { createBindGroupDescriptor } from '../../utils/bindGroup';
 import BitonicDisplayRenderer from './display';
 import { BitonicDisplayShader } from './shader';
 
-const numBalls = 200;
-const ballInfoSize = 6;
-const BUFFER_SIZE = numBalls * ballInfoSize * Float32Array.BYTES_PER_ELEMENT;
-
 let init: SampleInit;
 SampleInitFactoryWebGPU(
   async ({ pageState, device, gui, presentationFormat, context }) => {
     const maxWorkgroupsX = device.limits.maxComputeWorkgroupSizeX;
 
-    let workGroupSizes = [];
+    const workGroupSizes = [];
     for (let i = maxWorkgroupsX; i >= 4; i /= 2) {
       workGroupSizes.push(i);
     }
 
     const settings = {
-      elements: maxWorkgroupsX,
+      elements: 16,
       'Randomize Values': () => {
         return;
       },
     };
 
-    let elements = new Uint32Array(Array.from({ length: 256 }, (_, i) => i));
+    let elements = new Uint32Array(Array.from({ length: 16 }, (_, i) => i));
 
     const randomizeElementArray = () => {
       let currentIndex = elements.length;
@@ -57,8 +53,11 @@ SampleInitFactoryWebGPU(
     gui.add(settings, 'Randomize Values').onChange(randomizeElementArray);
 
     const elementsBuffer = device.createBuffer({
-      size: BUFFER_SIZE,
-      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+      size: 256,
+      usage:
+        GPUBufferUsage.STORAGE |
+        GPUBufferUsage.COPY_SRC |
+        GPUBufferUsage.COPY_DST,
     });
     const uniformsBuffer = device.createBuffer({
       size: Int32Array.BYTES_PER_ELEMENT,
@@ -79,7 +78,10 @@ SampleInitFactoryWebGPU(
 
     const computeBGDescript = createBindGroupDescriptor(
       [0, 1],
-      [GPUShaderStage.COMPUTE],
+      [
+        GPUShaderStage.COMPUTE | GPUShaderStage.FRAGMENT,
+        GPUShaderStage.COMPUTE,
+      ],
       ['buffer', 'buffer'],
       [{ type: 'storage' }, { type: 'uniform' }],
       [[{ buffer: elementsBuffer }, { buffer: uniformsBuffer }]],
@@ -92,6 +94,7 @@ SampleInitFactoryWebGPU(
       presentationFormat,
       renderPassDescriptor,
       ['default'],
+      computeBGDescript,
       'BitonicDisplay'
     );
 
@@ -111,6 +114,16 @@ SampleInitFactoryWebGPU(
 
     async function frame() {
       if (!pageState.active) return;
+
+      console.log(elements);
+
+      device.queue.writeBuffer(
+        elementsBuffer,
+        0,
+        elements.buffer,
+        elements.byteOffset,
+        elements.byteLength
+      );
 
       renderPassDescriptor.colorAttachments[0].view = context
         .getCurrentTexture()
@@ -135,7 +148,7 @@ SampleInitFactoryWebGPU(
   ['Add Explanations']
 ).then((resultInit) => (init = resultInit));
 
-const computeBallsExample: () => JSX.Element = () =>
+const bitonicSortExample: () => JSX.Element = () =>
   makeSample({
     name: 'Bitonic Sort',
     description:
@@ -157,4 +170,4 @@ const computeBallsExample: () => JSX.Element = () =>
     filename: __filename,
   });
 
-export default computeBallsExample;
+export default bitonicSortExample;
