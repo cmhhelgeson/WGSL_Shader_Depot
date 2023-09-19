@@ -10,12 +10,12 @@ import { NaiveBitonicCompute } from './compute';
 
 enum StepType {
   NONE = 0,
-  LOCAL_FLIP = 1,
-  LOCAL_DISPERSE = 2,
-  LOCAL_FLIP_DISPERSE = 3,
-  GLOBAL_FLIP = 4,
-  GLOBAL_DISPERSE = 5,
-  GLOBAL_FLIP_DISPERSE = 6,
+  FLIP_LOCAL = 1,
+  DISPERSE_LOCAL = 2,
+  FLIP_DISPERSE_LOCAL = 3,
+  FLIP_GLOBAL = 4,
+  DISPERSE_GLOBAL = 5,
+  FLIP_DISPERSE_GLOBAL = 6,
 }
 
 let init: SampleInit;
@@ -32,7 +32,10 @@ SampleInitFactoryWebGPU(
     const settings = {
       elements: startNumElements,
       workGroupThreads: startNumElements / 2,
-      lastStep: 'None',
+      'Prev Step': 'None',
+      'Next Step': 'Flip',
+      'Prev Block Height': 0,
+      'Next Block Height': 2,
       workLoads: 1,
       executeStep: false,
       'Randomize Values': () => {
@@ -140,12 +143,29 @@ SampleInitFactoryWebGPU(
     };
 
     gui.add(settings, 'elements', workGroupSizes).onChange(resizeElementArray);
-    gui.add(settings, 'Randomize Values').onChange(randomizeElementArray);
     gui.add(settings, 'Execute Sort Step').onChange(() => {
       settings.executeStep = true;
     });
-    const workGroupThreadsCell = gui.add(settings, 'workGroupThreads');
+    gui.add(settings, 'Randomize Values').onChange(randomizeElementArray);
+    const executionInformationFolder = gui.addFolder('Execution Information');
+    const prevStepCell = executionInformationFolder.add(settings, 'Prev Step');
+    const prevBlockHeightCell = executionInformationFolder.add(
+      settings,
+      'Prev Block Height'
+    );
+    const nextStepCell = executionInformationFolder.add(settings, 'Next Step');
+    const nextBlockHeightCell = executionInformationFolder.add(
+      settings,
+      'Next Block Height'
+    );
+    const workGroupThreadsCell = executionInformationFolder.add(
+      settings,
+      'workGroupThreads'
+    );
     workGroupThreadsCell.domElement.style.pointerEvents = 'none';
+
+    let greenBlockHeight = 2;
+    let yellowBlockHeight = 2;
 
     async function frame() {
       if (!pageState.active) return;
@@ -174,8 +194,19 @@ SampleInitFactoryWebGPU(
             : Math.floor(settings.elements / 2),
       });
       if (settings.executeStep) {
-        const computePassEncoder = commandEncoder.beginComputePass({});
-        computePassEncoder.dispatchWorkgroups(1);
+        //const computePassEncoder = commandEncoder.beginComputePass({});
+        //computePassEncoder.dispatchWorkgroups(1);
+        prevStepCell.setValue(settings['Next Step']);
+        yellowBlockHeight = yellowBlockHeight / 2;
+        if (yellowBlockHeight === 1) {
+          const newBlockHeight = greenBlockHeight * 2;
+          nextStepCell.setValue('FLIP_LOCAL');
+          nextBlockHeightCell.setValue(newBlockHeight);
+          greenBlockHeight = newBlockHeight;
+        } else {
+          nextBlockHeightCell.setValue(yellowBlockHeight);
+          nextStepCell.setValue('DISPERSE_LOCAL');
+        }
       }
       device.queue.submit([commandEncoder.finish()]);
       settings.executeStep = false;

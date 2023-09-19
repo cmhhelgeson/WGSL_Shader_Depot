@@ -9,7 +9,7 @@ export const NaiveBitonicCompute = (workgroupSize: number) => {
 var<workgroup> local_data: array<u32, ${workgroupSize}>
 
 //Swap values in local_data
-fn swap(idx1: u32, idx2: u32) -> {
+fn swap(idx1: u32, idx2: u32) -> void {
   if (local_data[idx1] < local_data[idx2]) {
     let temp: u32 = local_data[idx1];
     local_data[idx1] = local_data[idx2];
@@ -17,7 +17,7 @@ fn swap(idx1: u32, idx2: u32) -> {
   }
 }
 
-fn prepare_flip(thread_id: u32, block_height: u32) -> {
+fn prepare_flip(thread_id: u32, block_height: u32) -> void {
   let q: u32 = ((2 * thread_id) / block_height) / block_height;
   var idx: vec2<u32> = q + vec2<u32>(
     thread_id % block_height, block_height - (thread_id % block_height)
@@ -25,7 +25,7 @@ fn prepare_flip(thread_id: u32, block_height: u32) -> {
   swap(idx.x, idx.y);
 }
 
-fn prepare_disperse(thread_id: u32, block_height: u32) -> {
+fn prepare_disperse(thread_id: u32, block_height: u32) -> void {
   var q: u32 = ((2 * thread_id) / block_height) * block_height;
 	var idx: vec2<u32> = q + vec2<u32>(
     thread_id % block_height, (thread_id % block_height) + (block_height / 2) 
@@ -41,7 +41,7 @@ fn computeMain(
   @builtin(global_invocation_id) global_id: vec3<u32>,
   @builtin(local_invocation_id) local_id: vec3<u32>,
 ) {
-  //Each thread will populate the workgroup data...
+  //Each thread will populate the workgroup data... (1 thread for every 2 elements)
   shared_data[local_id.x * 2] = alpha_data[local_id * 2];
   shared_data[local_id.x * 2 + 1] = alpha_data[local_id * 2 + 1];
 
@@ -65,8 +65,9 @@ fn computeMain(
   //Ensure that all threads have swapped their own regions of data
   @workgroupBarrier();
 
-
-
+  //Repopulate global data with local data
+  alpha_data[local_id.x * 2] = local_data[local_id.x * 2];
+  alpha_data[local_id.x * 2 + 1] = local_data[local_id.x * 2 + 1];
 
 }`;
 };
