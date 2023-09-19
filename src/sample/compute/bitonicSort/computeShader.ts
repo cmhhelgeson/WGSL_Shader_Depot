@@ -47,8 +47,8 @@ fn prepare_flip_and_disperse(thread_id: u32, block_height: u32) {
   swap(0, 0);
 }
 
-@group(0) @binding(0) var<uniform> uniforms: Uniforms;
-@group(1) @binding(0) var<storage, read_write> alpha_data: array<u32>;
+@group(0) @binding(0) var<storage, read_write> alpha_data: array<u32>;
+@group(0) @binding(1) var<uniform> uniforms: Uniforms;
 
 @compute @workgroup_size(${workgroupSize}, 1, 1)
 fn computeMain(
@@ -71,7 +71,7 @@ fn computeMain(
     case 1: { //Local Disperse
       prepare_disperse(local_id.x, uniforms.blockHeight);
     }
-    case 2: { //Local Flip and Disperse
+    case 2, default: { //Local Flip and Disperse
       prepare_flip_and_disperse(local_id.x, uniforms.blockHeight);
     }
   }

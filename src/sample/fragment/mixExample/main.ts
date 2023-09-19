@@ -1,11 +1,11 @@
 /* eslint-disable prettier/prettier */
-import { makeSample, SampleInit } from '../../components/SampleLayout/SampleLayout';
-import fullscreenVertWGSL from '../../shaders/fullscreenWebGL.vert.wgsl';
+import { makeSample, SampleInit } from '../../../components/SampleLayout/SampleLayout';
+import fullscreenVertWGSL from '../../../shaders/fullscreenWebGL.vert.wgsl';
 import mixFragWGSL from './mix.frag.wgsl';
-import { createBindGroupDescriptor } from '../../utils/bindGroup';
-import { createUniformDescriptor } from '../../utils/uniform';
-import { create2DVertexModule } from '../../utils/program/renderProgram';
-import { SampleInitFactoryWebGPU } from '../../components/SampleLayout/SampleLayoutUtils';
+import { createBindGroupDescriptor } from '../../../utils/bindGroup';
+import { createUniformDescriptor } from '../../../utils/uniform';
+import { create2DVertexModule } from '../../../utils/program/renderProgram';
+import { SampleInitFactoryWebGPU } from '../../../components/SampleLayout/SampleLayoutUtils';
 
 let init: SampleInit;
 
@@ -63,7 +63,6 @@ SampleInitFactoryWebGPU(
       },
     });
   
-    console.log(presentationFormat);
   
     const renderPassDescriptor: GPURenderPassDescriptor = {
       colorAttachments: [

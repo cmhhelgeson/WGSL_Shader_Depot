@@ -1,9 +1,9 @@
 import {
   makeSample,
   SampleInit,
-} from '../../components/SampleLayout/SampleLayout';
+} from '../../../components/SampleLayout/SampleLayout';
 import CyberpunkGridRenderer from './cyberpunkGrid';
-import { SampleInitFactoryWebGPU } from '../../components/SampleLayout/SampleLayoutUtils';
+import { SampleInitFactoryWebGPU } from '../../../components/SampleLayout/SampleLayoutUtils';
 import { CyberpunkGridShader } from './shader';
 import CyberpunkGridCommonsWGSL from './cyberpunk_commons.wgsl';
 import { CyberpunkGridExplanations } from './shader';
@@ -83,7 +83,6 @@ SampleInitFactoryWebGPU(
         .createView();
 
       const commandEncoder = device.createCommandEncoder();
-      //console.log(canvasRef.current.width)
       if (debugOnRef.current) {
         debugRenderer.startRun(commandEncoder, {
           gridLineR: 1.0,

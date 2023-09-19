@@ -1,4 +1,4 @@
-import { convertVertexFormatToBytes, createVBuffers } from '../program/renderProgram';
+import { convertVertexFormatToBytes, createVBuffers } from '../renderProgram';
 
 const formats: GPUVertexFormat[] = [
   'float32',
@@ -38,7 +38,6 @@ describe('renderProgram', () => {
 
   it('construct vertex buffer with proper shader locations', () => {
     const buffers = createVBuffers(formats);
-
     expect(buffers[0].attributes[0].offset).toBe(0);
     expect(buffers[0].attributes[1].offset).toBe(4);
     expect(buffers[0].attributes[2].offset).toBe(12);

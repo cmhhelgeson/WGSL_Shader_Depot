@@ -15,7 +15,6 @@ const init: SampleInit = async ({ canvas, pageState, debugValueRef, debugOnRef, 
   const devicePixelRatio = window.devicePixelRatio || 1;
   canvas.width = canvas.clientWidth * devicePixelRatio;
   canvas.height = canvas.clientHeight * devicePixelRatio;
-  console.log(canvas.clientWidth * devicePixelRatio);
   const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
 
   context.configure({
@@ -72,7 +71,6 @@ const init: SampleInit = async ({ canvas, pageState, debugValueRef, debugOnRef, 
       .createView();
 
     const commandEncoder = device.createCommandEncoder();
-    console.log(canvasRef.current.width)
     if (debugOnRef.current) {
       debugRenderer.startRun(commandEncoder, {
         time: timeElapsed,

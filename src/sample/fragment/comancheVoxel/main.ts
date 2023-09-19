@@ -1,7 +1,7 @@
 import {
   makeSample,
   SampleInit,
-} from '../../components/SampleLayout/SampleLayout';
+} from '../../../components/SampleLayout/SampleLayout';
 
 import comancheWGSL from './comanche.wgsl';
 
@@ -165,7 +165,10 @@ const init: SampleInit = async ({ canvas, pageState }) => {
   let colorMap: GPUTexture;
   {
     const response = await fetch(
-      new URL('../../../assets/img/map0color.png', import.meta.url).toString()
+      new URL(
+        '../../../../assets/img/map0color.png',
+        import.meta.url
+      ).toString()
     );
     const imageBitmap = await createImageBitmap(await response.blob());
     colorMap = device.createTexture({
@@ -187,7 +190,10 @@ const init: SampleInit = async ({ canvas, pageState }) => {
   let heightMap: GPUTexture;
   {
     const response = await fetch(
-      new URL('../../../assets/img/map0height.png', import.meta.url).toString()
+      new URL(
+        '../../../../assets/img/map0height.png',
+        import.meta.url
+      ).toString()
     );
     const imageBitmap = await createImageBitmap(await response.blob());
     heightMap = device.createTexture({

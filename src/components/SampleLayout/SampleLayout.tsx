@@ -258,7 +258,6 @@ const SampleLayout: React.FunctionComponent<
   const [activeHash, setActiveHash] = useState<string | null>(null);
 
   const handleKeyDown = (e: KeyboardEvent) => {
-    console.log(e.key)
     switch(e.key) {
       case 'ArrowLeft':
       case 'A':

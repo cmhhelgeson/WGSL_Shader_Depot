@@ -1,11 +1,11 @@
 /* eslint-disable prettier/prettier */
-import { makeSample, SampleInit } from '../../components/SampleLayout/SampleLayout';
-import fullscreenVertWebGPU from '../../shaders/fullscreenWebGPU.vert.wgsl';
+import { makeSample, SampleInit } from '../../../components/SampleLayout/SampleLayout';
+import fullscreenVertWebGPU from '../../../shaders/fullscreenWebGPU.vert.wgsl';
 import crtFragShader from './crt.frag.wgsl';
 
 import CRTRenderer from './crt';
-import { createTextureFromImage } from '../../utils/texture';
-import { SampleInitFactoryWebGPU } from '../../components/SampleLayout/SampleLayoutUtils';
+import { createTextureFromImage } from '../../../utils/texture';
+import { SampleInitFactoryWebGPU } from '../../../components/SampleLayout/SampleLayoutUtils';
 
 let init: SampleInit;
 SampleInitFactoryWebGPU(
@@ -40,13 +40,13 @@ SampleInitFactoryWebGPU(
   
     let dogTexture: GPUTexture 
     {
-      const response = await fetch(new URL('../../../assets/img/dog.jpg', import.meta.url).toString());
+      const response = await fetch(new URL('../../../../assets/img/dog.jpg', import.meta.url).toString());
       const bitmap = await createImageBitmap(await response.blob());
       dogTexture = createTextureFromImage(device, bitmap)
     }
     let catTexture: GPUTexture;
     {
-      const response = await fetch(new URL('../../../assets/img/cat.jpg', import.meta.url).toString());
+      const response = await fetch(new URL('../../../../assets/img/cat.jpg', import.meta.url).toString());
       const bitmap = await createImageBitmap(await response.blob());
       catTexture = createTextureFromImage(device, bitmap);
     }

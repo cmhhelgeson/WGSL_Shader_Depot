@@ -1,10 +1,10 @@
 /* eslint-disable prettier/prettier */
-import { makeSample, SampleInit } from '../../components/SampleLayout/SampleLayout';
-import fullscreenVertNDCFlipped from '../../shaders/fullscreenNDCFlipped.vert.wgsl';
+import { makeSample, SampleInit } from '../../../components/SampleLayout/SampleLayout';
+import fullscreenVertNDCFlipped from '../../../shaders/fullscreenNDCFlipped.vert.wgsl';
 
 import ComplexCRTRenderer from './complexCRT';
-import { createTextureFromImage } from '../../utils/texture';
-import { SampleInitFactoryWebGPU } from '../../components/SampleLayout/SampleLayoutUtils';
+import { createTextureFromImage } from '../../../utils/texture';
+import { SampleInitFactoryWebGPU } from '../../../components/SampleLayout/SampleLayoutUtils';
 import { ComplexCRTExplanations, ComplexCRTShader } from './shader';
 
 let init: SampleInit;
@@ -58,20 +58,20 @@ SampleInitFactoryWebGPU(
 
     let dogTexture: GPUTexture 
     {
-      const response = await fetch(new URL('../../../assets/img/dog.jpg', import.meta.url).toString());
+      const response = await fetch(new URL('../../../../assets/img/dog.jpg', import.meta.url).toString());
       const bitmap = await createImageBitmap(await response.blob());
       dogTexture = createTextureFromImage(device, bitmap)
     }
     let catTexture: GPUTexture;
     {
-      const response = await fetch(new URL('../../../assets/img/cat.jpg', import.meta.url).toString());
+      const response = await fetch(new URL('../../../../assets/img/cat.jpg', import.meta.url).toString());
       const bitmap = await createImageBitmap(await response.blob());
       catTexture = createTextureFromImage(device, bitmap);
     }
 
     let pukhTexture: GPUTexture;
     {
-      const response = await fetch(new URL('../../../assets/img/pukh.png', import.meta.url).toString());
+      const response = await fetch(new URL('../../../../assets/img/pukh.png', import.meta.url).toString());
       const bitmap = await createImageBitmap(await response.blob());
       pukhTexture = createTextureFromImage(device, bitmap);
     }

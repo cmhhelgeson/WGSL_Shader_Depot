@@ -1,26 +1,30 @@
-import { createBindGroupDescriptor } from '../../utils/bindGroup';
-import { Base2DRendererClass } from '../../utils/program/renderProgram';
-import CyberpunkCommonsWGSL from './cyberpunk_commons.wgsl';
-import { CyberpunkGridShader } from './shader';
-import { argKeys } from './shader';
-import { ShaderKeyInterface } from '../../utils/shaderUtils';
+import { createBindGroupDescriptor } from '../../../utils/bindGroup';
+import crtFragWGSL from './crt.frag.wgsl';
+import crtDebugFragWGSL from './crtDebug.frag.wgsl';
+import { Base2DRendererClass } from '../../../utils/program/renderProgram';
+import { ShaderKeyInterface } from '../../../utils/shaderUtils';
 
-type CyberpunkGridRenderArgs = ShaderKeyInterface<typeof argKeys>;
+const argKeys = ['time', 'debugStep'];
 
-export default class CyberpunkGridRenderer extends Base2DRendererClass {
+type CRTRendererArgs = ShaderKeyInterface<typeof argKeys> & {
+  textureName: string;
+};
+
+export default class CRTRenderer extends Base2DRendererClass {
   static sourceInfo = {
     name: __filename.substring(__dirname.length + 1),
     contents: __SOURCE__,
   };
 
   switchBindGroup: (name: string) => void;
-  changeArgs: (args: CyberpunkGridRenderArgs) => void;
+  changeArgs: (args: CRTRendererArgs) => void;
 
   constructor(
     device: GPUDevice,
     presentationFormat: GPUTextureFormat,
     renderPassDescriptor: GPURenderPassDescriptor,
     bindGroupNames: string[],
+    textures: GPUTexture[],
     label: string,
     debug = false
   ) {
@@ -32,13 +36,20 @@ export default class CyberpunkGridRenderer extends Base2DRendererClass {
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
-    const resourceArr = [[{ buffer: uniformBuffer }]];
+    const sampler = device.createSampler({
+      minFilter: 'linear',
+      magFilter: 'linear',
+    });
+
+    const resourceArr = textures.map((texture) => {
+      return [{ buffer: uniformBuffer }, sampler, texture.createView()];
+    });
 
     const bgDescript = createBindGroupDescriptor(
-      [0],
+      [0, 1, 2],
       [GPUShaderStage.FRAGMENT],
-      ['buffer'],
-      [{ type: 'uniform' }],
+      ['buffer', 'sampler', 'texture'],
+      [{ type: 'uniform' }, { type: 'filtering' }, { sampleType: 'float' }],
       resourceArr,
       label,
       device
@@ -57,12 +68,12 @@ export default class CyberpunkGridRenderer extends Base2DRendererClass {
       device,
       label,
       [bgDescript.bindGroupLayout],
-      'WEBGL',
-      CyberpunkGridShader(debug) + CyberpunkCommonsWGSL,
+      'WEBGPU',
+      debug ? crtDebugFragWGSL : crtFragWGSL,
       presentationFormat
     );
 
-    this.changeArgs = (args: CyberpunkGridRenderArgs) => {
+    this.changeArgs = (args: CRTRendererArgs) => {
       super.setUniformArguments(device, uniformBuffer, args, argKeys);
     };
 
@@ -72,8 +83,11 @@ export default class CyberpunkGridRenderer extends Base2DRendererClass {
     };
   }
 
-  startRun(commandEncoder: GPUCommandEncoder, args: CyberpunkGridRenderArgs) {
+  startRun(commandEncoder: GPUCommandEncoder, args: CRTRendererArgs) {
     this.changeArgs(args);
+    if (args.textureName !== this.currentBindGroupName) {
+      this.switchBindGroup(args.textureName);
+    }
     super.executeRun(commandEncoder, this.renderPassDescriptor, this.pipeline, [
       this.currentBindGroup,
     ]);

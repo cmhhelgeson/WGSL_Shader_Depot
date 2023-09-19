@@ -1,9 +1,9 @@
 import {
   makeSample,
   SampleInit,
-} from '../../components/SampleLayout/SampleLayout';
-import { SampleInitFactoryCanvas2D } from '../../components/SampleLayout/SampleLayoutUtils';
-import { createBindGroupDescriptor } from '../../utils/bindGroup';
+} from '../../../components/SampleLayout/SampleLayout';
+import { SampleInitFactoryCanvas2D } from '../../../components/SampleLayout/SampleLayoutUtils';
+import { createBindGroupDescriptor } from '../../../utils/bindGroup';
 import BallsComputeWGSL from './balls.comp.wgsl';
 
 const numBalls = 200;

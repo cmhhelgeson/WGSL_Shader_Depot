@@ -1,7 +1,7 @@
 import {
   createDebugValuePackage,
   DebugValuePackage,
-} from '../../utils/shaderUtils';
+} from '../../../utils/shaderUtils';
 
 //Different from SDFGridShader which will come later
 export const GridShader = (debug: boolean) => {

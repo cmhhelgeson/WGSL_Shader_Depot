@@ -3,7 +3,7 @@ import {
   DebugValuePackage,
   createAssignmentStatement,
   createWGSLUniform,
-} from '../../utils/shaderUtils';
+} from '../../../utils/shaderUtils';
 
 export const CyberpunkGridExplanations = [
   'Move your uvs into a range of -1 to 1.',

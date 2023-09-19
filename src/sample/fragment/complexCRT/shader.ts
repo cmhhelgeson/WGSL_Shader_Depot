@@ -1,6 +1,6 @@
 /* eslint-disable prettier/prettier */
-import { createWGSLUniform } from '../../utils/shaderUtils';
-import { createDebugStepAreaCollection} from '../../utils/shaderUtils';
+import { createWGSLUniform } from '../../../utils/shaderUtils';
+import { createDebugStepAreaCollection} from '../../../utils/shaderUtils';
 
 export const argKeys = [
   'canvasWidth',

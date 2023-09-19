@@ -1,9 +1,9 @@
 import {
   makeSample,
   SampleInit,
-} from '../../components/SampleLayout/SampleLayout';
-import { SampleInitFactoryWebGPU } from '../../components/SampleLayout/SampleLayoutUtils';
-import { createBindGroupDescriptor } from '../../utils/bindGroup';
+} from '../../../components/SampleLayout/SampleLayout';
+import { SampleInitFactoryWebGPU } from '../../../components/SampleLayout/SampleLayoutUtils';
+import { createBindGroupDescriptor } from '../../../utils/bindGroup';
 import BitonicDisplayRenderer from './display';
 import { BitonicDisplayShader } from './renderShader';
 import { NaiveBitonicCompute } from './computeShader';
@@ -34,8 +34,8 @@ interface SettingsInterface {
   workGroupThreads: number;
   'Prev Step': StepType;
   'Next Step': StepType;
-  'Prev Block Height': 0;
-  'Next Block Height': 2;
+  'Prev Block Height': number;
+  'Next Block Height': number;
   workLoads: number;
   executeStep: boolean;
   'Randomize Values': () => void;
@@ -87,7 +87,7 @@ SampleInitFactoryWebGPU(
     );
 
     //Initialize elementsBuffer and elementsStagingBuffer
-    const elementsBufferSize = Float32Array.BYTES_PER_ELEMENT * 256,
+    const elementsBufferSize = Float32Array.BYTES_PER_ELEMENT * 512;
     //Initialize buffer to provide elements array to shader
     const elementsBuffer = device.createBuffer({
       size: elementsBufferSize,
@@ -120,7 +120,7 @@ SampleInitFactoryWebGPU(
       device
     );
 
-    let computePipelineLayout: GPUComputePipelineDescriptor = {
+    const computePipelineLayout: GPUComputePipelineDescriptor = {
       layout: device.createPipelineLayout({
         bindGroupLayouts: [computeBGDescript.bindGroupLayout],
       }),
@@ -175,6 +175,10 @@ SampleInitFactoryWebGPU(
       elements = new Uint32Array(
         Array.from({ length: settings.elements }, (_, i) => i)
       );
+
+      //Re-set workgroup threads to half length of elements
+      workGroupThreadsCell.setValue(settings.elements / 2);
+
       //Get new width and height of screen display in cells
       const newCellWidth =
         Math.sqrt(settings.elements) % 2 === 0
@@ -183,10 +187,18 @@ SampleInitFactoryWebGPU(
       const newCellHeight =
         Math.sqrt(settings.elements) % 2 === 0
           ? Math.floor(Math.sqrt(settings.elements))
-          : Math.floor(settings.elements / 2);
-      //Re-set workgroup threads to half length of elements
-      workGroupThreadsCell.setValue(settings.elements / 2);
-      console.log(settings.workGroupThreads);
+          : 4;
+      widthInCellsCell.setValue(newCellWidth);
+      heightInCellsCell.setValue(newCellHeight);
+
+      //Set prevStep to None (restart) and next step to FLIP
+      prevStepCell.setValue('NONE');
+      nextStepCell.setValue('FLIP_LOCAL');
+
+      //Reset block heights
+      prevBlockHeightCell.setValue(0);
+      nextBlockHeightCell.setValue(2);
+
       //Create new shader invocation with workgroupSize that reflects number of threads
       computePipelineLayout.compute = {
         module: device.createShaderModule({
@@ -197,6 +209,7 @@ SampleInitFactoryWebGPU(
       computePipeline = device.createComputePipeline(computePipelineLayout);
       //Randomize array elements
       randomizeElementArray();
+      highestBlockHeight = 2;
     };
 
     randomizeElementArray();
@@ -208,11 +221,11 @@ SampleInitFactoryWebGPU(
     gui.add(settings, 'Randomize Values').onChange(randomizeElementArray);
     const executionInformationFolder = gui.addFolder('Execution Information');
     const prevStepCell = executionInformationFolder.add(settings, 'Prev Step');
+    const nextStepCell = executionInformationFolder.add(settings, 'Next Step');
     const prevBlockHeightCell = executionInformationFolder.add(
       settings,
       'Prev Block Height'
     );
-    const nextStepCell = executionInformationFolder.add(settings, 'Next Step');
     const nextBlockHeightCell = executionInformationFolder.add(
       settings,
       'Next Block Height'
@@ -223,17 +236,22 @@ SampleInitFactoryWebGPU(
     );
     const widthInCellsCell = executionInformationFolder.add(
       settings,
-      'workgro'
-    )
+      'widthInCells'
+    );
+    const heightInCellsCell = executionInformationFolder.add(
+      settings,
+      'heightInCells'
+    );
     //Make gui non-interactive
     prevStepCell.domElement.style.pointerEvents = 'none';
     prevBlockHeightCell.domElement.style.pointerEvents = 'none';
     nextStepCell.domElement.style.pointerEvents = 'none';
     nextBlockHeightCell.domElement.style.pointerEvents = 'none';
     workGroupThreadsCell.domElement.style.pointerEvents = 'none';
+    widthInCellsCell.domElement.style.pointerEvents = 'none';
+    heightInCellsCell.domElement.style.pointerEvents = 'none';
 
     let highestBlockHeight = 2;
-    let nextBlockHeight = 2;
 
     async function frame() {
       if (!pageState.active) return;
@@ -265,55 +283,61 @@ SampleInitFactoryWebGPU(
 
       const commandEncoder = device.createCommandEncoder();
       bitonicDisplayRenderer.startRun(commandEncoder, {
-        width:
-          Math.sqrt(settings.elements) % 2 === 0
-            ? Math.floor(Math.sqrt(settings.elements))
-            : Math.floor(settings.elements / 4),
-        height:
-          Math.sqrt(settings.elements) % 2 === 0
-            ? Math.floor(Math.sqrt(settings.elements))
-            : Math.floor(settings.elements / 2),
+        width: settings.widthInCells,
+        height: settings.heightInCells,
       });
-      if (settings.executeStep) {
-        //const computePassEncoder = commandEncoder.beginComputePass({});
-        //computePassEncoder.dispatchWorkgroups(1);
+      if (
+        settings.executeStep &&
+        highestBlockHeight !== settings.elements * 2
+      ) {
+        const computePassEncoder = commandEncoder.beginComputePass();
+        computePassEncoder.setPipeline(computePipeline);
+        computePassEncoder.setBindGroup(0, computeBGDescript.bindGroups[0]);
+        computePassEncoder.dispatchWorkgroups(1);
+
         prevStepCell.setValue(settings['Next Step']);
-        nextBlockHeight /= 2;
-        if (nextBlockHeight === 1) {
+        prevBlockHeightCell.setValue(settings['Next Block Height']);
+        nextBlockHeightCell.setValue(settings['Next Block Height'] / 2);
+        if (settings['Next Block Height'] === 1) {
           highestBlockHeight *= 2;
-          nextStepCell.setValue('FLIP_LOCAL');
-          nextBlockHeightCell.setValue(highestBlockHeight);
+          nextStepCell.setValue(
+            highestBlockHeight === settings.elements * 2 ? 'NONE' : 'FLIP_LOCAL'
+          );
+          nextBlockHeightCell.setValue(
+            highestBlockHeight === settings.elements * 2
+              ? 0
+              : highestBlockHeight
+          );
         } else {
-          nextBlockHeightCell.setValue(nextBlockHeight);
           nextStepCell.setValue('DISPERSE_LOCAL');
         }
-        settings.executeStep = false;
+        commandEncoder.copyBufferToBuffer(
+          elementsBuffer,
+          0,
+          elementsStagingBuffer,
+          0,
+          elementsBufferSize
+        );
       }
-      //Put shader output in mapped buffer
-      commandEncoder.copyBufferToBuffer(
-        elementsBuffer,
-        0,
-        elementsStagingBuffer,
-        0,
-        elementsBufferSize,
-      );
       device.queue.submit([commandEncoder.finish()]);
 
-      //Copy GPU data to CPU
-      await elementsStagingBuffer.mapAsync(
-        GPUMapMode.READ,
-        0,
-        elementsBufferSize
-      );
-      const copyElementsBuffer = elementsStagingBuffer.getMappedRange(
-        0,
-        elementsBufferSize
-      );
-      const data = copyElementsBuffer.slice(0);
-      const output = new Uint32Array(data);
-      elementsStagingBuffer.unmap();
-      elements = output;
-
+      if (settings.executeStep) {
+        //Copy GPU data to CPU
+        await elementsStagingBuffer.mapAsync(
+          GPUMapMode.READ,
+          0,
+          elementsBufferSize
+        );
+        const copyElementsBuffer = elementsStagingBuffer.getMappedRange(
+          0,
+          elementsBufferSize
+        );
+        const data = copyElementsBuffer.slice(0);
+        const output = new Uint32Array(data);
+        elementsStagingBuffer.unmap();
+        elements = output;
+      }
+      settings.executeStep = false;
       requestAnimationFrame(frame);
     }
     requestAnimationFrame(frame);

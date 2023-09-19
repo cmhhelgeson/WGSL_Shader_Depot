@@ -1,11 +1,11 @@
 /* eslint-disable prettier/prettier */
-import { makeSample, SampleInit } from '../../components/SampleLayout/SampleLayout';
-import fullscreenVertWebGLWGSL from '../../shaders/fullscreenWebGL.vert.wgsl';
+import { makeSample, SampleInit } from '../../../components/SampleLayout/SampleLayout';
+import fullscreenVertWebGLWGSL from '../../../shaders/fullscreenWebGL.vert.wgsl';
 import gridFragWGSL from './grid.frag.wgsl';
 
 import GridRenderer from './grid';
-import { cosineInterpolate } from '../../utils/interpolate';
-import { SampleInitFactoryWebGPU } from '../../components/SampleLayout/SampleLayoutUtils';
+import { cosineInterpolate } from '../../../utils/interpolate';
+import { SampleInitFactoryWebGPU } from '../../../components/SampleLayout/SampleLayoutUtils';
 
 let init: SampleInit;
 SampleInitFactoryWebGPU(
@@ -51,7 +51,6 @@ SampleInitFactoryWebGPU(
       cellOriginYPad.setValue(settings.cellOrigin);
     };
   
-  
     const gridDimPad = gui.add(settings, 'gridDimensions', 1.0, 100.0).step(1.0);
     const cellOriginXPad = gui.add(settings, 'cellOriginX', -1.0, 1.0).step(0.1);
     const cellOriginYPad = gui.add(settings, 'cellOriginY', -1.0, 1.0).step(0.1);
@@ -75,8 +74,6 @@ SampleInitFactoryWebGPU(
     }
     gui.add(settings, 'Reset Values').onChange(resetValues);
     const liFunctionElements = document.getElementsByClassName('cr function');
-    console.log('lis');
-    console.log(liFunctionElements);
     (liFunctionElements[0].children[0] as HTMLElement).style.display = 'flex';
     (liFunctionElements[0].children[0] as HTMLElement).style.justifyContent = 'center';
 

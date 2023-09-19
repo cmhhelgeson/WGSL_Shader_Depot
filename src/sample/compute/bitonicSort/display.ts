@@ -1,54 +1,46 @@
-import { createBindGroupDescriptor } from '../../utils/bindGroup';
-import { Base2DRendererClass } from '../../utils/program/renderProgram';
-import { ComplexCRTShader, argKeys } from './shader';
-import { ShaderKeyInterface } from '../../utils/shaderUtils';
+import {
+  BindGroupDescriptor,
+  createBindGroupDescriptor,
+} from '../../../utils/bindGroup';
+import { Base2DRendererClass } from '../../../utils/program/renderProgram';
+import { ShaderKeyInterface } from '../../../utils/shaderUtils';
+import { BitonicDisplayShader, argKeys } from './renderShader';
 
-type ComplexCRTRendererArgs = ShaderKeyInterface<typeof argKeys> & {
-  textureName: string;
-};
+type BitonicDisplayRenderArgs = ShaderKeyInterface<typeof argKeys>;
 
-export default class ComplexCRTRenderer extends Base2DRendererClass {
+export default class BitonicDisplayRenderer extends Base2DRendererClass {
   static sourceInfo = {
     name: __filename.substring(__dirname.length + 1),
     contents: __SOURCE__,
   };
 
   switchBindGroup: (name: string) => void;
-  setArguments: (args: Exclude<ComplexCRTRendererArgs, 'textureName'>) => void;
+  setArguments: (args: BitonicDisplayRenderArgs) => void;
+  computeBGDescript: BindGroupDescriptor;
 
   constructor(
     device: GPUDevice,
     presentationFormat: GPUTextureFormat,
     renderPassDescriptor: GPURenderPassDescriptor,
     bindGroupNames: string[],
-    textures: GPUTexture[],
-    label: string,
-    debug = false
+    computeBGDescript: BindGroupDescriptor,
+    label: string
   ) {
     super();
     this.renderPassDescriptor = renderPassDescriptor;
+    this.computeBGDescript = computeBGDescript;
 
     const uniformBuffer = device.createBuffer({
       size: Float32Array.BYTES_PER_ELEMENT * argKeys.length,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
-    const sampler = device.createSampler({
-      minFilter: 'linear',
-      magFilter: 'linear',
-    });
-
-    const resourceArr = textures.map((texture) => {
-      return [{ buffer: uniformBuffer }, sampler, texture.createView()];
-    });
-    console.log(resourceArr);
-
     const bgDescript = createBindGroupDescriptor(
-      [0, 1, 2],
+      [0],
       [GPUShaderStage.FRAGMENT],
-      ['buffer', 'sampler', 'texture'],
-      [{ type: 'uniform' }, { type: 'filtering' }, { sampleType: 'float' }],
-      resourceArr,
+      ['buffer'],
+      [{ type: 'uniform' }],
+      [[{ buffer: uniformBuffer }]],
       label,
       device
     );
@@ -65,9 +57,9 @@ export default class ComplexCRTRenderer extends Base2DRendererClass {
     this.pipeline = super.create2DRenderPipeline(
       device,
       label,
-      [bgDescript.bindGroupLayout],
-      'NDCFlipped',
-      ComplexCRTShader(debug),
+      [bgDescript.bindGroupLayout, this.computeBGDescript.bindGroupLayout],
+      'WEBGL',
+      BitonicDisplayShader(),
       presentationFormat
     );
 
@@ -76,18 +68,16 @@ export default class ComplexCRTRenderer extends Base2DRendererClass {
       this.currentBindGroupName = name;
     };
 
-    this.setArguments = (args: ComplexCRTRendererArgs) => {
+    this.setArguments = (args: BitonicDisplayRenderArgs) => {
       super.setUniformArguments(device, uniformBuffer, args, argKeys);
     };
   }
 
-  startRun(commandEncoder: GPUCommandEncoder, args: ComplexCRTRendererArgs) {
+  startRun(commandEncoder: GPUCommandEncoder, args: BitonicDisplayRenderArgs) {
     this.setArguments(args);
-    if (args.textureName !== this.currentBindGroupName) {
-      this.switchBindGroup(args.textureName);
-    }
     super.executeRun(commandEncoder, this.renderPassDescriptor, this.pipeline, [
       this.currentBindGroup,
+      this.computeBGDescript.bindGroups[0],
     ]);
   }
 }

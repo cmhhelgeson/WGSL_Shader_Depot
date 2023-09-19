@@ -228,8 +228,6 @@ export const createBoxMeshWithTangents = (
     depthSegments
   );
 
-  console.log(mesh.vertices);
-
   const originalStrideElements =
     BoxLayout.vertexStride / Float32Array.BYTES_PER_ELEMENT;
 
@@ -329,8 +327,6 @@ export const createBoxMeshWithTangents = (
       i * newStrideElements + originalStrideElements + 3
     );
   }
-
-  console.log(wTangentArray);
 
   return {
     vertices: wTangentArray,

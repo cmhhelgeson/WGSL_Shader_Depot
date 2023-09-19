@@ -115,12 +115,10 @@ SampleInitFactoryCanvas2D(
     });
 
     window.addEventListener('mouseup', function(event) {
-      console.log(offset);
       startOffsetting = false;
     });
 
     window.addEventListener('keydown', function(event) {
-      console.log('test')
       switch(event.key) {
         case '=': {
           zoomScale[0] *= 1.01
