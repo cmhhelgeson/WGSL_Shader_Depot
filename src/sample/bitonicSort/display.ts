@@ -4,7 +4,7 @@ import {
 } from '../../utils/bindGroup';
 import { Base2DRendererClass } from '../../utils/renderProgram';
 import { ShaderKeyInterface } from '../../utils/shaderUtils';
-import { BitonicDisplayShader, argKeys } from './shader';
+import { BitonicDisplayShader, argKeys } from './render';
 
 type BitonicDisplayRenderArgs = ShaderKeyInterface<typeof argKeys>;
 

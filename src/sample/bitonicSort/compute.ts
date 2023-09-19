@@ -1,0 +1,72 @@
+export const NaiveBitonicCompute = (workgroupSize: number) => {
+  if (workgroupSize % 2 !== 0 || workgroupSize > 256) {
+    workgroupSize = 256;
+  }
+  //Ensure that workgroupSize is half the number of elements
+  return `
+
+//Data that is local to the workgroup. Gets reset on each workgroup dispatch
+var<workgroup> local_data: array<u32, ${workgroupSize}>
+
+//Swap values in local_data
+fn swap(idx1: u32, idx2: u32) -> {
+  if (local_data[idx1] < local_data[idx2]) {
+    let temp: u32 = local_data[idx1];
+    local_data[idx1] = local_data[idx2];
+    local_data[idx2] = temp;
+  }
+}
+
+fn prepare_flip(thread_id: u32, block_height: u32) -> {
+  let q: u32 = ((2 * thread_id) / block_height) / block_height;
+  var idx: vec2<u32> = q + vec2<u32>(
+    thread_id % block_height, block_height - (thread_id % block_height)
+  );
+  swap(idx.x, idx.y);
+}
+
+fn prepare_disperse(thread_id: u32, block_height: u32) -> {
+  var q: u32 = ((2 * thread_id) / block_height) * block_height;
+	var idx: vec2<u32> = q + vec2<u32>(
+    thread_id % block_height, (thread_id % block_height) + (block_height / 2) 
+  );
+	swap(idx.x, idx.y);
+}
+
+@group(0) @binding(0) var<uniform> uniforms: Uniforms;
+@group(1) @binding(0) var<storage, read_write> alpha_data: array<u32>;
+
+@compute @workgroup_size(${workgroupSize}, 1, 1)
+fn computeMain(
+  @builtin(global_invocation_id) global_id: vec3<u32>,
+  @builtin(local_invocation_id) local_id: vec3<u32>,
+) {
+  //Each thread will populate the workgroup data...
+  shared_data[local_id.x * 2] = alpha_data[local_id * 2];
+  shared_data[local_id.x * 2 + 1] = alpha_data[local_id * 2 + 1];
+
+  //...and wait for each other to finish their own bit of data population.
+  @workgroupBarrier();
+
+  var num_elements = uniforms.width * uniforms.height;
+
+  switch uniforms.algo {
+    case 0: { //Local Flip
+      prepare_flip(local_id.x, uniforms.blockHeight);
+    }
+    case 1: { //Local Disperse
+      prepare_disperse(local_id.x, uniforms.blockHeight);
+    }
+    case 2: { //Local Flip and Disperse
+      prepare_flip_and_disperse(local_id.x, uniforms.blockHeight);
+    }
+  }
+
+  //Ensure that all threads have swapped their own regions of data
+  @workgroupBarrier();
+
+
+
+
+}`;
+};

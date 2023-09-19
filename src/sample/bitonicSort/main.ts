@@ -5,62 +5,56 @@ import {
 import { SampleInitFactoryWebGPU } from '../../components/SampleLayout/SampleLayoutUtils';
 import { createBindGroupDescriptor } from '../../utils/bindGroup';
 import BitonicDisplayRenderer from './display';
-import { BitonicDisplayShader } from './shader';
+import { BitonicDisplayShader } from './render';
+import { NaiveBitonicCompute } from './compute';
+
+enum StepType {
+  NONE = 0,
+  LOCAL_FLIP = 1,
+  LOCAL_DISPERSE = 2,
+  LOCAL_FLIP_DISPERSE = 3,
+  GLOBAL_FLIP = 4,
+  GLOBAL_DISPERSE = 5,
+  GLOBAL_FLIP_DISPERSE = 6,
+}
 
 let init: SampleInit;
 SampleInitFactoryWebGPU(
   async ({ pageState, device, gui, presentationFormat, context }) => {
     const maxWorkgroupsX = device.limits.maxComputeWorkgroupSizeX;
+    const startNumElements = 16;
 
     const workGroupSizes = [];
-    for (let i = maxWorkgroupsX; i >= 4; i /= 2) {
+    for (let i = maxWorkgroupsX * 2; i >= 4; i /= 2) {
       workGroupSizes.push(i);
     }
 
     const settings = {
-      elements: 16,
+      elements: startNumElements,
+      workGroupThreads: startNumElements / 2,
+      lastStep: 'None',
+      workLoads: 1,
+      executeStep: false,
       'Randomize Values': () => {
+        return;
+      },
+      'Execute Sort Step': () => {
         return;
       },
     };
 
     let elements = new Uint32Array(Array.from({ length: 16 }, (_, i) => i));
 
-    const randomizeElementArray = () => {
-      let currentIndex = elements.length;
-      // While there are elements to shuffle
-      while (currentIndex !== 0) {
-        // Pick a remaining element
-        const randomIndex = Math.floor(Math.random() * currentIndex);
-        currentIndex -= 1;
-        [elements[currentIndex], elements[randomIndex]] = [
-          elements[randomIndex],
-          elements[currentIndex],
-        ];
-      }
-    };
-
-    randomizeElementArray();
-
-    const resizeElementArray = () => {
-      elements = new Uint32Array(
-        Array.from({ length: settings.elements }, (_, i) => i)
-      );
-      randomizeElementArray();
-    };
-
-    gui.add(settings, 'elements', workGroupSizes).onChange(resizeElementArray);
-    gui.add(settings, 'Randomize Values').onChange(randomizeElementArray);
-
     const elementsBuffer = device.createBuffer({
-      size: 256,
+      size: Float32Array.BYTES_PER_ELEMENT * 256,
       usage:
         GPUBufferUsage.STORAGE |
         GPUBufferUsage.COPY_SRC |
         GPUBufferUsage.COPY_DST,
     });
     const uniformsBuffer = device.createBuffer({
-      size: Int32Array.BYTES_PER_ELEMENT,
+      //width, height, blockHeight, algo
+      size: Float32Array.BYTES_PER_ELEMENT * 4,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
@@ -98,24 +92,63 @@ SampleInitFactoryWebGPU(
       'BitonicDisplay'
     );
 
-    /*const computePipeline = device.createComputePipeline({
-      label: 'NaiveBitonic.pipeline',
+    let computePipeline = device.createComputePipeline({
       layout: device.createPipelineLayout({
-        label: 'NaiveBitonic.pipelineLayout',
         bindGroupLayouts: [computeBGDescript.bindGroupLayout],
       }),
       compute: {
         module: device.createShaderModule({
-          code: NaiveBitonicWGSL,
+          code: NaiveBitonicCompute(settings.workGroupThreads),
         }),
         entryPoint: 'computeMain',
       },
-    }); */
+    });
+
+    const randomizeElementArray = () => {
+      let currentIndex = elements.length;
+      // While there are elements to shuffle
+      while (currentIndex !== 0) {
+        // Pick a remaining element
+        const randomIndex = Math.floor(Math.random() * currentIndex);
+        currentIndex -= 1;
+        [elements[currentIndex], elements[randomIndex]] = [
+          elements[randomIndex],
+          elements[currentIndex],
+        ];
+      }
+    };
+
+    randomizeElementArray();
+
+    const resizeElementArray = () => {
+      elements = new Uint32Array(
+        Array.from({ length: settings.elements }, (_, i) => i)
+      );
+      workGroupThreadsCell.setValue(settings.elements / 2);
+      computePipeline = device.createComputePipeline({
+        layout: device.createPipelineLayout({
+          bindGroupLayouts: [computeBGDescript.bindGroupLayout],
+        }),
+        compute: {
+          module: device.createShaderModule({
+            code: NaiveBitonicCompute(settings.workGroupThreads),
+          }),
+          entryPoint: 'computeMain',
+        },
+      });
+      randomizeElementArray();
+    };
+
+    gui.add(settings, 'elements', workGroupSizes).onChange(resizeElementArray);
+    gui.add(settings, 'Randomize Values').onChange(randomizeElementArray);
+    gui.add(settings, 'Execute Sort Step').onChange(() => {
+      settings.executeStep = true;
+    });
+    const workGroupThreadsCell = gui.add(settings, 'workGroupThreads');
+    workGroupThreadsCell.domElement.style.pointerEvents = 'none';
 
     async function frame() {
       if (!pageState.active) return;
-
-      console.log(elements);
 
       device.queue.writeBuffer(
         elementsBuffer,
@@ -132,15 +165,20 @@ SampleInitFactoryWebGPU(
       const commandEncoder = device.createCommandEncoder();
       bitonicDisplayRenderer.startRun(commandEncoder, {
         width:
-          settings.elements % 2 === 0
+          Math.sqrt(settings.elements) % 2 === 0
             ? Math.floor(Math.sqrt(settings.elements))
             : Math.floor(settings.elements / 4),
         height:
-          settings.elements % 2 === 0
+          Math.sqrt(settings.elements) % 2 === 0
             ? Math.floor(Math.sqrt(settings.elements))
             : Math.floor(settings.elements / 2),
       });
+      if (settings.executeStep) {
+        const computePassEncoder = commandEncoder.beginComputePass({});
+        computePassEncoder.dispatchWorkgroups(1);
+      }
       device.queue.submit([commandEncoder.finish()]);
+      settings.executeStep = false;
       requestAnimationFrame(frame);
     }
     requestAnimationFrame(frame);

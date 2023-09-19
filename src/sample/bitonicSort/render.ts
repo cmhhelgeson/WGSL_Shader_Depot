@@ -29,23 +29,25 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4<f32> {
   );
 
   var pixel: vec2<u32> = vec2<u32>(
-    u32(floor(input.v_uv.x)),
-    u32(floor(input.v_uv.y)),
+    u32(floor(uv.x)),
+    u32(floor(uv.y)),
   );
   
   var elementIndex = u32(uniforms.width) * pixel.y + pixel.x;
   var colorChanger = data[elementIndex];
 
   var subtracter = (
-    255.0 / (uniforms.width * uniforms.height)
+    1.0 / (uniforms.width * uniforms.height)
   ) * f32(colorChanger);
 
   var color: vec3<f32> = vec3f(
-    255.0 - subtracter
+    1.0 - subtracter
   );
 
   //return vec4<f32>(uv, 0.0, 1.0);
-  return vec4<f32>(color, 1.0);
+  //return vec4<f32>(f32(pixel.x) / uniforms.width, 0.0, 0.0, 1.0);
+  //return vec4<f32>(color, 1.0);
+  return vec4<f32>(color.rgb, 1.0);
   //return vec4<f32>(255.0, 0.0, 0.0, 1.0);
 }
 `;
