@@ -6,7 +6,7 @@ import {
 import normalMapWGSL from './normalMap.wgsl';
 import { SampleInitFactoryWebGPU } from '../../components/SampleLayout/SampleLayoutUtils';
 import { createBindGroupDescriptor } from '../../utils/bindGroup';
-import { create3DRenderPipeline } from '../../utils/renderProgram';
+import { create3DRenderPipeline } from '../../utils/program/renderProgram';
 import { writeMat4ToBuffer } from '../../utils/buffer';
 
 import GaussianSplatShader from './gaussSplat.wgsl';

@@ -1,5 +1,5 @@
 import { createBindGroupDescriptor } from '../../utils/bindGroup';
-import { Base2DRendererClass } from '../../utils/renderProgram';
+import { Base2DRendererClass } from '../../utils/program/renderProgram';
 import CyberpunkCommonsWGSL from './cyberpunk_commons.wgsl';
 import { CyberpunkGridShader } from './shader';
 import { argKeys } from './shader';

@@ -1,5 +1,5 @@
 import { createBindGroupDescriptor } from '../../utils/bindGroup';
-import { Base2DRendererClass } from '../../utils/renderProgram';
+import { Base2DRendererClass } from '../../utils/program/renderProgram';
 import { ComplexCRTShader, argKeys } from './shader';
 import { ShaderKeyInterface } from '../../utils/shaderUtils';
 

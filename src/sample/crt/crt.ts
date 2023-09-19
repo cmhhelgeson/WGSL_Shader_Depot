@@ -1,7 +1,7 @@
 import { createBindGroupDescriptor } from '../../utils/bindGroup';
 import crtFragWGSL from './crt.frag.wgsl';
 import crtDebugFragWGSL from './crtDebug.frag.wgsl';
-import { Base2DRendererClass } from '../../utils/renderProgram';
+import { Base2DRendererClass } from '../../utils/program/renderProgram';
 import { ShaderKeyInterface } from '../../utils/shaderUtils';
 
 const argKeys = ['time', 'debugStep'];

@@ -1,7 +1,7 @@
-import fullscreenWebGLVertShader from '../shaders/fullscreenWebGL.vert.wgsl';
-import fullScreenWebGPUVertShader from '../shaders/fullscreenWebGPU.vert.wgsl';
-import fullScreenNDCVertShader from '../shaders/fullscreenNDC.vert.wgsl';
-import fullscreenNDCFlippedVertShader from '../shaders/fullscreenNDCFlipped.vert.wgsl';
+import fullscreenWebGLVertShader from '../../shaders/fullscreenWebGL.vert.wgsl';
+import fullScreenWebGPUVertShader from '../../shaders/fullscreenWebGPU.vert.wgsl';
+import fullScreenNDCVertShader from '../../shaders/fullscreenNDC.vert.wgsl';
+import fullscreenNDCFlippedVertShader from '../../shaders/fullscreenNDCFlipped.vert.wgsl';
 
 export interface BaseRenderer {
   readonly renderPassDescriptor: GPURenderPassDescriptor;

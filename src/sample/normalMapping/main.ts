@@ -9,7 +9,7 @@ import { createBoxMeshWithTangents } from '../../meshes/box';
 import { SampleInitFactoryWebGPU } from '../../components/SampleLayout/SampleLayoutUtils';
 import { createTextureFromImage } from '../../utils/texture';
 import { createBindGroupDescriptor } from '../../utils/bindGroup';
-import { create3DRenderPipeline } from '../../utils/renderProgram';
+import { create3DRenderPipeline } from '../../utils/program/renderProgram';
 import { write32ToBuffer, writeMat4ToBuffer } from '../../utils/buffer';
 
 const MAT4X4_BYTES = 64;

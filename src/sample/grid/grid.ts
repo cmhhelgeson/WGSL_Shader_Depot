@@ -1,6 +1,6 @@
 import fullscreenVertWGSL from '../../shaders/fullscreenWebGL.vert.wgsl';
 import { createBindGroupDescriptor } from '../../utils/bindGroup';
-import { Base2DRendererClass, BaseRenderer } from '../../utils/renderProgram';
+import { Base2DRendererClass, BaseRenderer } from '../../utils/program/renderProgram';
 import gridFragWGSL from './grid.frag.wgsl';
 import gridDebugFragWGSL from './gridDebug.frag.wgsl';
 

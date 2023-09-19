@@ -1,4 +1,4 @@
-import { convertVertexFormatToBytes, createVBuffers } from '../renderProgram';
+import { convertVertexFormatToBytes, createVBuffers } from '../program/renderProgram';
 
 const formats: GPUVertexFormat[] = [
   'float32',

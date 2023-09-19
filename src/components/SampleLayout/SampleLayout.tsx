@@ -16,7 +16,7 @@ import styles from './SampleLayout.module.scss';
 import { useAppDispatch, useAppSelector } from '../../features/store';
 import { changeDebugExplanations } from '../../features/debugInfo/debugInfoSlice';
 import { useImmer } from 'use-immer';
-import { FullScreenVertexShaderType } from '../../utils/renderProgram';
+import { FullScreenVertexShaderType } from '../../utils/program/renderProgram';
 
 type SourceFileInfo = {
   name: string;

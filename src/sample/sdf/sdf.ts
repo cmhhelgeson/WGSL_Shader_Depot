@@ -1,6 +1,6 @@
 import { createBindGroupDescriptor } from '../../utils/bindGroup';
-import { BaseRenderer, create2DVertexModule } from '../../utils/renderProgram';
-import { Base2DRendererClass } from '../../utils/renderProgram';
+import { BaseRenderer, create2DVertexModule } from '../../utils/program/renderProgram';
+import { Base2DRendererClass } from '../../utils/program/renderProgram';
 import SDFFragWGSL from './sdf.frag.wgsl';
 import SDFFragDebugWGSL from './sdfDebug.frag.wgsl';
 

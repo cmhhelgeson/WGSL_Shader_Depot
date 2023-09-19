@@ -2,9 +2,9 @@ import {
   BindGroupDescriptor,
   createBindGroupDescriptor,
 } from '../../utils/bindGroup';
-import { Base2DRendererClass } from '../../utils/renderProgram';
+import { Base2DRendererClass } from '../../utils/program/renderProgram';
 import { ShaderKeyInterface } from '../../utils/shaderUtils';
-import { BitonicDisplayShader, argKeys } from './render';
+import { BitonicDisplayShader, argKeys } from './renderShader';
 
 type BitonicDisplayRenderArgs = ShaderKeyInterface<typeof argKeys>;
 
