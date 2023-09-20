@@ -6,7 +6,7 @@ import { MutableRefObject, useEffect, useMemo, useRef, useState } from 'react';
 import type { GUI } from 'dat.gui';
 import type { Stats } from 'stats-js';
 import { motion, useAnimation } from 'framer-motion';
-import { canvasVariants, AnimationKeysType } from './SampleLayoutTypes';
+import { canvasVariants, AnimationKeysType, debugAreaVariants } from './SampleLayoutTypes';
 import type { Editor, EditorConfiguration } from 'codemirror';
 interface CodeMirrorEditor extends Editor {
   updatedSource: (source: string) => void;
@@ -16,7 +16,7 @@ import styles from './SampleLayout.module.scss';
 import { useAppDispatch, useAppSelector } from '../../features/store';
 import { changeDebugExplanations } from '../../features/debugInfo/debugInfoSlice';
 import { useImmer } from 'use-immer';
-import { FullScreenVertexShaderType } from '../../utils/renderProgram';
+import { FullScreenVertexShaderType } from '../../utils/program/renderProgram';
 
 type SourceFileInfo = {
   name: string;
@@ -198,10 +198,15 @@ const SampleLayout: React.FunctionComponent<
   const canvasAnimControls = useAnimation();
   const debugButtonLeftAnimController = useAnimation();
   const debugButtonRightAnimController = useAnimation();
+  const debugAreaAnimController = useAnimation()
+  const animControllers = {
+    debugArea: debugAreaAnimController,
+  }
   const [animationKeys, setAnimationKeys] = useImmer<AnimationKeysType>({
     canvas: '',
     debugButtonLeft: '',
     debugButtonRight: '',
+    debugArea: 'appearBelow',
   });
 
   useEffect(() => {
@@ -226,7 +231,11 @@ const SampleLayout: React.FunctionComponent<
 
   useEffect(() => {
     debugButtonRightAnimController.start(animationKeys.debugButtonRight)
-  }, [animationKeys.debugButtonRight, debugButtonRightAnimController])
+  }, [animationKeys.debugButtonRight, debugButtonRightAnimController]);
+
+  useEffect(() => {
+    debugAreaAnimController.start(animationKeys.debugArea)
+  }, [animationKeys.debugArea, debugAreaAnimController]);
 
   const onIncrementDebugStep = () => {
     if (debugStep === debugExplanations.length - 1) {
@@ -249,7 +258,6 @@ const SampleLayout: React.FunctionComponent<
   const [activeHash, setActiveHash] = useState<string | null>(null);
 
   const handleKeyDown = (e: KeyboardEvent) => {
-    console.log(e.key)
     switch(e.key) {
       case 'ArrowLeft':
       case 'A':
@@ -440,41 +448,25 @@ const SampleLayout: React.FunctionComponent<
           </div>      
         </div>
       ) : (
-        <div
-          style={{
-            display: 'flex',
-            backgroundColor: 'darkblue',
-            width: 'auto',
-            textAlign: 'center',
-            justifyContent: 'center',
-            marginTop: '10px',
-            fontSize: '20px',
-            height: 'auto',
-          }}
-        >
-          <motion.div
-            style={{
-              alignItems: 'center',
-              marginTop: '4px',
-              textShadow: '2px 2px 2px 2px black',
-              marginRight: '2px',
-              height: 'auto',
-              textDecoration: `${hoverDebug ? 'underline' : 'none'}`,
-              cursor: 'pointer',
-            }}
-            onHoverStart={() => {
-              setHoverDebug(true);
-            }}
-            onHoverEnd={() => {
-              setHoverDebug(false);
-            }}
-            onClick={() => {
-              setDebugOn(true);
-              //debugOnRef.current = true;
-            }}
+        <div style={{marginTop: '10px'}}>
+          <motion.div 
+            className={styles.DebugArea} 
+            variants={debugAreaVariants}
+            animate={animControllers.debugArea}
           >
-            {'(Open Debug)'}
-          </motion.div>
+            <div className={styles.DebugArea__Block}>
+              <div style={{display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'center'}}>
+                <div 
+                  onClick={() => setDebugOn(true)} 
+                  onMouseEnter={() => setHoverDebug(true)}
+                  onMouseLeave={() => setHoverDebug(false)}
+                  style={{padding: '5px', textAlign: 'center', textDecoration: hoverDebug ? 'underline' : 'none'}}
+                >
+                  {'(Open Debug)'}
+                </div>
+              </div>
+            </div>
+          </motion.div>      
         </div>
       )}
       <div>

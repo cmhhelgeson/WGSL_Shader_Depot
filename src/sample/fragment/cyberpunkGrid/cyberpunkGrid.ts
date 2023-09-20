@@ -1,18 +1,20 @@
-import { createBindGroupDescriptor } from '../../utils/bindGroup';
-import { Base2DRendererClass } from '../../utils/program/renderProgram';
-import { SDFCircleShader, argKeys } from './shader';
-import { ShaderKeyInterface } from '../../utils/shaderUtils';
+import { createBindGroupDescriptor } from '../../../utils/bindGroup';
+import { Base2DRendererClass } from '../../../utils/program/renderProgram';
+import CyberpunkCommonsWGSL from './cyberpunk_commons.wgsl';
+import { CyberpunkGridShader } from './shader';
+import { argKeys } from './shader';
+import { ShaderKeyInterface } from '../../../utils/shaderUtils';
 
-type SDFCircleRendererArgs = ShaderKeyInterface<typeof argKeys>;
+type CyberpunkGridRenderArgs = ShaderKeyInterface<typeof argKeys>;
 
-export default class SDFCircleRenderer extends Base2DRendererClass {
+export default class CyberpunkGridRenderer extends Base2DRendererClass {
   static sourceInfo = {
     name: __filename.substring(__dirname.length + 1),
     contents: __SOURCE__,
   };
 
   switchBindGroup: (name: string) => void;
-  setArguments: (args: SDFCircleRendererArgs) => void;
+  changeArgs: (args: CyberpunkGridRenderArgs) => void;
 
   constructor(
     device: GPUDevice,
@@ -30,12 +32,14 @@ export default class SDFCircleRenderer extends Base2DRendererClass {
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
+    const resourceArr = [[{ buffer: uniformBuffer }]];
+
     const bgDescript = createBindGroupDescriptor(
       [0],
       [GPUShaderStage.FRAGMENT],
       ['buffer'],
       [{ type: 'uniform' }],
-      [[{ buffer: uniformBuffer }]],
+      resourceArr,
       label,
       device
     );
@@ -53,23 +57,23 @@ export default class SDFCircleRenderer extends Base2DRendererClass {
       device,
       label,
       [bgDescript.bindGroupLayout],
-      'NDCFlipped',
-      SDFCircleShader(debug),
+      'WEBGL',
+      CyberpunkGridShader(debug) + CyberpunkCommonsWGSL,
       presentationFormat
     );
+
+    this.changeArgs = (args: CyberpunkGridRenderArgs) => {
+      super.setUniformArguments(device, uniformBuffer, args, argKeys);
+    };
 
     this.switchBindGroup = (name: string) => {
       this.currentBindGroup = this.bindGroupMap[name];
       this.currentBindGroupName = name;
     };
-
-    this.setArguments = (args: SDFCircleRendererArgs) => {
-      super.setUniformArguments(device, uniformBuffer, args, argKeys);
-    };
   }
 
-  startRun(commandEncoder: GPUCommandEncoder, args: SDFCircleRendererArgs) {
-    this.setArguments(args);
+  startRun(commandEncoder: GPUCommandEncoder, args: CyberpunkGridRenderArgs) {
+    this.changeArgs(args);
     super.executeRun(commandEncoder, this.renderPassDescriptor, this.pipeline, [
       this.currentBindGroup,
     ]);

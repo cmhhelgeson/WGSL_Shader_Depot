@@ -1,29 +1,34 @@
-import { createBindGroupDescriptor } from '../../utils/bindGroup';
-import { Base2DRendererClass } from '../../utils/program/renderProgram';
-import { SDFCircleShader, argKeys } from './shader';
-import { ShaderKeyInterface } from '../../utils/shaderUtils';
+import {
+  BindGroupDescriptor,
+  createBindGroupDescriptor,
+} from '../../../utils/bindGroup';
+import { Base2DRendererClass } from '../../../utils/program/renderProgram';
+import { ShaderKeyInterface } from '../../../utils/shaderUtils';
+import { BitonicDisplayShader, argKeys } from './renderShader';
 
-type SDFCircleRendererArgs = ShaderKeyInterface<typeof argKeys>;
+type BitonicDisplayRenderArgs = ShaderKeyInterface<typeof argKeys>;
 
-export default class SDFCircleRenderer extends Base2DRendererClass {
+export default class BitonicDisplayRenderer extends Base2DRendererClass {
   static sourceInfo = {
     name: __filename.substring(__dirname.length + 1),
     contents: __SOURCE__,
   };
 
   switchBindGroup: (name: string) => void;
-  setArguments: (args: SDFCircleRendererArgs) => void;
+  setArguments: (args: BitonicDisplayRenderArgs) => void;
+  computeBGDescript: BindGroupDescriptor;
 
   constructor(
     device: GPUDevice,
     presentationFormat: GPUTextureFormat,
     renderPassDescriptor: GPURenderPassDescriptor,
     bindGroupNames: string[],
-    label: string,
-    debug = false
+    computeBGDescript: BindGroupDescriptor,
+    label: string
   ) {
     super();
     this.renderPassDescriptor = renderPassDescriptor;
+    this.computeBGDescript = computeBGDescript;
 
     const uniformBuffer = device.createBuffer({
       size: Float32Array.BYTES_PER_ELEMENT * argKeys.length,
@@ -52,9 +57,9 @@ export default class SDFCircleRenderer extends Base2DRendererClass {
     this.pipeline = super.create2DRenderPipeline(
       device,
       label,
-      [bgDescript.bindGroupLayout],
-      'NDCFlipped',
-      SDFCircleShader(debug),
+      [bgDescript.bindGroupLayout, this.computeBGDescript.bindGroupLayout],
+      'WEBGL',
+      BitonicDisplayShader(),
       presentationFormat
     );
 
@@ -63,15 +68,16 @@ export default class SDFCircleRenderer extends Base2DRendererClass {
       this.currentBindGroupName = name;
     };
 
-    this.setArguments = (args: SDFCircleRendererArgs) => {
+    this.setArguments = (args: BitonicDisplayRenderArgs) => {
       super.setUniformArguments(device, uniformBuffer, args, argKeys);
     };
   }
 
-  startRun(commandEncoder: GPUCommandEncoder, args: SDFCircleRendererArgs) {
+  startRun(commandEncoder: GPUCommandEncoder, args: BitonicDisplayRenderArgs) {
     this.setArguments(args);
     super.executeRun(commandEncoder, this.renderPassDescriptor, this.pipeline, [
       this.currentBindGroup,
+      this.computeBGDescript.bindGroups[0],
     ]);
   }
 }

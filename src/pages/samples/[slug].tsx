@@ -10,36 +10,46 @@ type Props = {
 };
 
 export const pages = {
-  simpleVertex: dynamic(() => import('../../sample/simpleVertex/main')),
-  normalMapping: dynamic(() => import('../../sample/normalMapping/main')),
-  comanche: dynamic(() => import('../../sample/comancheVoxel/main')),
-  mixExample: dynamic(() => import('../../sample/mixExample/main')),
-  CRT: dynamic(() => import('../../sample/crt/main')),
-  grid: dynamic(() => import('../../sample/grid/main')),
-  cyberpunkGrid: dynamic(() => import('../../sample/cyberpunkGrid/main')),
-  gltf: dynamic(() => import('../../sample/gltfViewer/main')),
-  computeBalls: dynamic(() => import('../../sample/computeBalls/main')),
+  simpleVertex: dynamic(() => import('../../sample/vertex/simpleVertex/main')),
+  normalMapping: dynamic(
+    () => import('../../sample/vertex/normalMapping/main')
+  ),
+  comanche: dynamic(() => import('../../sample/fragment/comancheVoxel/main')),
+  mixExample: dynamic(() => import('../../sample/fragment/mixExample/main')),
+  CRT: dynamic(() => import('../../sample/fragment/crt/main')),
+  grid: dynamic(() => import('../../sample/fragment/grid/main')),
+  cyberpunkGrid: dynamic(
+    () => import('../../sample/fragment/cyberpunkGrid/main')
+  ),
+  gltf: dynamic(() => import('../../sample/vertex/gltfViewer/main')),
+  computeBalls: dynamic(() => import('../../sample/compute/computeBalls/main')),
   micrograd: dynamic(() => import('../../sample/micrograd/main')),
-  complexCRT: dynamic(() => import('../../sample/complexCRT/main')),
+  complexCRT: dynamic(() => import('../../sample/fragment/complexCRT/main')),
   sdfCircle: dynamic(() => import('../../sample/sdfCircle/main')),
+  bitonicSort: dynamic(() => import('../../sample/compute/bitonicSort/main')),
 };
 
 export const fragmentPages = {
-  mixExample: dynamic(() => import('../../sample/mixExample/main')),
-  CRT: dynamic(() => import('../../sample/crt/main')),
-  grid: dynamic(() => import('../../sample/grid/main')),
-  cyberpunkGrid: dynamic(() => import('../../sample/cyberpunkGrid/main')),
-  complexCRT: dynamic(() => import('../../sample/complexCRT/main')),
+  mixExample: dynamic(() => import('../../sample/fragment/mixExample/main')),
+  CRT: dynamic(() => import('../../sample/fragment/crt/main')),
+  grid: dynamic(() => import('../../sample/fragment/grid/main')),
+  cyberpunkGrid: dynamic(
+    () => import('../../sample/fragment/cyberpunkGrid/main')
+  ),
+  complexCRT: dynamic(() => import('../../sample/fragment/complexCRT/main')),
 };
 
 export const vertexPages = {
-  gltf: dynamic(() => import('../../sample/gltfViewer/main')),
-  simpleVertex: dynamic(() => import('../../sample/simpleVertex/main')),
-  normalMapping: dynamic(() => import('../../sample/normalMapping/main')),
+  gltf: dynamic(() => import('../../sample/vertex/gltfViewer/main')),
+  simpleVertex: dynamic(() => import('../../sample/vertex/simpleVertex/main')),
+  normalMapping: dynamic(
+    () => import('../../sample/vertex/normalMapping/main')
+  ),
 };
 
 export const computePages = {
-  computeBalls: dynamic(() => import('../../sample/computeBalls/main')),
+  computeBalls: dynamic(() => import('../../sample/compute/computeBalls/main')),
+  bitonicSort: dynamic(() => import('../../sample/compute/bitonicSort/main')),
 };
 
 function Page({ slug }: Props): JSX.Element {

@@ -177,7 +177,6 @@ export const createDebugStepAreaCollection = (steps: Step[]): string => {
     );
     stepsCompleted = stepsCompleted + exps.length;
   }
-  console.log(retString);
   return retString;
 };
 

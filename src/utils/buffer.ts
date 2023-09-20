@@ -1,42 +1,71 @@
-import { ArrayLike } from 'wgpu-matrix/dist/1.x/array-like';
-
-export const writeToF32Buffer = (
-  arrayLikes: ArrayLike[],
-  numberLikes: Float32Array,
+/**
+ * @param {GPUDevice} device - The GPU performing each buffer write.
+ * @param {GPUBuffer} buffer-  The buffer we are filling with data.
+ * @param {Float32Array[]} mat4Arr - An array of multiple 4x4 matrices.
+ * @returns {string} An offset designating the end of the region that was written to within the buffer.
+ */
+export const writeMat4ToBuffer = (
+  device: GPUDevice,
   buffer: GPUBuffer,
-  device: GPUDevice
-) => {
-  let ele = arrayLikes[0] as Float32Array;
-  device.queue.writeBuffer(
-    buffer,
-    0,
-    ele.buffer,
-    ele.byteOffset,
-    ele.byteLength
-  );
-  let writtenBufferSize =
-    (arrayLikes[0].length === 3 ? 4 : arrayLikes[0].length) *
-    Float32Array.BYTES_PER_ELEMENT;
-
-  for (let i = 1; i < arrayLikes.length; i++) {
-    ele = arrayLikes[i] as Float32Array;
+  mat4Arr: Float32Array[],
+  offset = 0
+): number => {
+  for (let i = 0; i < mat4Arr.length; i++) {
     device.queue.writeBuffer(
       buffer,
-      writtenBufferSize,
-      ele.buffer,
-      ele.byteOffset,
-      ele.byteLength
+      offset + 64 * i,
+      mat4Arr[i].buffer,
+      mat4Arr[i].byteOffset,
+      mat4Arr[i].byteLength
     );
-    writtenBufferSize +=
-      (arrayLikes[i].length === 3 ? 4 : arrayLikes[i].length) *
-      Float32Array.BYTES_PER_ELEMENT;
   }
+  return 64 * mat4Arr.length;
+};
 
-  device.queue.writeBuffer(
-    buffer,
-    writtenBufferSize,
-    numberLikes.buffer,
-    numberLikes.byteOffset,
-    numberLikes.byteLength
-  );
+/**
+ * @param {GPUDevice} device - The GPU performing each buffer write.
+ * @param {GPUBuffer} buffer-  The buffer we are filling with data.
+ * @param {Float32Array[]} mat4Arr - An array of f32 values.
+ * @returns {string} An offset designating the end of the region that was written to within the buffer.
+ */
+export const write32ToBuffer = (
+  device: GPUDevice,
+  buffer: GPUBuffer,
+  arr: (Float32Array | Uint32Array)[],
+  offset = 0
+) => {
+  for (let i = 0; i < arr.length; i++) {
+    device.queue.writeBuffer(
+      buffer,
+      offset + 4 * i,
+      arr[i].buffer,
+      arr[i].byteOffset,
+      arr[i].byteLength
+    );
+  }
+  return 4 * arr.length;
+};
+
+/**
+ * @param {GPUDevice} device - The GPU performing each buffer write.
+ * @param {GPUBuffer} buffer-  The buffer we are filling with data.
+ * @param {Float32Array[]} arr - An array of vec2<f32> values.
+ * @returns {string} An offset designating the end of the region that was written to within the buffer.
+ */
+export const write32x2ToBuffer = (
+  device: GPUDevice,
+  buffer: GPUBuffer,
+  arr: (Float32Array | Uint32Array)[],
+  offset = 0
+) => {
+  for (let i = 0; i < arr.length; i++) {
+    device.queue.writeBuffer(
+      buffer,
+      offset + 8 * i,
+      arr[i].buffer,
+      arr[i].byteOffset,
+      arr[i].byteLength
+    );
+  }
+  return 4 * arr.length;
 };

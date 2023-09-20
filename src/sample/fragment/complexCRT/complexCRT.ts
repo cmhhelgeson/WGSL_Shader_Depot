@@ -1,24 +1,27 @@
-import { createBindGroupDescriptor } from '../../utils/bindGroup';
-import { Base2DRendererClass } from '../../utils/program/renderProgram';
-import { SDFCircleShader, argKeys } from './shader';
-import { ShaderKeyInterface } from '../../utils/shaderUtils';
+import { createBindGroupDescriptor } from '../../../utils/bindGroup';
+import { Base2DRendererClass } from '../../../utils/program/renderProgram';
+import { ComplexCRTShader, argKeys } from './shader';
+import { ShaderKeyInterface } from '../../../utils/shaderUtils';
 
-type SDFCircleRendererArgs = ShaderKeyInterface<typeof argKeys>;
+type ComplexCRTRendererArgs = ShaderKeyInterface<typeof argKeys> & {
+  textureName: string;
+};
 
-export default class SDFCircleRenderer extends Base2DRendererClass {
+export default class ComplexCRTRenderer extends Base2DRendererClass {
   static sourceInfo = {
     name: __filename.substring(__dirname.length + 1),
     contents: __SOURCE__,
   };
 
   switchBindGroup: (name: string) => void;
-  setArguments: (args: SDFCircleRendererArgs) => void;
+  setArguments: (args: Exclude<ComplexCRTRendererArgs, 'textureName'>) => void;
 
   constructor(
     device: GPUDevice,
     presentationFormat: GPUTextureFormat,
     renderPassDescriptor: GPURenderPassDescriptor,
     bindGroupNames: string[],
+    textures: GPUTexture[],
     label: string,
     debug = false
   ) {
@@ -30,12 +33,21 @@ export default class SDFCircleRenderer extends Base2DRendererClass {
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
+    const sampler = device.createSampler({
+      minFilter: 'linear',
+      magFilter: 'linear',
+    });
+
+    const resourceArr = textures.map((texture) => {
+      return [{ buffer: uniformBuffer }, sampler, texture.createView()];
+    });
+
     const bgDescript = createBindGroupDescriptor(
-      [0],
+      [0, 1, 2],
       [GPUShaderStage.FRAGMENT],
-      ['buffer'],
-      [{ type: 'uniform' }],
-      [[{ buffer: uniformBuffer }]],
+      ['buffer', 'sampler', 'texture'],
+      [{ type: 'uniform' }, { type: 'filtering' }, { sampleType: 'float' }],
+      resourceArr,
       label,
       device
     );
@@ -54,7 +66,7 @@ export default class SDFCircleRenderer extends Base2DRendererClass {
       label,
       [bgDescript.bindGroupLayout],
       'NDCFlipped',
-      SDFCircleShader(debug),
+      ComplexCRTShader(debug),
       presentationFormat
     );
 
@@ -63,13 +75,16 @@ export default class SDFCircleRenderer extends Base2DRendererClass {
       this.currentBindGroupName = name;
     };
 
-    this.setArguments = (args: SDFCircleRendererArgs) => {
+    this.setArguments = (args: ComplexCRTRendererArgs) => {
       super.setUniformArguments(device, uniformBuffer, args, argKeys);
     };
   }
 
-  startRun(commandEncoder: GPUCommandEncoder, args: SDFCircleRendererArgs) {
+  startRun(commandEncoder: GPUCommandEncoder, args: ComplexCRTRendererArgs) {
     this.setArguments(args);
+    if (args.textureName !== this.currentBindGroupName) {
+      this.switchBindGroup(args.textureName);
+    }
     super.executeRun(commandEncoder, this.renderPassDescriptor, this.pipeline, [
       this.currentBindGroup,
     ]);

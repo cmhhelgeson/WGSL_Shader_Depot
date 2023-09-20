@@ -427,9 +427,6 @@ export class GLTFPrimitive {
       },
     };
 
-    console.log('New Pipeline');
-    console.log(rpDescript);
-
     this.renderPipeline = device.createRenderPipeline(rpDescript);
   }
 
@@ -641,8 +638,6 @@ export const convertGLBToJSONAndBinary = async (
     )
   );
 
-  console.log(jsonChunk);
-
   const binaryHeader = new Uint32Array(
     buffer,
     20 + jsonHeader.getUint32(12, true),
@@ -714,7 +709,6 @@ export const convertGLBToJSONAndBinary = async (
     accessors.push(new GLTFAccessor(bufferViews[viewID], accessorInfo));
   }
 
-  console.log(`glTF file has ${jsonChunk.meshes.length} meshes`);
   // Load the first mesh
   const meshes: GLTFMesh[] = [];
   for (let i = 0; i < jsonChunk.meshes.length; i++) {
