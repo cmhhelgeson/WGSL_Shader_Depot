@@ -10,8 +10,10 @@ type Props = {
 };
 
 export const pages = {
-  simpleVertex: dynamic(() => import('../../sample/simpleVertex/main')),
-  normalMapping: dynamic(() => import('../../sample/normalMapping/main')),
+  simpleVertex: dynamic(() => import('../../sample/vertex/simpleVertex/main')),
+  normalMapping: dynamic(
+    () => import('../../sample/vertex/normalMapping/main')
+  ),
   comanche: dynamic(() => import('../../sample/fragment/comancheVoxel/main')),
   mixExample: dynamic(() => import('../../sample/fragment/mixExample/main')),
   CRT: dynamic(() => import('../../sample/fragment/crt/main')),
@@ -19,7 +21,7 @@ export const pages = {
   cyberpunkGrid: dynamic(
     () => import('../../sample/fragment/cyberpunkGrid/main')
   ),
-  gltf: dynamic(() => import('../../sample/gltfViewer/main')),
+  gltf: dynamic(() => import('../../sample/vertex/gltfViewer/main')),
   computeBalls: dynamic(() => import('../../sample/compute/computeBalls/main')),
   micrograd: dynamic(() => import('../../sample/micrograd/main')),
   complexCRT: dynamic(() => import('../../sample/fragment/complexCRT/main')),
@@ -38,9 +40,11 @@ export const fragmentPages = {
 };
 
 export const vertexPages = {
-  gltf: dynamic(() => import('../../sample/gltfViewer/main')),
-  simpleVertex: dynamic(() => import('../../sample/simpleVertex/main')),
-  normalMapping: dynamic(() => import('../../sample/normalMapping/main')),
+  gltf: dynamic(() => import('../../sample/vertex/gltfViewer/main')),
+  simpleVertex: dynamic(() => import('../../sample/vertex/simpleVertex/main')),
+  normalMapping: dynamic(
+    () => import('../../sample/vertex/normalMapping/main')
+  ),
 };
 
 export const computePages = {

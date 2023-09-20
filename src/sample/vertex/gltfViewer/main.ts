@@ -1,7 +1,7 @@
 /* eslint-disable prettier/prettier */
-import { makeSample, SampleInit } from '../../components/SampleLayout/SampleLayout';
-import { createBindGroupDescriptor } from '../../utils/bindGroup';
-import { convertGLBToJSONAndBinary } from '../../utils/glbUtils';
+import { makeSample, SampleInit } from '../../../components/SampleLayout/SampleLayout';
+import { createBindGroupDescriptor } from '../../../utils/bindGroup';
+import { convertGLBToJSONAndBinary } from '../../../utils/glbUtils';
 import gltfVertWGSL from './gltf.vert.wgsl';
 import gltfFragWGSL from './gltf.frag.wgsl';
 import { mat4, vec3 } from 'wgpu-matrix';

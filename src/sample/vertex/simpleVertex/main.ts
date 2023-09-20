@@ -1,10 +1,10 @@
 /* eslint-disable prettier/prettier */
 import { mat4, vec3 } from 'wgpu-matrix';
-import { makeSample, SampleInit } from '../../components/SampleLayout/SampleLayout';
-import { createSphereMesh, SphereLayout } from '../../meshes/sphere';
+import { makeSample, SampleInit } from '../../../components/SampleLayout/SampleLayout';
+import { createSphereMesh, SphereLayout } from '../../../meshes/sphere';
 
 import meshWGSL from './mesh.wgsl';
-import { SampleInitFactoryWebGPU } from '../../components/SampleLayout/SampleLayoutUtils';
+import { SampleInitFactoryWebGPU } from '../../../components/SampleLayout/SampleLayoutUtils';
 
 interface Renderable {
   vertices: GPUBuffer;

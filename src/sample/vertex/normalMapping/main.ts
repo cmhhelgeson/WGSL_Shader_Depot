@@ -2,15 +2,15 @@ import { mat4, vec3 } from 'wgpu-matrix';
 import {
   makeSample,
   SampleInit,
-} from '../../components/SampleLayout/SampleLayout';
+} from '../../../components/SampleLayout/SampleLayout';
 import normalMapWGSL from './normalMap.wgsl';
-import { createMeshRenderable } from '../../meshes/mesh';
-import { createBoxMeshWithTangents } from '../../meshes/box';
-import { SampleInitFactoryWebGPU } from '../../components/SampleLayout/SampleLayoutUtils';
-import { createTextureFromImage } from '../../utils/texture';
-import { createBindGroupDescriptor } from '../../utils/bindGroup';
-import { create3DRenderPipeline } from '../../utils/program/renderProgram';
-import { write32ToBuffer, writeMat4ToBuffer } from '../../utils/buffer';
+import { createMeshRenderable } from '../../../meshes/mesh';
+import { createBoxMeshWithTangents } from '../../../meshes/box';
+import { SampleInitFactoryWebGPU } from '../../../components/SampleLayout/SampleLayoutUtils';
+import { createTextureFromImage } from '../../../utils/texture';
+import { createBindGroupDescriptor } from '../../../utils/bindGroup';
+import { create3DRenderPipeline } from '../../../utils/program/renderProgram';
+import { write32ToBuffer, writeMat4ToBuffer } from '../../../utils/buffer';
 
 const MAT4X4_BYTES = 64;
 
