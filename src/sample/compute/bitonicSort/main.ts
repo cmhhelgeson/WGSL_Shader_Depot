@@ -389,7 +389,10 @@ const bitonicSortExample: () => JSX.Element = () =>
       {
         name: './bitonicDisplay.frag.wgsl',
         contents: BitonicDisplayShader(),
-        editable: true,
+      },
+      {
+        name: './bitonicCompute.frag.wgsl',
+        contents: NaiveBitonicCompute(16),
       },
     ],
     filename: __filename,
