@@ -40,6 +40,7 @@ interface SettingsInterface {
   executeStep: boolean;
   'Randomize Values': () => void;
   'Execute Sort Step': () => void;
+  'Log Elements': () => void;
 }
 
 let init: SampleInit;
@@ -77,6 +78,9 @@ SampleInitFactoryWebGPU(
         return;
       },
       'Execute Sort Step': () => {
+        return;
+      },
+      'Log Elements': () => {
         return;
       },
     };
@@ -219,6 +223,7 @@ SampleInitFactoryWebGPU(
       settings.executeStep = true;
     });
     gui.add(settings, 'Randomize Values').onChange(randomizeElementArray);
+    gui.add(settings, 'Log Elements').onChange(() => console.log(elements));
     const executionInformationFolder = gui.addFolder('Execution Information');
     const prevStepCell = executionInformationFolder.add(settings, 'Prev Step');
     const nextStepCell = executionInformationFolder.add(settings, 'Next Step');
@@ -265,17 +270,23 @@ SampleInitFactoryWebGPU(
         elements.byteLength
       );
 
-      //Write compute Uniforms
+      const dims = new Float32Array([
+        settings.widthInCells,
+        settings.heightInCells,
+      ]);
+      const stepDetails = new Uint32Array([
+        StepEnum[settings['Next Step']],
+        settings['Next Block Height'],
+      ]);
       device.queue.writeBuffer(
         computeUniformsBuffer,
         0,
-        new Float32Array([
-          settings.widthInCells,
-          settings.heightInCells,
-          StepEnum[settings['Next Step']],
-          settings['Next Block Height'],
-        ])
+        dims.buffer,
+        dims.byteOffset,
+        dims.byteLength
       );
+
+      device.queue.writeBuffer(computeUniformsBuffer, 8, stepDetails);
 
       renderPassDescriptor.colorAttachments[0].view = context
         .getCurrentTexture()
@@ -294,6 +305,7 @@ SampleInitFactoryWebGPU(
         computePassEncoder.setPipeline(computePipeline);
         computePassEncoder.setBindGroup(0, computeBGDescript.bindGroups[0]);
         computePassEncoder.dispatchWorkgroups(1);
+        computePassEncoder.end();
 
         prevStepCell.setValue(settings['Next Step']);
         prevBlockHeightCell.setValue(settings['Next Block Height']);
@@ -332,7 +344,10 @@ SampleInitFactoryWebGPU(
           0,
           elementsBufferSize
         );
-        const data = copyElementsBuffer.slice(0);
+        const data = copyElementsBuffer.slice(
+          0,
+          Uint32Array.BYTES_PER_ELEMENT * settings.elements
+        );
         const output = new Uint32Array(data);
         elementsStagingBuffer.unmap();
         elements = output;

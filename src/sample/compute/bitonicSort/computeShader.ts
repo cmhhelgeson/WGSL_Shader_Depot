@@ -65,13 +65,13 @@ fn computeMain(
   var num_elements = uniforms.width * uniforms.height;
 
   switch uniforms.algo {
-    case 0: { //Local Flip
+    case 1: { //Local Flip
       prepare_flip(local_id.x, uniforms.blockHeight);
     }
-    case 1: { //Local Disperse
+    case 2: { //Local Disperse
       prepare_disperse(local_id.x, uniforms.blockHeight);
     }
-    case 2, default: { //Local Flip and Disperse
+    case 3, default: { //Local Flip and Disperse
       prepare_flip_and_disperse(local_id.x, uniforms.blockHeight);
     }
   }
