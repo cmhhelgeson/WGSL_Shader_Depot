@@ -51,7 +51,7 @@ SampleInitFactoryWebGPU(
     {
       const response = await fetch(
         new URL(
-          '../../../assets/img/toy_box_diffuse.png',
+          '../../../../assets/img/toy_box_diffuse.png',
           import.meta.url
         ).toString()
       );
@@ -63,7 +63,7 @@ SampleInitFactoryWebGPU(
     {
       const response = await fetch(
         new URL(
-          '../../../assets/img/toy_box_normal.png',
+          '../../../../assets/img/toy_box_normal.png',
           import.meta.url
         ).toString()
       );
@@ -75,7 +75,7 @@ SampleInitFactoryWebGPU(
     {
       const response = await fetch(
         new URL(
-          '../../../assets/img/toy_box_disp.png',
+          '../../../../assets/img/toy_box_disp.png',
           import.meta.url
         ).toString()
       );
@@ -262,9 +262,9 @@ const NormalMapping: () => JSX.Element = () =>
         editable: true,
       },
       {
-        name: '../../meshes/cube.ts',
+        name: '../../../meshes/cube.ts',
         // eslint-disable-next-line @typescript-eslint/no-var-requires
-        contents: require('!!raw-loader!../../meshes/cube.ts').default,
+        contents: require('!!raw-loader!../../../meshes/cube.ts').default,
       },
     ],
     filename: __filename,

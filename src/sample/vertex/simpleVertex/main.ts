@@ -108,7 +108,7 @@ SampleInitFactoryWebGPU(
   let planetTexture: GPUTexture;
   {
     const response = await fetch(
-      new URL('../../../assets/img/saturn.jpg', import.meta.url).toString()
+      new URL('../../../../assets/img/saturn.jpg', import.meta.url).toString()
     );
     const imageBitmap = await createImageBitmap(await response.blob());
 
@@ -130,7 +130,7 @@ SampleInitFactoryWebGPU(
   let moonTexture: GPUTexture;
   {
     const response = await fetch(
-      new URL('../../../assets/img/moon.jpg', import.meta.url).toString()
+      new URL('../../../../assets/img/moon.jpg', import.meta.url).toString()
     );
     const imageBitmap = await createImageBitmap(await response.blob());
 
@@ -426,9 +426,9 @@ const VertexDeformation: () => JSX.Element = () =>
         editable: true,
       },
       {
-        name: '../../meshes/sphere.ts',
+        name: '../../../meshes/sphere.ts',
         // eslint-disable-next-line @typescript-eslint/no-var-requires
-        contents: require('!!raw-loader!../../meshes/sphere.ts').default,
+        contents: require('!!raw-loader!../../../meshes/sphere.ts').default,
       },
     ],
     filename: __filename,
