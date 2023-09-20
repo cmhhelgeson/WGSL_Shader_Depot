@@ -1,9 +1,10 @@
 export const computeArgKeys = ['width', 'height', 'algo', 'blockHeight'];
 
-export const NaiveBitonicCompute = (workgroupSize: number) => {
-  if (workgroupSize % 2 !== 0 || workgroupSize > 256) {
-    workgroupSize = 256;
+export const NaiveBitonicCompute = (threadsPerWorkgroup: number) => {
+  if (threadsPerWorkgroup % 2 !== 0 || threadsPerWorkgroup > 256) {
+    threadsPerWorkgroup = 256;
   }
+  console.log(threadsPerWorkgroup);
   //Ensure that workgroupSize is half the number of elements
   return `
 
@@ -14,32 +15,40 @@ struct Uniforms {
   blockHeight: u32,
 }
 
-//Data that is local to the workgroup. Gets reset on each workgroup dispatch
-var<workgroup> local_data: array<u32, ${workgroupSize}>;
+//Create local workgroup data that can contain all elements
+var<workgroup> local_data: array<u32, ${threadsPerWorkgroup * 2}>;
 
 //Swap values in local_data
-fn swap(idx1: u32, idx2: u32) {
-  if (local_data[idx1] < local_data[idx2]) {
-    let temp: u32 = local_data[idx1];
-    local_data[idx1] = local_data[idx2];
-    local_data[idx2] = temp;
+fn swap(idx_before: u32, idx_after: u32) {
+  //idx_before should always be < idx_after
+  if (local_data[idx_after] < local_data[idx_before]) {
+    var temp: u32 = local_data[idx_before];
+    local_data[idx_before] = local_data[idx_after];
+    local_data[idx_after] = temp;
   }
   return;
 }
 
+//thread_id goes from 0 to threadsPerWorkgroup
 fn prepare_flip(thread_id: u32, block_height: u32) {
-  let q: u32 = ((2 * thread_id) / block_height) / block_height;
-  var idx: vec2<u32> = q + vec2<u32>(
-    thread_id % block_height, block_height - (thread_id % block_height)
+  let q: u32 = ((2 * thread_id) / block_height) * block_height;
+  let half_height = block_height / 2;
+  var idx: vec2<u32> = vec2<u32>(
+    thread_id % half_height, block_height - (thread_id % half_height) - 1,
   );
+  idx.x += q;
+  idx.y += q;
   swap(idx.x, idx.y);
 }
 
 fn prepare_disperse(thread_id: u32, block_height: u32) {
   var q: u32 = ((2 * thread_id) / block_height) * block_height;
-	var idx: vec2<u32> = q + vec2<u32>(
-    thread_id % block_height, (thread_id % block_height) + (block_height / 2) 
+  let half_height = block_height / 2;
+	var idx: vec2<u32> = vec2<u32>(
+    thread_id % half_height, (thread_id % half_height) + half_height
   );
+  idx.x += q;
+  idx.y += q;
 	swap(idx.x, idx.y);
 }
 
@@ -47,17 +56,19 @@ fn prepare_flip_and_disperse(thread_id: u32, block_height: u32) {
   swap(0, 0);
 }
 
-@group(0) @binding(0) var<storage, read_write> alpha_data: array<u32>;
-@group(0) @binding(1) var<uniform> uniforms: Uniforms;
+@group(0) @binding(0) var<storage, read> input_data: array<u32>;
+@group(0) @binding(1) var<storage, read_write> output_data: array<u32>;
+@group(0) @binding(2) var<uniform> uniforms: Uniforms;
 
-@compute @workgroup_size(${workgroupSize}, 1, 1)
+//Our compute shader will execute specified # of threads or elements / 2 threads
+@compute @workgroup_size(${threadsPerWorkgroup}, 1, 1)
 fn computeMain(
   @builtin(global_invocation_id) global_id: vec3<u32>,
   @builtin(local_invocation_id) local_id: vec3<u32>,
 ) {
   //Each thread will populate the workgroup data... (1 thread for every 2 elements)
-  local_data[local_id.x * 2] = alpha_data[local_id.x * 2];
-  local_data[local_id.x * 2 + 1] = alpha_data[local_id.x * 2 + 1];
+  local_data[local_id.x * 2] = input_data[local_id.x * 2];
+  local_data[local_id.x * 2 + 1] = input_data[local_id.x * 2 + 1];
 
   //...and wait for each other to finish their own bit of data population.
   workgroupBarrier();
@@ -80,8 +91,8 @@ fn computeMain(
   workgroupBarrier();
 
   //Repopulate global data with local data
-  alpha_data[local_id.x * 2] = local_data[local_id.x * 2];
-  alpha_data[local_id.x * 2 + 1] = local_data[local_id.x * 2 + 1];
+  output_data[local_id.x * 2] = local_data[local_id.x * 2];
+  output_data[local_id.x * 2 + 1] = local_data[local_id.x * 2 + 1];
 
 }`;
 };

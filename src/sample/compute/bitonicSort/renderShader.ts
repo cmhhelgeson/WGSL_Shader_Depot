@@ -18,7 +18,7 @@ struct VertexOutput {
 }
 
 @group(0) @binding(0) var<uniform> uniforms: Uniforms;
-@group(1) @binding(0) var<storage, read_write> data: array<u32>;
+@group(1) @binding(0) var<storage, read> data: array<u32>;
 
 @fragment
 fn fragmentMain(input: VertexOutput) -> @location(0) vec4<f32> {

@@ -8,6 +8,7 @@ import BitonicDisplayRenderer from './display';
 import { BitonicDisplayShader } from './renderShader';
 import { NaiveBitonicCompute } from './computeShader';
 
+//Type of step that will be executed in our shader
 enum StepEnum {
   NONE = 0,
   FLIP_LOCAL = 1,
@@ -18,6 +19,7 @@ enum StepEnum {
   FLIP_DISPERSE_GLOBAL = 6,
 }
 
+//String access to StepEnum
 type StepType =
   | 'NONE'
   | 'FLIP_LOCAL'
@@ -27,6 +29,7 @@ type StepType =
   | 'DISPERSE_GLOBAL'
   | 'FLIP_DISPERSE_GLOBAL';
 
+//Gui settings object
 interface SettingsInterface {
   elements: number;
   widthInCells: number;
@@ -54,9 +57,9 @@ SampleInitFactoryWebGPU(
     }
 
     const settings: SettingsInterface = {
-      //number of cellElements
+      //number of cellElements. Must equal widthInCells * heightInCells and workGroupThreads * 2
       elements: 16,
-      //width of screen in cells
+      //width of screen in cells.
       widthInCells: 4,
       //height of screen in cells
       heightInCells: 4,
@@ -92,13 +95,14 @@ SampleInitFactoryWebGPU(
 
     //Initialize elementsBuffer and elementsStagingBuffer
     const elementsBufferSize = Float32Array.BYTES_PER_ELEMENT * 512;
-    //Initialize buffer to provide elements array to shader
-    const elementsBuffer = device.createBuffer({
+    //Initialize input, output, staging buffers
+    const elementsInputBuffer = device.createBuffer({
       size: elementsBufferSize,
-      usage:
-        GPUBufferUsage.STORAGE |
-        GPUBufferUsage.COPY_SRC |
-        GPUBufferUsage.COPY_DST,
+      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+    });
+    const elementsOutputBuffer = device.createBuffer({
+      size: elementsBufferSize,
+      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
     });
     const elementsStagingBuffer = device.createBuffer({
       size: elementsBufferSize,
@@ -112,19 +116,26 @@ SampleInitFactoryWebGPU(
     });
 
     const computeBGDescript = createBindGroupDescriptor(
-      [0, 1],
+      [0, 1, 2],
       [
         GPUShaderStage.COMPUTE | GPUShaderStage.FRAGMENT,
         GPUShaderStage.COMPUTE,
+        GPUShaderStage.COMPUTE,
       ],
-      ['buffer', 'buffer'],
-      [{ type: 'storage' }, { type: 'uniform' }],
-      [[{ buffer: elementsBuffer }, { buffer: computeUniformsBuffer }]],
+      ['buffer', 'buffer', 'buffer'],
+      [{ type: 'read-only-storage' }, { type: 'storage' }, { type: 'uniform' }],
+      [
+        [
+          { buffer: elementsInputBuffer },
+          { buffer: elementsOutputBuffer },
+          { buffer: computeUniformsBuffer },
+        ],
+      ],
       'NaiveBitonicSort',
       device
     );
 
-    const computePipelineLayout: GPUComputePipelineDescriptor = {
+    let computePipeline = device.createComputePipeline({
       layout: device.createPipelineLayout({
         bindGroupLayouts: [computeBGDescript.bindGroupLayout],
       }),
@@ -134,9 +145,7 @@ SampleInitFactoryWebGPU(
         }),
         entryPoint: 'computeMain',
       },
-    };
-
-    let computePipeline = device.createComputePipeline(computePipelineLayout);
+    });
 
     //Create bitonic debug renderer
     const renderPassDescriptor: GPURenderPassDescriptor = {
@@ -204,13 +213,17 @@ SampleInitFactoryWebGPU(
       nextBlockHeightCell.setValue(2);
 
       //Create new shader invocation with workgroupSize that reflects number of threads
-      computePipelineLayout.compute = {
-        module: device.createShaderModule({
-          code: NaiveBitonicCompute(settings.elements / 2),
+      computePipeline = device.createComputePipeline({
+        layout: device.createPipelineLayout({
+          bindGroupLayouts: [computeBGDescript.bindGroupLayout],
         }),
-        ...computePipelineLayout.compute,
-      };
-      computePipeline = device.createComputePipeline(computePipelineLayout);
+        compute: {
+          module: device.createShaderModule({
+            code: NaiveBitonicCompute(settings.elements / 2),
+          }),
+          entryPoint: 'computeMain',
+        },
+      });
       //Randomize array elements
       randomizeElementArray();
       highestBlockHeight = 2;
@@ -263,7 +276,7 @@ SampleInitFactoryWebGPU(
 
       //Write elements buffer
       device.queue.writeBuffer(
-        elementsBuffer,
+        elementsInputBuffer,
         0,
         elements.buffer,
         elements.byteOffset,
@@ -324,7 +337,7 @@ SampleInitFactoryWebGPU(
           nextStepCell.setValue('DISPERSE_LOCAL');
         }
         commandEncoder.copyBufferToBuffer(
-          elementsBuffer,
+          elementsOutputBuffer,
           0,
           elementsStagingBuffer,
           0,
@@ -364,7 +377,7 @@ const bitonicSortExample: () => JSX.Element = () =>
   makeSample({
     name: 'Bitonic Sort',
     description:
-      'A compute shader which executes a bitonic sort on an array of data',
+      "A compute shader which executes a single step of a naive bitonic sort algorithm on the GPU. The implementation is based on tgfrerer's bitonic sort merge algorithm found at poinesandlight.co.uk/reflect/bitonic_merge_sort. The GUI's Execution Information folder contains information on the executed step, and the number of threads executed per invocation of the compute shader.",
     init,
     coordinateSystem: 'WEBGL',
     gui: true,
