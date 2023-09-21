@@ -32,7 +32,7 @@ type StepType =
 
 //Gui settings object
 interface SettingsInterface {
-  elements: number;
+  'Total Elements': number;
   widthInCells: number;
   heightInCells: number;
   workGroupThreads: number;
@@ -62,14 +62,14 @@ SampleInitFactoryWebGPU(
   }) => {
     const maxWorkgroupsX = device.limits.maxComputeWorkgroupSizeX;
 
-    const workGroupSizes = [];
+    const totalElementLengths = [];
     for (let i = maxWorkgroupsX * 2; i >= 4; i /= 2) {
-      workGroupSizes.push(i);
+      totalElementLengths.push(i);
     }
 
     const settings: SettingsInterface = {
       //number of cellElements. Must equal widthInCells * heightInCells and workGroupThreads * 2
-      elements: 16,
+      'Total Elements': 16,
       //width of screen in cells.
       widthInCells: 4,
       //height of screen in cells
@@ -105,11 +105,7 @@ SampleInitFactoryWebGPU(
 
     //Initialize initial elements array
     let elements = new Uint32Array(
-      Array.from({ length: settings.elements }, (_, i) => i)
-    );
-
-    let swapIndices = new Uint32Array(
-      Array.from({ length: settings.elements }, () => 0)
+      Array.from({ length: settings['Total Elements'] }, (_, i) => i)
     );
 
     //Initialize elementsBuffer and elementsStagingBuffer
@@ -128,14 +124,6 @@ SampleInitFactoryWebGPU(
       usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
     });
 
-    const swapIndicesOutputBuffer = device.createBuffer({
-      size: elementsBufferSize,
-      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
-    });
-    const swapIndicesStagingBuffer = device.createBuffer({
-      size: elementsBufferSize,
-      usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
-    });
     //Create uniform buffer for compute shader
     const computeUniformsBuffer = device.createBuffer({
       //width, height, blockHeight, algo
@@ -144,25 +132,18 @@ SampleInitFactoryWebGPU(
     });
 
     const computeBGDescript = createBindGroupDescriptor(
-      [0, 1, 2, 3],
+      [0, 1, 2],
       [
         GPUShaderStage.COMPUTE | GPUShaderStage.FRAGMENT,
         GPUShaderStage.COMPUTE,
         GPUShaderStage.COMPUTE,
-        GPUShaderStage.COMPUTE,
       ],
-      ['buffer', 'buffer', 'buffer', 'buffer'],
-      [
-        { type: 'read-only-storage' },
-        { type: 'storage' },
-        { type: 'storage' },
-        { type: 'uniform' },
-      ],
+      ['buffer', 'buffer', 'buffer'],
+      [{ type: 'read-only-storage' }, { type: 'storage' }, { type: 'uniform' }],
       [
         [
           { buffer: elementsInputBuffer },
           { buffer: elementsOutputBuffer },
-          { buffer: swapIndicesOutputBuffer },
           { buffer: computeUniformsBuffer },
         ],
       ],
@@ -204,6 +185,31 @@ SampleInitFactoryWebGPU(
       'BitonicDisplay'
     );
 
+    const resetExecutionInformation = () => {
+      workGroupThreadsCell.setValue(settings['Total Elements'] / 2);
+
+      //Get new width and height of screen display in cells
+      const newCellWidth =
+        Math.sqrt(settings['Total Elements']) % 2 === 0
+          ? Math.floor(Math.sqrt(settings['Total Elements']))
+          : Math.floor(settings['Total Elements'] / 4);
+      const newCellHeight =
+        Math.sqrt(settings['Total Elements']) % 2 === 0
+          ? Math.floor(Math.sqrt(settings['Total Elements']))
+          : 4;
+      widthInCellsCell.setValue(newCellWidth);
+      heightInCellsCell.setValue(newCellHeight);
+
+      //Set prevStep to None (restart) and next step to FLIP
+      prevStepCell.setValue('NONE');
+      nextStepCell.setValue('FLIP_LOCAL');
+
+      //Reset block heights
+      prevBlockHeightCell.setValue(0);
+      nextBlockHeightCell.setValue(2);
+      highestBlockHeight = 2;
+    };
+
     const randomizeElementArray = () => {
       let currentIndex = elements.length;
       // While there are elements to shuffle
@@ -221,23 +227,20 @@ SampleInitFactoryWebGPU(
     const resizeElementArray = () => {
       //Recreate elements array with new length
       elements = new Uint32Array(
-        Array.from({ length: settings.elements }, (_, i) => i)
-      );
-      swapIndices = new Uint32Array(
-        Array.from({ length: settings.elements }, () => 0)
+        Array.from({ length: settings['Total Elements'] }, (_, i) => i)
       );
 
       //Re-set workgroup threads to half length of elements
-      workGroupThreadsCell.setValue(settings.elements / 2);
+      workGroupThreadsCell.setValue(settings['Total Elements'] / 2);
 
       //Get new width and height of screen display in cells
       const newCellWidth =
-        Math.sqrt(settings.elements) % 2 === 0
-          ? Math.floor(Math.sqrt(settings.elements))
-          : Math.floor(settings.elements / 4);
+        Math.sqrt(settings['Total Elements']) % 2 === 0
+          ? Math.floor(Math.sqrt(settings['Total Elements']))
+          : Math.floor(settings['Total Elements'] / 4);
       const newCellHeight =
-        Math.sqrt(settings.elements) % 2 === 0
-          ? Math.floor(Math.sqrt(settings.elements))
+        Math.sqrt(settings['Total Elements']) % 2 === 0
+          ? Math.floor(Math.sqrt(settings['Total Elements']))
           : 4;
       widthInCellsCell.setValue(newCellWidth);
       heightInCellsCell.setValue(newCellHeight);
@@ -257,7 +260,7 @@ SampleInitFactoryWebGPU(
         }),
         compute: {
           module: device.createShaderModule({
-            code: NaiveBitonicCompute(settings.elements / 2),
+            code: NaiveBitonicCompute(settings['Total Elements'] / 2),
           }),
           entryPoint: 'computeMain',
         },
@@ -301,7 +304,9 @@ SampleInitFactoryWebGPU(
       }
     };
 
-    gui.add(settings, 'elements', workGroupSizes).onChange(resizeElementArray);
+    gui
+      .add(settings, 'Total Elements', totalElementLengths)
+      .onChange(resizeElementArray);
     const hoveredElementCell = gui
       .add(settings, 'hoveredElement')
       .onChange(setSwappedElement);
@@ -309,7 +314,10 @@ SampleInitFactoryWebGPU(
     gui.add(settings, 'Execute Sort Step').onChange(() => {
       settings.executeStep = true;
     });
-    gui.add(settings, 'Randomize Values').onChange(randomizeElementArray);
+    gui.add(settings, 'Randomize Values').onChange(() => {
+      randomizeElementArray();
+      resetExecutionInformation();
+    });
     gui.add(settings, 'Log Elements').onChange(() => console.log(elements));
     const executionInformationFolder = gui.addFolder('Execution Information');
     const prevStepCell = executionInformationFolder.add(settings, 'Prev Step');
@@ -402,7 +410,7 @@ SampleInitFactoryWebGPU(
       });
       if (
         settings.executeStep &&
-        highestBlockHeight !== settings.elements * 2
+        highestBlockHeight !== settings['Total Elements'] * 2
       ) {
         const computePassEncoder = commandEncoder.beginComputePass();
         computePassEncoder.setPipeline(computePipeline);
@@ -416,10 +424,12 @@ SampleInitFactoryWebGPU(
         if (settings['Next Block Height'] === 1) {
           highestBlockHeight *= 2;
           nextStepCell.setValue(
-            highestBlockHeight === settings.elements * 2 ? 'NONE' : 'FLIP_LOCAL'
+            highestBlockHeight === settings['Total Elements'] * 2
+              ? 'NONE'
+              : 'FLIP_LOCAL'
           );
           nextBlockHeightCell.setValue(
-            highestBlockHeight === settings.elements * 2
+            highestBlockHeight === settings['Total Elements'] * 2
               ? 0
               : highestBlockHeight
           );
@@ -430,13 +440,6 @@ SampleInitFactoryWebGPU(
           elementsOutputBuffer,
           0,
           elementsStagingBuffer,
-          0,
-          elementsBufferSize
-        );
-        commandEncoder.copyBufferToBuffer(
-          swapIndicesOutputBuffer,
-          0,
-          swapIndicesStagingBuffer,
           0,
           elementsBufferSize
         );
@@ -454,33 +457,15 @@ SampleInitFactoryWebGPU(
           0,
           elementsBufferSize
         );
-        //Copy GPU indices data to CPU
-        await swapIndicesStagingBuffer.mapAsync(
-          GPUMapMode.READ,
-          0,
-          elementsBufferSize
-        );
-        const copySwapIndicesBuffer = swapIndicesStagingBuffer.getMappedRange(
-          0,
-          elementsBufferSize
-        );
         //Get correct range of data from CPU copy of GPU Data
         const elementsData = copyElementsBuffer.slice(
           0,
-          Uint32Array.BYTES_PER_ELEMENT * settings.elements
-        );
-        const swapIndicesData = copySwapIndicesBuffer.slice(
-          0,
-          Uint32Array.BYTES_PER_ELEMENT * settings.elements
+          Uint32Array.BYTES_PER_ELEMENT * settings['Total Elements']
         );
         //Extract data
         const elementsOutput = new Uint32Array(elementsData);
-        const swapIndicesOutput = new Uint32Array(swapIndicesData);
         elementsStagingBuffer.unmap();
-        swapIndicesStagingBuffer.unmap();
         elements = elementsOutput;
-        swapIndices = swapIndicesOutput;
-        console.log(swapIndices);
       }
       settings.executeStep = false;
       requestAnimationFrame(frame);
