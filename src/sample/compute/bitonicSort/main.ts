@@ -270,15 +270,35 @@ SampleInitFactoryWebGPU(
     randomizeElementArray();
 
     const setSwappedElement = () => {
-      //(blockHeight or p1) * p2 - p3 - 1
-      const blockHeight = settings['Prev Block Height'];
-      const p2 = Math.floor(settings.hoveredElement / blockHeight) + 1;
-      const p3 = settings.hoveredElement % blockHeight;
-      const swappedIndex = blockHeight * p2 - p3 - 1;
-      swappedElementCell.setValue(swappedIndex);
-
-      //Disperse algorithm made at 11:00 pm (so you know it's chunky)
-      //( floor(elementIndex / 8) + 1 ) * BH/2 + BH/2 - Math.floor( (elementIndex % 8) / 4 ) * 4;
+      switch (settings['Next Step']) {
+        case 'FLIP_LOCAL':
+          {
+            const blockHeight = settings['Next Block Height'];
+            const p2 = Math.floor(settings.hoveredElement / blockHeight) + 1;
+            const p3 = settings.hoveredElement % blockHeight;
+            const swappedIndex = blockHeight * p2 - p3 - 1;
+            swappedElementCell.setValue(swappedIndex);
+          }
+          break;
+        case 'DISPERSE_LOCAL':
+          {
+            const blockHeight = settings['Next Block Height'];
+            const halfHeight = blockHeight / 2;
+            const swappedIndex =
+              settings.hoveredElement % blockHeight < halfHeight
+                ? settings.hoveredElement + halfHeight
+                : settings.hoveredElement - halfHeight;
+            swappedElementCell.setValue(swappedIndex);
+          }
+          break;
+        case 'NONE': {
+          swappedElementCell.setValue(settings.hoveredElement);
+        }
+        default:
+          {
+          }
+          break;
+      }
     };
 
     gui.add(settings, 'elements', workGroupSizes).onChange(resizeElementArray);
@@ -474,7 +494,7 @@ const bitonicSortExample: () => JSX.Element = () =>
   makeSample({
     name: 'Bitonic Sort',
     description:
-      "A naive bitonic sort algorithm executed on the GPU, based on tgfrerer's implementation at poniesandlight.co.uk/reflect/bitonic_merge_sort/. Each invocation of the bitonic sort shader dispatches a workgroup containing elements/2 threads. The GUI's Execution Information folder contains information about the sort's current state. The visualizer displays the sort's results, hovered cells in red, and the cells they previously swapped with in green.",
+      "A naive bitonic sort algorithm executed on the GPU, based on tgfrerer's implementation at poniesandlight.co.uk/reflect/bitonic_merge_sort/. Each invocation of the bitonic sort shader dispatches a workgroup containing elements/2 threads. The GUI's Execution Information folder contains information about the sort's current state. The visualizer displays the sort's results, hovered cells in red, and the cells they'll swap with on the next step in green.",
     init,
     coordinateSystem: 'WEBGL',
     gui: true,
