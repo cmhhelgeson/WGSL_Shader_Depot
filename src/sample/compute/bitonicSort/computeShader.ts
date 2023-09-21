@@ -17,6 +17,7 @@ struct Uniforms {
 
 //Create local workgroup data that can contain all elements
 var<workgroup> local_data: array<u32, ${threadsPerWorkgroup * 2}>;
+var<workgroup> local_indices: array<u32, ${threadsPerWorkgroup * 2}>;
 
 //Swap values in local_data
 fn swap(idx_before: u32, idx_after: u32) {
@@ -38,6 +39,8 @@ fn prepare_flip(thread_id: u32, block_height: u32) {
   );
   idx.x += q;
   idx.y += q;
+  local_indices[thread_id * 2] = idx.x;
+  local_indices[thread_id * 2 + 1] = idx.y;
   swap(idx.x, idx.y);
 }
 
@@ -49,6 +52,8 @@ fn prepare_disperse(thread_id: u32, block_height: u32) {
   );
   idx.x += q;
   idx.y += q;
+  local_indices[thread_id * 2] = idx.x;
+  local_indices[thread_id * 2 + 1] = idx.y;
 	swap(idx.x, idx.y);
 }
 
@@ -58,7 +63,8 @@ fn prepare_flip_and_disperse(thread_id: u32, block_height: u32) {
 
 @group(0) @binding(0) var<storage, read> input_data: array<u32>;
 @group(0) @binding(1) var<storage, read_write> output_data: array<u32>;
-@group(0) @binding(2) var<uniform> uniforms: Uniforms;
+@group(0) @binding(2) var<storage, read_write> output_indices: array<u32>;
+@group(0) @binding(3) var<uniform> uniforms: Uniforms;
 
 //Our compute shader will execute specified # of threads or elements / 2 threads
 @compute @workgroup_size(${threadsPerWorkgroup}, 1, 1)
@@ -93,6 +99,9 @@ fn computeMain(
   //Repopulate global data with local data
   output_data[local_id.x * 2] = local_data[local_id.x * 2];
   output_data[local_id.x * 2 + 1] = local_data[local_id.x * 2 + 1];
+  //Repopulate global indices with local indices
+  output_indices[local_id.x * 2] = local_indices[local_id.x * 2];
+  output_indices[local_id.x * 2 + 1] = local_indices[local_id.x * 2 + 1];
 
 }`;
 };

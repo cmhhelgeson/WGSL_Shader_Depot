@@ -7,6 +7,7 @@ import { createBindGroupDescriptor } from '../../../utils/bindGroup';
 import BitonicDisplayRenderer from './display';
 import { BitonicDisplayShader } from './renderShader';
 import { NaiveBitonicCompute } from './computeShader';
+import FullScreenWebGLShader from '../../../shaders/fullscreenWebGL.vert.wgsl';
 
 //Type of step that will be executed in our shader
 enum StepEnum {
@@ -35,6 +36,8 @@ interface SettingsInterface {
   widthInCells: number;
   heightInCells: number;
   workGroupThreads: number;
+  hoveredElement: number;
+  swappedElement: number;
   'Prev Step': StepType;
   'Next Step': StepType;
   'Prev Block Height': number;
@@ -48,7 +51,15 @@ interface SettingsInterface {
 
 let init: SampleInit;
 SampleInitFactoryWebGPU(
-  async ({ pageState, device, gui, presentationFormat, context }) => {
+  async ({
+    pageState,
+    device,
+    gui,
+    presentationFormat,
+    context,
+    canvas,
+    canvasRef,
+  }) => {
     const maxWorkgroupsX = device.limits.maxComputeWorkgroupSizeX;
 
     const workGroupSizes = [];
@@ -65,6 +76,10 @@ SampleInitFactoryWebGPU(
       heightInCells: 4,
       //number of threads to execute in a workgroup (workgroupThreads, 1, 1)
       workGroupThreads: 16 / 2,
+      //currently highlighted element
+      hoveredElement: 0,
+      //element the hoveredElement just swapped with,
+      swappedElement: 1,
       //Previously executed step
       'Prev Step': 'NONE',
       //Next step to execute
@@ -93,6 +108,10 @@ SampleInitFactoryWebGPU(
       Array.from({ length: settings.elements }, (_, i) => i)
     );
 
+    let swapIndices = new Uint32Array(
+      Array.from({ length: settings.elements }, () => 0)
+    );
+
     //Initialize elementsBuffer and elementsStagingBuffer
     const elementsBufferSize = Float32Array.BYTES_PER_ELEMENT * 512;
     //Initialize input, output, staging buffers
@@ -108,6 +127,15 @@ SampleInitFactoryWebGPU(
       size: elementsBufferSize,
       usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
     });
+
+    const swapIndicesOutputBuffer = device.createBuffer({
+      size: elementsBufferSize,
+      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
+    });
+    const swapIndicesStagingBuffer = device.createBuffer({
+      size: elementsBufferSize,
+      usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
+    });
     //Create uniform buffer for compute shader
     const computeUniformsBuffer = device.createBuffer({
       //width, height, blockHeight, algo
@@ -116,18 +144,25 @@ SampleInitFactoryWebGPU(
     });
 
     const computeBGDescript = createBindGroupDescriptor(
-      [0, 1, 2],
+      [0, 1, 2, 3],
       [
         GPUShaderStage.COMPUTE | GPUShaderStage.FRAGMENT,
         GPUShaderStage.COMPUTE,
         GPUShaderStage.COMPUTE,
+        GPUShaderStage.COMPUTE,
       ],
-      ['buffer', 'buffer', 'buffer'],
-      [{ type: 'read-only-storage' }, { type: 'storage' }, { type: 'uniform' }],
+      ['buffer', 'buffer', 'buffer', 'buffer'],
+      [
+        { type: 'read-only-storage' },
+        { type: 'storage' },
+        { type: 'storage' },
+        { type: 'uniform' },
+      ],
       [
         [
           { buffer: elementsInputBuffer },
           { buffer: elementsOutputBuffer },
+          { buffer: swapIndicesOutputBuffer },
           { buffer: computeUniformsBuffer },
         ],
       ],
@@ -188,6 +223,9 @@ SampleInitFactoryWebGPU(
       elements = new Uint32Array(
         Array.from({ length: settings.elements }, (_, i) => i)
       );
+      swapIndices = new Uint32Array(
+        Array.from({ length: settings.elements }, () => 0)
+      );
 
       //Re-set workgroup threads to half length of elements
       workGroupThreadsCell.setValue(settings.elements / 2);
@@ -231,7 +269,20 @@ SampleInitFactoryWebGPU(
 
     randomizeElementArray();
 
+    const setSwappedElement = () => {
+      //(blockHeight or p1) * p2 - p3 - 1
+      const blockHeight = settings['Prev Block Height'];
+      const p2 = Math.floor(settings.hoveredElement / blockHeight) + 1;
+      const p3 = settings.hoveredElement % blockHeight;
+      const swappedIndex = blockHeight * p2 - p3 - 1;
+      swappedElementCell.setValue(swappedIndex);
+    };
+
     gui.add(settings, 'elements', workGroupSizes).onChange(resizeElementArray);
+    const hoveredElementCell = gui
+      .add(settings, 'hoveredElement')
+      .onChange(setSwappedElement);
+    const swappedElementCell = gui.add(settings, 'swappedElement');
     gui.add(settings, 'Execute Sort Step').onChange(() => {
       settings.executeStep = true;
     });
@@ -260,6 +311,20 @@ SampleInitFactoryWebGPU(
       settings,
       'heightInCells'
     );
+
+    canvas.addEventListener('mousemove', (event) => {
+      const currWidth = canvasRef.current.getBoundingClientRect().width;
+      const currHeight = canvasRef.current.getBoundingClientRect().height;
+      const cellSize: [number, number] = [
+        currWidth / settings.widthInCells,
+        currHeight / settings.heightInCells,
+      ];
+      const xIndex = Math.floor(event.offsetX / cellSize[0]);
+      const yIndex =
+        settings.heightInCells - 1 - Math.floor(event.offsetY / cellSize[1]);
+      hoveredElementCell.setValue(yIndex * settings.widthInCells + xIndex);
+      settings.hoveredElement = yIndex * settings.widthInCells + xIndex;
+    });
     //Make gui non-interactive
     prevStepCell.domElement.style.pointerEvents = 'none';
     prevBlockHeightCell.domElement.style.pointerEvents = 'none';
@@ -309,6 +374,8 @@ SampleInitFactoryWebGPU(
       bitonicDisplayRenderer.startRun(commandEncoder, {
         width: settings.widthInCells,
         height: settings.heightInCells,
+        hoveredElement: settings.hoveredElement,
+        swappedElement: settings.swappedElement,
       });
       if (
         settings.executeStep &&
@@ -343,11 +410,18 @@ SampleInitFactoryWebGPU(
           0,
           elementsBufferSize
         );
+        commandEncoder.copyBufferToBuffer(
+          swapIndicesOutputBuffer,
+          0,
+          swapIndicesStagingBuffer,
+          0,
+          elementsBufferSize
+        );
       }
       device.queue.submit([commandEncoder.finish()]);
 
       if (settings.executeStep) {
-        //Copy GPU data to CPU
+        //Copy GPU element data to CPU
         await elementsStagingBuffer.mapAsync(
           GPUMapMode.READ,
           0,
@@ -357,13 +431,33 @@ SampleInitFactoryWebGPU(
           0,
           elementsBufferSize
         );
-        const data = copyElementsBuffer.slice(
+        //Copy GPU indices data to CPU
+        await swapIndicesStagingBuffer.mapAsync(
+          GPUMapMode.READ,
+          0,
+          elementsBufferSize
+        );
+        const copySwapIndicesBuffer = swapIndicesStagingBuffer.getMappedRange(
+          0,
+          elementsBufferSize
+        );
+        //Get correct range of data from CPU copy of GPU Data
+        const elementsData = copyElementsBuffer.slice(
           0,
           Uint32Array.BYTES_PER_ELEMENT * settings.elements
         );
-        const output = new Uint32Array(data);
+        const swapIndicesData = copySwapIndicesBuffer.slice(
+          0,
+          Uint32Array.BYTES_PER_ELEMENT * settings.elements,
+        );
+        //Extract data
+        const elementsOutput = new Uint32Array(elementsData);
+        const swapIndicesOutput = new Uint32Array(swapIndicesData);
         elementsStagingBuffer.unmap();
-        elements = output;
+        swapIndicesStagingBuffer.unmap();
+        elements = elementsOutput;
+        swapIndices = swapIndicesOutput;
+        console.log(swapIndices);
       }
       settings.executeStep = false;
       requestAnimationFrame(frame);
@@ -385,6 +479,11 @@ const bitonicSortExample: () => JSX.Element = () =>
       {
         name: __filename.substring(__dirname.length + 1),
         contents: __SOURCE__,
+      },
+      BitonicDisplayRenderer.sourceInfo,
+      {
+        name: '../../../shaders/fullscreenWebGL.vert.wgsl',
+        contents: FullScreenWebGLShader,
       },
       {
         name: './bitonicDisplay.frag.wgsl',

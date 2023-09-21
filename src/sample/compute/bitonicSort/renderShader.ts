@@ -1,15 +1,23 @@
 /* eslint-disable prettier/prettier */
 
 export const argKeys = [
+  //screen width in cells/elements
   'width',
-  'height'
+  //screen height in cells/elements
+  'height',
+  //Hovered element
+  'hoveredElement',
+  //element it just swapped with
+  'swappedElement'
 ];
 
 export const BitonicDisplayShader = () => {
 return `
 struct Uniforms {
   width: f32,
-  height: f32
+  height: f32,
+  hoveredElement: u32,
+  swappedElement: u32,
 }
 
 struct VertexOutput {
@@ -19,6 +27,7 @@ struct VertexOutput {
 
 @group(0) @binding(0) var<uniform> uniforms: Uniforms;
 @group(1) @binding(0) var<storage, read> data: array<u32>;
+@group(1) @binding(3) var<storage, read> indices: array<u32>;
 
 @fragment
 fn fragmentMain(input: VertexOutput) -> @location(0) vec4<f32> {
@@ -43,6 +52,14 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4<f32> {
   var color: vec3<f32> = vec3f(
     1.0 - subtracter
   );
+
+  if (uniforms.hoveredElement == elementIndex) {
+    return vec4<f32>(255.0, 0.0, 0.0, 1.0);
+  }
+
+  if (uniforms.swappedElement == elementIndex) {
+    return vec4<f32>(0.0, 255.0, 0.0, 1.0);
+  }
 
   return vec4<f32>(color.rgb, 1.0);
 }
