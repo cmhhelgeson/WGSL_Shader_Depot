@@ -69,7 +69,8 @@ export default class BitonicDisplayRenderer extends Base2DRendererClass {
     };
 
     this.setArguments = (args: BitonicDisplayRenderArgs) => {
-      const f32Args = new Float32Array([args.width, args.height]);
+      super.setUniformArguments(device, uniformBuffer, args, argKeys);
+      /*const f32Args = new Float32Array([args.width, args.height]);
       const u32Args = new Uint32Array([
         args.hoveredElement,
         args.swappedElement,
@@ -87,7 +88,7 @@ export default class BitonicDisplayRenderer extends Base2DRendererClass {
         u32Args.buffer,
         u32Args.byteOffset,
         u32Args.byteLength
-      );
+      ); */
     };
   }
 

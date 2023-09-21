@@ -37,7 +37,13 @@ interface SettingsInterface {
   heightInCells: number;
   workGroupThreads: number;
   hoveredElement: number;
+  hoverPosX: number;
+  hoverPosY: number;
   swappedElement: number;
+  swapPosX: number;
+  swapPosY: number;
+  velocityX: number;
+  velocityY: number;
   'Prev Step': StepType;
   'Next Step': StepType;
   'Prev Block Height': number;
@@ -78,8 +84,15 @@ SampleInitFactoryWebGPU(
       workGroupThreads: 16 / 2,
       //currently highlighted element
       hoveredElement: 0,
+      hoverPosX: 0.5,
+      hoverPosY: 0.5,
       //element the hoveredElement just swapped with,
       swappedElement: 1,
+      swapPosX: 0.5,
+      swapPosY: 0.5,
+      //Velocity of a hover/swap element when it changes
+      velocityX: 0,
+      velocityY: 0,
       //Previously executed step
       'Prev Step': 'NONE',
       //Next step to execute
@@ -273,13 +286,14 @@ SampleInitFactoryWebGPU(
     randomizeElementArray();
 
     const setSwappedElement = () => {
+      let swappedIndex: number;
       switch (settings['Next Step']) {
         case 'FLIP_LOCAL':
           {
             const blockHeight = settings['Next Block Height'];
             const p2 = Math.floor(settings.hoveredElement / blockHeight) + 1;
             const p3 = settings.hoveredElement % blockHeight;
-            const swappedIndex = blockHeight * p2 - p3 - 1;
+            swappedIndex = blockHeight * p2 - p3 - 1;
             swappedElementCell.setValue(swappedIndex);
           }
           break;
@@ -287,7 +301,7 @@ SampleInitFactoryWebGPU(
           {
             const blockHeight = settings['Next Block Height'];
             const halfHeight = blockHeight / 2;
-            const swappedIndex =
+            swappedIndex =
               settings.hoveredElement % blockHeight < halfHeight
                 ? settings.hoveredElement + halfHeight
                 : settings.hoveredElement - halfHeight;
@@ -295,13 +309,28 @@ SampleInitFactoryWebGPU(
           }
           break;
         case 'NONE': {
-          swappedElementCell.setValue(settings.hoveredElement);
+          swappedIndex = settings.hoveredElement;
+          swappedElementCell.setValue(swappedIndex);
         }
         default:
           {
+            swappedIndex = settings.hoveredElement;
+            swappedElementCell.setValue(swappedIndex);
           }
           break;
       }
+      settings.hoverPosX =
+        Math.floor(settings.hoveredElement % settings.widthInCells) + 0.5;
+      settings.hoverPosY =
+        Math.floor(settings.hoveredElement / settings.widthInCells) + 0.5;
+      //Use swappedIndex instead of settings.swappedElement in case swappedElementCell does not update in time
+      settings.swapPosX =
+        Math.floor(swappedIndex % settings.widthInCells) + 0.5;
+      settings.swapPosY =
+        Math.floor(swappedIndex / settings.widthInCells) + 0.5;
+
+      settings.velocityX = 0;
+      settings.velocityY = 0;
     };
 
     gui
@@ -405,8 +434,10 @@ SampleInitFactoryWebGPU(
       bitonicDisplayRenderer.startRun(commandEncoder, {
         width: settings.widthInCells,
         height: settings.heightInCells,
-        hoveredElement: settings.hoveredElement,
-        swappedElement: settings.swappedElement,
+        hoverPosX: settings.hoverPosX,
+        hoverPosY: settings.hoverPosY,
+        swapPosX: settings.swapPosX,
+        swapPosY: settings.swapPosY,
       });
       if (
         settings.executeStep &&
