@@ -448,7 +448,7 @@ SampleInitFactoryWebGPU(
         );
         const swapIndicesData = copySwapIndicesBuffer.slice(
           0,
-          Uint32Array.BYTES_PER_ELEMENT * settings.elements,
+          Uint32Array.BYTES_PER_ELEMENT * settings.elements
         );
         //Extract data
         const elementsOutput = new Uint32Array(elementsData);
@@ -471,7 +471,7 @@ const bitonicSortExample: () => JSX.Element = () =>
   makeSample({
     name: 'Bitonic Sort',
     description:
-      "A compute shader which executes a single step of a naive bitonic sort algorithm on the GPU. The implementation is based on tgfrerer's bitonic sort merge algorithm found at poinesandlight.co.uk/reflect/bitonic_merge_sort. The GUI's Execution Information folder contains information on the executed step, and the number of threads executed per invocation of the compute shader.",
+      "A naive bitonic sort algorithm executed on the GPU, based on tgfrerer's implementation at poniesandlight.co.uk/reflect/bitonic_merge_sort/. Each invocation of the bitonic sort shader dispatches a workgroup containing elements/2 threads. The GUI's Execution Information folder contains information about the sort's current state. The visualizer displays the sort's results, hovered cells in red, and the cells they previously swapped with in green.",
     init,
     coordinateSystem: 'WEBGL',
     gui: true,
