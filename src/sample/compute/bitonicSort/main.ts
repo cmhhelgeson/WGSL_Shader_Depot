@@ -31,6 +31,7 @@ type StepType =
   | 'FLIP_DISPERSE_GLOBAL';
 
 //Gui settings object
+//TODO: Encapsulate common data types together (i.e create objects that just holds pos items)
 interface SettingsInterface {
   'Total Elements': number;
   widthInCells: number;
@@ -42,6 +43,8 @@ interface SettingsInterface {
   swappedElement: number;
   swapPosX: number;
   swapPosY: number;
+  swapTargetPosX: number;
+  swapTargetPosY: number;
   velocityX: number;
   velocityY: number;
   'Prev Step': StepType;
@@ -73,6 +76,7 @@ SampleInitFactoryWebGPU(
       totalElementLengths.push(i);
     }
 
+    //TODO: hover/target pos system a little too complex, need to simplify
     const settings: SettingsInterface = {
       //number of cellElements. Must equal widthInCells * heightInCells and workGroupThreads * 2
       'Total Elements': 16,
@@ -90,9 +94,12 @@ SampleInitFactoryWebGPU(
       swappedElement: 1,
       swapPosX: 0.5,
       swapPosY: 0.5,
+      //target of the current swapped element
+      swapTargetPosX: 0.5,
+      swapTargetPosY: 0.5,
       //Velocity of a hover/swap element when it changes
-      velocityX: 0,
-      velocityY: 0,
+      velocityX: 0.1,
+      velocityY: 0.1,
       //Previously executed step
       'Prev Step': 'NONE',
       //Next step to execute
@@ -319,18 +326,18 @@ SampleInitFactoryWebGPU(
           }
           break;
       }
+      //hover pos is tied to the mouse so it's position gets set immediately
       settings.hoverPosX =
         Math.floor(settings.hoveredElement % settings.widthInCells) + 0.5;
       settings.hoverPosY =
         Math.floor(settings.hoveredElement / settings.widthInCells) + 0.5;
-      //Use swappedIndex instead of settings.swappedElement in case swappedElementCell does not update in time
-      settings.swapPosX =
+      //swap pos has velocity as it shifts from one element to the other
+      settings.swapTargetPosX =
         Math.floor(swappedIndex % settings.widthInCells) + 0.5;
-      settings.swapPosY =
+      settings.swapTargetPosY =
         Math.floor(swappedIndex / settings.widthInCells) + 0.5;
-
-      settings.velocityX = 0;
-      settings.velocityY = 0;
+      settings.velocityX = 0.25;
+      settings.velocityY = 0.25;
     };
 
     gui
@@ -425,6 +432,35 @@ SampleInitFactoryWebGPU(
       );
 
       device.queue.writeBuffer(computeUniformsBuffer, 8, stepDetails);
+
+      //TODO: Fix bad code
+      if (settings.swapPosX < settings.swapTargetPosX) {
+        settings.swapPosX += settings.velocityX;
+        if (settings.swapPosX >= settings.swapTargetPosX) {
+          settings.swapPosX = settings.swapTargetPosX;
+          settings.velocityX = 0;
+        }
+      } else if (settings.swapPosX > settings.swapTargetPosX) {
+        settings.swapPosX -= settings.velocityX;
+        if (settings.swapPosX <= settings.swapTargetPosX) {
+          settings.swapPosX = settings.swapTargetPosX;
+          settings.velocityX = 0;
+        }
+      }
+
+      if (settings.swapPosY < settings.swapTargetPosY) {
+        settings.swapPosY += settings.velocityY;
+        if (settings.swapPosY >= settings.swapTargetPosY) {
+          settings.swapPosY = settings.swapTargetPosY;
+          settings.velocityY = 0;
+        }
+      } else if (settings.swapPosY > settings.swapTargetPosY) {
+        settings.swapPosY -= settings.velocityY;
+        if (settings.swapPosY <= settings.swapTargetPosY) {
+          settings.swapPosY = settings.swapTargetPosY;
+          settings.velocityY = 0;
+        }
+      }
 
       renderPassDescriptor.colorAttachments[0].view = context
         .getCurrentTexture()
