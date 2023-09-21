@@ -276,6 +276,9 @@ SampleInitFactoryWebGPU(
       const p3 = settings.hoveredElement % blockHeight;
       const swappedIndex = blockHeight * p2 - p3 - 1;
       swappedElementCell.setValue(swappedIndex);
+
+      //Disperse algorithm made at 11:00 pm (so you know it's chunky)
+      //( floor(elementIndex / 8) + 1 ) * BH/2 + BH/2 - Math.floor( (elementIndex % 8) / 4 ) * 4;
     };
 
     gui.add(settings, 'elements', workGroupSizes).onChange(resizeElementArray);
