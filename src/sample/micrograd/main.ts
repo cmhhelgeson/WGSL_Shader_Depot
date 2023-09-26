@@ -1,54 +1,102 @@
 /* eslint-disable prettier/prettier */
 import { makeSample, SampleInit } from '../../components/SampleLayout/SampleLayout';
 import fullscreenVertWebGLWGSL from '../../shaders/fullscreenWebGL.vert.wgsl';
+import { doRectsOverlap, Rect } from './rect';
 
 import { SampleInitFactoryCanvas2D } from '../../components/SampleLayout/SampleLayoutUtils';
-import { vec2 } from 'wgpu-matrix';
-import { instance} from '@viz-js/viz';
-import { createMVGGraph, Value } from './engine';
-import { createProbabilityArray } from './makemoreone';
 
-
-const rectPoints: [number, number][] = [
-  [20, 40],
-  [20, 70],
-  [40, 70],
-  [40, 40]
-];
-
-const drawCanvas = (
+const drawPanAndZoom = (
   context: CanvasRenderingContext2D,
-  zoomFactor: [number, number],
-  offset: [number, number],
+  cameraZoom: number,
+  cameraOffset: {x: number, y: number},
+  screenRect: Rect,
+  objectArr: RandomSquare[],
 ) => {
+  context.save();
   context.clearRect(0, 0, context.canvas.width, context.canvas.height);
-  context.strokeStyle = "blue"
-  context.lineWidth = 2;
-  context.beginPath();
-  const p1 = vec2.add(
-    vec2.mul(rectPoints[0], zoomFactor), 
-    offset
-  );
-  const p2 = vec2.add(
-    vec2.mul(rectPoints[1], zoomFactor), 
-    offset
-  );
-  const p3 = vec2.add(
-    vec2.mul(rectPoints[2], zoomFactor), 
-    offset
-  );
-  const p4 = vec2.add(
-    vec2.mul(rectPoints[3], zoomFactor), 
-    offset
-  );
-  context.moveTo(p1[0], p1[1]);
-  context.lineTo(p2[0], p2[1]);
-  context.lineTo(p3[0], p3[1]);
-  context.lineTo(p4[0], p4[1]);
-  context.lineTo(p1[0], p1[1]);
-  context.stroke();
-
+  context.scale(cameraZoom, cameraZoom);
+  context.translate(cameraOffset.x, cameraOffset.y);
+  context.clearRect(0, 0, context.canvas.width, context.canvas.height);
+  for (let i = 0; i < objectArr.length; i++) {
+    if (doRectsOverlap(screenRect, objectArr[i])) {
+      const obj = objectArr[i];
+      context.fillStyle = `rgba(${obj.color.r}, ${obj.color.g}, ${obj.color.b}, 1.0)`
+      context.fillRect(obj.pos.x, obj.pos.y, obj.size.x, obj.size.y);
+    }
+  }
+  context.fillStyle = "blue"
+  context.fillRect(0, 0, 100, 20)
+  context.restore();
 }
+
+interface RandomSquare extends Rect {
+  color: {r: number, g: number, b: number};
+}
+
+class StaticQuadTree {
+  rect: Rect;
+  childAreas: [Rect, Rect, Rect, Rect];
+  childTrees: [
+    StaticQuadTree | null,
+    StaticQuadTree | null,
+    StaticQuadTree | null,
+    StaticQuadTree | null,
+  ];
+  items: [Rect, RandomSquare][];
+  depth: number;
+
+  constructor(rect: Rect = 
+    {
+      pos: {x: 0, y: 0},
+      size: {x: 100, y: 100}
+    },
+    depth = 0
+  ) {
+    this.depth = depth;
+    this.rect = rect;
+    this.resize(rect);
+  };
+
+  resize(area: Rect) {
+    this.rect = area;
+    const childSize = {x: this.rect.size.x / 2.0, y: this.rect.size.y / 2.0};
+    this.childTrees = [
+      new StaticQuadTree({
+        pos: area.pos, size: childSize
+      }),
+      new StaticQuadTree({
+        pos: {x: area.pos.x + childSize.x, y: area.pos.y },
+        size: childSize,
+      }),
+      new StaticQuadTree({
+        pos: {x: area.pos.x, y: area.pos.y + childSize.y},
+        size: childSize,
+      }),
+      new StaticQuadTree({
+        pos: {x: area.pos.x + childSize.x, y: area.pos.y + childSize.y},
+        size: childSize
+      })
+    ]
+  }
+
+  clear() {
+    this.items = [];
+    this.childTrees = [null, null, null, null];
+  }
+
+  search(area: Rect, listItems: RandomSquare[]) {
+    for (const p of this.items) {
+      if (doRectsOverlap(area, p[0])) {
+        listItems.push(p[1]);
+      }
+    }
+    for (let i = 0; i < 4; i++) {
+      
+    }
+  }
+}
+
+
 
 let init: SampleInit;
 SampleInitFactoryCanvas2D(
@@ -56,88 +104,134 @@ SampleInitFactoryCanvas2D(
     canvas,
     pageState,
     context,
+    gui,
   }) => {
 
-    const x1 = new Value(2.0, {
-      label: 'x1'
-    })
-    const x2 = new Value(0.0, {label: 'x2'});
+    let isDragging = false;
+    const dragStart = { x: 0, y: 0 };
+    let cameraZoom = 1;
+    let lastZoom = 1;
+    const cameraOffset = {x: 0, y: 0};
+    let initialPinchDistance = null;
+    const screenRect = {
+      //Upper left corner of screen
+      pos: {x: 0, y: 0},
+      size: {x: canvas.width, y: canvas.height}
+    };
 
-    const w1 = new Value(-3.0, {label: 'w1'});
-    const w2 = new Value(1.0, {label: 'w2'});
+    const settings = {
+      'Depth Limit': 4,
+      'Quad Tree Size': 100,
+    }
 
-    const b = new Value(6.8813735870195432, {label: 'b'});
+    const simpleRand = (a: number, b: number): number => {
+      return Math.random() * (b - a) + a;
+    }
 
-    const x1w1 = x1.mul(w1, 'x1w1');
-    const x2w2 = x2.mul(w2, 'x2w2');
+    const objectArr: RandomSquare[] = [];
+    for (let i = 0; i < 1000; i++) {
+      objectArr.push({
+        pos: {x: simpleRand(0.0, 5000.0), y: simpleRand(0.0, 5000.0)},
+        size: {x: simpleRand(0.1, 100.0), y: simpleRand(0.0, 100.0)},
+        color: {
+          r: Math.floor(Math.random() * 256),
+          g: Math.floor(Math.random() * 256),
+          b: Math.floor(Math.random() * 256),
+        }
+      })
+    }
 
-    const x1w1x2w2 = x1w1.add(x2w2, 'x1w1x2w2');
+    const onPointerDown = (e: MouseEvent | Touch) => {
+      isDragging = true;
+      dragStart.x = e.clientX / cameraZoom - cameraOffset.x;
+      dragStart.y = e.clientY / cameraZoom - cameraOffset.y;
+      canvas.focus();
+    }
 
-    const n = x1w1x2w2.add(b, 'n');
-    const o = n.tanh('o');
-    o.grad = 1.0;
+    const onPointerUp = (e: MouseEvent | Touch) => {
+      isDragging = false;
+      initialPinchDistance = null;
+      lastZoom = cameraZoom;
+    }
 
-    o.backward();
-
-    createProbabilityArray([1, 2, 3, 4, 5, 6, 7, 8]);
-
-    const digraph = createMVGGraph(o, 'CMH', 0.5, 'LR', 'black', 'white');
-
-    instance().then(viz => {
-      const svgContainer = document.createElement('div');
-      svgContainer.id = 'MICROGRAD_SVG_CONTAINER';
-      document.getElementById('WGSL_CANVAS_CONTAINER').appendChild(svgContainer);
-      document.getElementById('MICROGRAD_SVG_CONTAINER').appendChild(viz.renderSVGElement(digraph));
-      const parentElement = document.getElementById('MICROGRAD_SVG_CONTAINER')
-      parentElement.style.overflowX = 'scroll';
-      parentElement.children[0].setAttribute('style', 'overflow-x: scroll;');
-    });
-
-    let initialDistance = 0;
-    let zoomFactor = 1;
-
-    let startOffsetting = false;
-    let offset = vec2.create(0, 0);
-
-    let touchInit = vec2.create(0, 0);
-    const zoomScale = vec2.create(1, 1)
-  
-    canvas.addEventListener('mousedown', function(event) {
-      startOffsetting = true;
-      touchInit = [event.pageX, event.pageY];
-    });
-    
-    window.addEventListener('mousemove', function(event) {
-      if (startOffsetting) {
-        offset[0] = event.pageX - touchInit[0];
-        offset[1] = event.pageY - touchInit[1];
+    const onPointerMove = (e: MouseEvent | Touch) => {
+      if (isDragging) {
+        cameraOffset.x = e.clientX / cameraZoom - dragStart.x;
+        cameraOffset.y = e.clientY / cameraZoom - dragStart.y;
+        //TODO: Make sure this is correct, should be since translation corresponds with rect positions
+        screenRect.pos.x = -cameraOffset.x;
+        screenRect.pos.y = -cameraOffset.y;
       }
-    });
+    }
 
-    window.addEventListener('mouseup', function(event) {
-      startOffsetting = false;
-    });
+    const adjustZoom = (zoomAmount?: number, zoomFactor?: number) => {
+      if (!isDragging) {
+        if (zoomAmount) {
+          cameraZoom += zoomAmount;
+        }
+        else if (zoomFactor) {
+          cameraZoom = zoomFactor * lastZoom;
+        }
 
-    window.addEventListener('keydown', function(event) {
-      switch(event.key) {
-        case '=': {
-          zoomScale[0] *= 1.01
-          zoomScale[1] *= 1.01
-        } break;
-        case '-': {
-          zoomScale[0] *= 0.9
-          zoomScale[1] *= 0.9
-        } break;
+        //Clamp zoom min
+        cameraZoom = Math.min(cameraZoom, 5)
+        //Clamp zoom max
+        cameraZoom = Math.max(cameraZoom, 0.1);
+        
+        screenRect.size.x = canvas.width / cameraZoom;
+        screenRect.size.y = canvas.height / cameraZoom;
+        console.log(screenRect.size.x);
+
+        console.log(cameraZoom);
       }
-    })
-    
+    }
 
+    const handlePinch = (e: TouchEvent) => {
+      e.preventDefault();
+
+      const firstPoint = { x: e.touches[0].clientX, y: e.touches[0].clientY};
+      const secondPoint = { x: e.touches[1].clientX, y: e.touches[1].clientY};
+
+      //distance square
+      const currentDistance = (firstPoint.x - secondPoint.x)**2 + (firstPoint.x - secondPoint.y)**2;
+      if (initialPinchDistance = null) {
+        initialPinchDistance = currentDistance;
+      } else {
+        adjustZoom(null, currentDistance / initialPinchDistance);
+      }
+    }
+
+    const handleTouch = (
+      e: TouchEvent,
+      pointHandler: (e: MouseEvent | Touch) => void,
+    ) => {
+      if (e.touches.length === 1) {
+        pointHandler(e.touches[0]);
+      } else if (e.type == 'touchmove' && e.touches.length === 2) {
+        console.log('test')
+        isDragging = false;
+        handlePinch(e);
+      }
+    }
+
+    canvas.addEventListener('mousedown', onPointerDown);
+    canvas.addEventListener('touchstart', (e) => handleTouch(e, onPointerDown))
+    canvas.addEventListener('mouseup', onPointerUp);
+    canvas.addEventListener('touchend',  (e) => handleTouch(e, onPointerUp))
+    canvas.addEventListener('mousemove', onPointerMove);
+    canvas.addEventListener('touchmove', (e) => handleTouch(e, onPointerMove))
+    canvas.addEventListener( 'wheel', (e) => adjustZoom(e.deltaY*0.0005));
+
+
+    gui.add(settings, 'Depth Limit', 2, 10).step(1);
+    gui.add(settings, 'Quad Tree Size');
+
+    
     function frame() {
       // Sample is no longer the active page.
       if (!pageState.active) return;
-      context.fillStyle = "blue"
 
-      drawCanvas(context, zoomScale as [number, number], offset as [number, number]);
+      drawPanAndZoom(context, cameraZoom, cameraOffset, screenRect, objectArr);
   
       requestAnimationFrame(frame);
     }
@@ -154,6 +248,7 @@ const microGradExample: () => JSX.Element = () =>
     description: 'WIP Micrograd Example (INCOMPLETE)',
     init,
     gui: true,
+    coordinateSystem: 'Canvas2D',
     sources: [
       {
         name: __filename.substring(__dirname.length + 1),
@@ -169,6 +264,3 @@ const microGradExample: () => JSX.Element = () =>
   });
 
 export default microGradExample;
-
-//var<storage, read_write> input
-//var<storage,read_write> training_labels = [1, -1, -1, 1]

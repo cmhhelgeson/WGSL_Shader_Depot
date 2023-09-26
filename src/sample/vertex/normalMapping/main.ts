@@ -196,7 +196,8 @@ SampleInitFactoryWebGPU(
       normalMapWGSL,
       ['float32x3', 'float32x3', 'float32x2', 'float32x3', 'float32x3'],
       normalMapWGSL,
-      presentationFormat
+      presentationFormat,
+      true
     );
 
     function frame() {

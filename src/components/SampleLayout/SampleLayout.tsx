@@ -142,9 +142,9 @@ const SampleLayout: React.FunctionComponent<
       } break;
       case 'Canvas2D': {
         return {
-          UL: canvasRef.current ? canvasRef.current.height.toString() : 'UL',
+          UL: '0',
           UR: '',
-          BL: '0',
+          BL: canvasRef.current ? canvasRef.current.height.toString() : 'UL',
           BR: canvasRef.current ? canvasRef.current.width.toString() : 'BR',
         }
       }
@@ -412,6 +412,8 @@ const SampleLayout: React.FunctionComponent<
           variants={canvasVariants}
           animate={canvasAnimControls}
           id="WGSL_CANVAS"
+          width={600}
+          height={300}
           onAnimationComplete={() => {
             if (debugOn) {
               debugOnRef.current = true;
