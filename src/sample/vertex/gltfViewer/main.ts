@@ -82,19 +82,6 @@ const init: SampleInit = async ({
     bgDescriptor.bindGroupLayout
   );
 
-  /*cylinderEngineScene.meshes[0].buildRenderPipeline(
-    device,
-    device.createShaderModule({
-      code: gltfVertWGSL
-    }),
-    device.createShaderModule({
-      code: gltfFragWGSL
-    }),
-    presentationFormat,
-    depthTexture.format,
-    bgDescriptor.bindGroupLayout
-  ) */
-
   const aspect = canvas.width / canvas.height;
   const projectionMatrix = mat4.perspective(
     (2 * Math.PI) / 5,

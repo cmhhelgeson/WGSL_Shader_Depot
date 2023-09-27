@@ -22,13 +22,27 @@ let init: SampleInit;
 SampleInitFactoryWebGPU(
   async ({ canvas, pageState, gui, device, context, presentationFormat }) => {
     interface GUISettings {
-      'Bump Mode': 'None' | 'Normal';
+      'Bump Mode': 'None' | 'Normal Texture' | 'Depth Texture' | 'Normal';
+      cameraPosX: number;
+      cameraPosY: number;
+      cameraPosZ: number;
     }
 
     const settings: GUISettings = {
       'Bump Mode': 'Normal',
+      cameraPosX: 0.0,
+      cameraPosY: 0.0,
+      cameraPosZ: 0.0,
     };
-    gui.add(settings, 'Bump Mode', ['None', 'Normal']);
+    gui.add(settings, 'Bump Mode', [
+      'None',
+      'Normal Texture',
+      'Depth Texture',
+      'Normal',
+    ]);
+    gui.add(settings, 'cameraPosX', -5, 5).step(0.1);
+    gui.add(settings, 'cameraPosY', -5, 5).step(0.1);
+    gui.add(settings, 'cameraPosZ', -5, 5).step(0.1);
 
     const depthTexture = device.createTexture({
       size: [canvas.width, canvas.height],
@@ -155,7 +169,15 @@ SampleInitFactoryWebGPU(
 
     function getViewMatrix() {
       const viewMatrix = mat4.identity();
-      mat4.translate(viewMatrix, vec3.fromValues(0, 0, -2), viewMatrix);
+      mat4.translate(
+        viewMatrix,
+        vec3.fromValues(
+          settings.cameraPosX,
+          settings.cameraPosY,
+          settings.cameraPosZ
+        ),
+        viewMatrix
+      );
       return viewMatrix;
     }
 
@@ -173,8 +195,14 @@ SampleInitFactoryWebGPU(
         case 'None':
           arr[0] = 0;
           break;
-        case 'Normal':
+        case 'Normal Texture':
           arr[0] = 1;
+          break;
+        case 'Depth Texture':
+          arr[0] = 2;
+          break;
+        case 'Normal':
+          arr[0] = 3;
           break;
       }
     };
@@ -185,9 +213,6 @@ SampleInitFactoryWebGPU(
 
     const mappingType: Uint32Array = new Uint32Array([0]);
     const parallaxScale: Float32Array = new Float32Array([0]);
-
-    const viewMatrixTemp = getViewMatrix();
-    const viewMatrix = viewMatrixTemp as Float32Array;
 
     const pipeline = create3DRenderPipeline(
       device,
@@ -203,6 +228,9 @@ SampleInitFactoryWebGPU(
     function frame() {
       // Sample is no longer the active page.
       if (!pageState.active) return;
+
+      const viewMatrixTemp = getViewMatrix();
+      const viewMatrix = viewMatrixTemp as Float32Array;
 
       const modelMatrixTemp = getModelMatrix();
       const normalMatrix = mat4.transpose(
