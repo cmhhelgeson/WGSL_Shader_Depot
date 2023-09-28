@@ -26,6 +26,9 @@ SampleInitFactoryWebGPU(
       cameraPosX: number;
       cameraPosY: number;
       cameraPosZ: number;
+      lightPosX: number;
+      lightPosY: number;
+      lightPosZ: number;
     }
 
     const settings: GUISettings = {
@@ -33,6 +36,9 @@ SampleInitFactoryWebGPU(
       cameraPosX: 0.0,
       cameraPosY: 0.0,
       cameraPosZ: 0.0,
+      lightPosX: 0.0,
+      lightPosY: 0.0,
+      lightPosZ: 0.0,
     };
     gui.add(settings, 'Bump Mode', [
       'None',
@@ -43,6 +49,10 @@ SampleInitFactoryWebGPU(
     gui.add(settings, 'cameraPosX', -5, 5).step(0.1);
     gui.add(settings, 'cameraPosY', -5, 5).step(0.1);
     gui.add(settings, 'cameraPosZ', -5, 5).step(0.1);
+    gui.add(settings, 'lightPosX', -5, 5).step(0.1);
+    gui.add(settings, 'lightPosY', -5, 5).step(0.1);
+    gui.add(settings, 'lightPosZ', -5, 5).step(0.1);
+
 
     const depthTexture = device.createTexture({
       size: [canvas.width, canvas.height],
@@ -56,7 +66,7 @@ SampleInitFactoryWebGPU(
     });
 
     const mapMethodBuffer = device.createBuffer({
-      size: Float32Array.BYTES_PER_ELEMENT * 2,
+      size: Float32Array.BYTES_PER_ELEMENT * 5,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
@@ -129,7 +139,7 @@ SampleInitFactoryWebGPU(
 
     const frameBGDescriptor = createBindGroupDescriptor(
       [0, 1],
-      [GPUShaderStage.VERTEX, GPUShaderStage.FRAGMENT],
+      [GPUShaderStage.VERTEX, GPUShaderStage.FRAGMENT | GPUShaderStage.VERTEX],
       ['buffer', 'buffer'],
       [{ type: 'uniform' }, { type: 'uniform' }],
       [[{ buffer: uniformBuffer }, { buffer: mapMethodBuffer }]],
@@ -249,6 +259,15 @@ SampleInitFactoryWebGPU(
       getParallaxScale(parallaxScale);
 
       write32ToBuffer(device, mapMethodBuffer, [mappingType, parallaxScale]);
+      device.queue.writeBuffer(
+        mapMethodBuffer,
+        8,
+        new Float32Array([
+          settings.lightPosX,
+          settings.lightPosY,
+          settings.lightPosZ,
+        ])
+      );
 
       renderPassDescriptor.colorAttachments[0].view = context
         .getCurrentTexture()

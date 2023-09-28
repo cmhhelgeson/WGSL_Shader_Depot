@@ -9,6 +9,9 @@ struct Uniforms {
 struct Uniforms_MapInfo {
   mappingType: u32,
   parallax_scale: f32,
+  lightPosX: f32,
+  lightPosY: f32,
+  lightPosZ: f32,
 }
 
 struct VertexInput {
@@ -60,6 +63,7 @@ const viewPos = vec3f(0.0, 0.0, -2.0);
 
 /* VERTEX SHADER */
 @group(0) @binding(0) var<uniform> uniforms : Uniforms;
+@group(0) @binding(1) var<uniform> mapInfo: Uniforms_MapInfo;
 
 @vertex
 fn vertexMain(input: VertexInput) -> VertexOutput {
@@ -87,7 +91,11 @@ fn vertexMain(input: VertexInput) -> VertexOutput {
   let tbn = mat3x3f(t, b, n);
 
   //Get light, camera, and frag positions in tangent space
-  output.tangentSpaceLightPos = tbn * lightPos;
+  output.tangentSpaceLightPos = tbn * vec3f(
+    mapInfo.lightPosX,
+    mapInfo.lightPosY,
+    mapInfo.lightPosZ
+  );
   output.tangentSpaceViewPos = tbn * viewPos;
   output.tangentSpaceFragPos = tbn * output.frag_pos;
 
@@ -95,7 +103,6 @@ fn vertexMain(input: VertexInput) -> VertexOutput {
 }
 
 /* FRAGMENT SHADER */
-@group(0) @binding(1) var<uniform> mapInfo: Uniforms_MapInfo;
 
 @group(1) @binding(0) var textureSampler: sampler;
 @group(1) @binding(1) var diffuseTexture: texture_2d<f32>;
@@ -109,12 +116,13 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
   var lightDir = normalize(input.tangentSpaceLightPos - input.tangentSpaceFragPos);
   var viewDir = normalize(input.tangentSpaceViewPos - input.tangentSpaceFragPos);
 
+
   let uv = select(parallax_uv(
     input.uv, 
     viewDir,
     textureSample(depthTexture, textureSampler, input.uv).b,
     mapInfo.parallax_scale,
-  ), input.uv, mapInfo.mappingType < 2);
+  ), vec2f(input.uv.x, 1 - input.uv.y), mapInfo.mappingType < 2);
 
   let diffuseMap = textureSample(diffuseTexture, textureSampler, uv);
   let normalMap = textureSample(normalTexture, textureSampler, uv);
