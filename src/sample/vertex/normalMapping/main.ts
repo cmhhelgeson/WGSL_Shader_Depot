@@ -4,10 +4,12 @@ import {
   SampleInit,
 } from '../../../components/SampleLayout/SampleLayout';
 import normalMapWGSL from './normalMap.wgsl';
+import normalMapAltWGSL from './normalMapAlt.wgsl';
+import lightCubeWGSL from './lightcube.wgsl';
 import { createMeshRenderable } from '../../../meshes/mesh';
 import { createBoxMeshWithTangents } from '../../../meshes/box';
 import { SampleInitFactoryWebGPU } from '../../../components/SampleLayout/SampleLayoutUtils';
-import { createTextureFromImage } from '../../../utils/texture';
+import { PBRDescriptor, createPBRDescriptor, createTextureFromImage } from '../../../utils/texture';
 import { createBindGroupDescriptor } from '../../../utils/bindGroup';
 import { create3DRenderPipeline } from '../../../utils/program/renderProgram';
 import { write32ToBuffer, writeMat4ToBuffer } from '../../../utils/buffer';
@@ -53,6 +55,7 @@ SampleInitFactoryWebGPU(
     gui.add(settings, 'lightPosY', -5, 5).step(0.1);
     gui.add(settings, 'lightPosZ', -5, 5).step(0.1);
 
+    //Create normal mapping resources and pipeline
 
     const depthTexture = device.createTexture({
       size: [canvas.width, canvas.height],
@@ -70,43 +73,22 @@ SampleInitFactoryWebGPU(
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
-    // Fetch the image and upload it into a GPUTexture.
-    let woodTexture: GPUTexture;
-    {
-      const response = await fetch(
-        new URL(
-          '../../../../assets/img/toy_box_diffuse.png',
-          import.meta.url
-        ).toString()
-      );
-      const imageBitmap = await createImageBitmap(await response.blob());
-      woodTexture = createTextureFromImage(device, imageBitmap);
-    }
+    const lightCubeUniformBuffer = device.createBuffer({
+      size: MAT4X4_BYTES * 3,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    });
 
-    let woodNormalTexture: GPUTexture;
+    //TODO: Make sure a shader only gets passed the textures that are created in case an invalid format is passed
+    //TODO: Allow user to pass multiple diffuse, normals, height, etc
+    let toyboxPBR: Required<PBRDescriptor>;
     {
-      const response = await fetch(
-        new URL(
-          '../../../../assets/img/toy_box_normal.png',
-          import.meta.url
-        ).toString()
-      );
-      const imageBitmap = await createImageBitmap(await response.blob());
-      woodNormalTexture = createTextureFromImage(device, imageBitmap);
+      const response = await createPBRDescriptor(device, [
+        'toy_box_diffuse.png',
+        'spiral_normal.png',
+        'spiral_height.png',
+      ]);
+      toyboxPBR = response as Required<PBRDescriptor>;
     }
-
-    let woodDepthTexture: GPUTexture;
-    {
-      const response = await fetch(
-        new URL(
-          '../../../../assets/img/toy_box_disp.png',
-          import.meta.url
-        ).toString()
-      );
-      const imageBitmap = await createImageBitmap(await response.blob());
-      woodDepthTexture = createTextureFromImage(device, imageBitmap);
-    }
-
     // Create a sampler with linear filtering for smooth interpolation.
     const sampler = device.createSampler({
       magFilter: 'linear',
@@ -137,6 +119,32 @@ SampleInitFactoryWebGPU(
       createBoxMeshWithTangents(1.0, 1.0, 1.0)
     );
 
+    const lightCube = createMeshRenderable(
+      device,
+      createBoxMeshWithTangents(0.2, 0.2, 0.2)
+    );
+
+    const lightCubeBGDescriptor = createBindGroupDescriptor(
+      [0],
+      [GPUShaderStage.VERTEX],
+      ['buffer'],
+      [{ type: 'uniform' }],
+      [[{ buffer: lightCubeUniformBuffer }]],
+      'LightCube',
+      device
+    );
+
+    const lightCubePipeline = create3DRenderPipeline(
+      device,
+      'NormalMappingRender',
+      [lightCubeBGDescriptor.bindGroupLayout],
+      normalMapWGSL,
+      ['float32x3', 'float32x3', 'float32x2', 'float32x3', 'float32x3'],
+      normalMapWGSL,
+      presentationFormat,
+      true
+    );
+
     const frameBGDescriptor = createBindGroupDescriptor(
       [0, 1],
       [GPUShaderStage.VERTEX, GPUShaderStage.FRAGMENT | GPUShaderStage.VERTEX],
@@ -160,9 +168,9 @@ SampleInitFactoryWebGPU(
       [
         [
           sampler,
-          woodTexture.createView(),
-          woodNormalTexture.createView(),
-          woodDepthTexture.createView(),
+          toyboxPBR.diffuse.createView(),
+          toyboxPBR.normal.createView(),
+          toyboxPBR.height.createView(),
         ],
       ],
       'Toybox',
@@ -200,6 +208,17 @@ SampleInitFactoryWebGPU(
       return modelMatrix;
     }
 
+    function getLightCubeModelMatrix() {
+      const modelMatrix = mat4.create();
+      mat4.identity(modelMatrix);
+      mat4.translate(
+        modelMatrix,
+        vec3.create(settings.lightPosX, settings.lightPosY, settings.lightPosZ),
+        modelMatrix
+      );
+      return modelMatrix;
+    }
+
     const getMappingType = (arr: Uint32Array) => {
       switch (settings['Bump Mode']) {
         case 'None':
@@ -224,7 +243,7 @@ SampleInitFactoryWebGPU(
     const mappingType: Uint32Array = new Uint32Array([0]);
     const parallaxScale: Float32Array = new Float32Array([0]);
 
-    const pipeline = create3DRenderPipeline(
+    const texturedCubePipeline = create3DRenderPipeline(
       device,
       'NormalMappingRender',
       [frameBGDescriptor.bindGroupLayout, toyboxBGDescriptor.bindGroupLayout],
@@ -239,12 +258,13 @@ SampleInitFactoryWebGPU(
       // Sample is no longer the active page.
       if (!pageState.active) return;
 
+      //Write to normal map shader
       const viewMatrixTemp = getViewMatrix();
       const viewMatrix = viewMatrixTemp as Float32Array;
 
       const modelMatrixTemp = getModelMatrix();
       const normalMatrix = mat4.transpose(
-        mat4.invert(mat4.multiply(modelMatrixTemp, viewMatrixTemp))
+        mat4.invert(modelMatrixTemp)
       ) as Float32Array;
       const modelMatrix = modelMatrixTemp as Float32Array;
 
@@ -269,18 +289,34 @@ SampleInitFactoryWebGPU(
         ])
       );
 
+      //Write to lightcube shader
+      const lightCubeModelMatrix = getLightCubeModelMatrix();
+      writeMat4ToBuffer(device, lightCubeUniformBuffer, [
+        lightCubeModelMatrix,
+        viewMatrix,
+        projectionMatrix,
+      ]);
+
       renderPassDescriptor.colorAttachments[0].view = context
         .getCurrentTexture()
         .createView();
 
       const commandEncoder = device.createCommandEncoder();
       const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
-      passEncoder.setPipeline(pipeline);
+      //Draw textured Cube
+      passEncoder.setPipeline(texturedCubePipeline);
       passEncoder.setBindGroup(0, frameBGDescriptor.bindGroups[0]);
       passEncoder.setBindGroup(1, toyboxBGDescriptor.bindGroups[0]);
       passEncoder.setVertexBuffer(0, toybox.vertexBuffer);
       passEncoder.setIndexBuffer(toybox.indexBuffer, 'uint16');
       passEncoder.drawIndexed(toybox.indexCount);
+      //Draw LightBox
+      passEncoder.setPipeline(lightCubePipeline);
+      passEncoder.setBindGroup(0, lightCubeBGDescriptor.bindGroups[0]);
+      passEncoder.setVertexBuffer(0, lightCube.vertexBuffer);
+      passEncoder.setIndexBuffer(lightCube.indexBuffer, 'uint16');
+      passEncoder.drawIndexed(lightCube.indexCount);
+      //End Pass Encoder
       passEncoder.end();
       device.queue.submit([commandEncoder.finish()]);
 

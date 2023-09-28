@@ -27,7 +27,7 @@ struct VertexOutput {
   @builtin(position) position : vec4f,
   @location(0) normal: vec3f,
   @location(1) uv : vec2f,
-  @location(2) frag_pos: vec3f,
+  @location(2) posWS: vec3f,
   @location(3) tangentSpaceViewPos: vec3f,
   @location(4) tangentSpaceLightPos: vec3f,
   @location(5) tangentSpaceFragPos: vec3f,
@@ -74,7 +74,7 @@ fn vertexMain(input: VertexInput) -> VertexOutput {
   output.uv = input.uv;
   output.normal = input.normal;
   //Multiply pos by modelMatrix to get frag pos in world space
-  output.frag_pos = vec3f((uniforms.modelMatrix * input.position).xyz);
+  output.posWS = vec3f((uniforms.modelMatrix * input.position).xyz);
 
   //Normal Matrix
   var normalMatrix: mat3x3f = mat3x3f(
@@ -97,7 +97,7 @@ fn vertexMain(input: VertexInput) -> VertexOutput {
     mapInfo.lightPosZ
   );
   output.tangentSpaceViewPos = tbn * viewPos;
-  output.tangentSpaceFragPos = tbn * output.frag_pos;
+  output.tangentSpaceFragPos = tbn * output.posWS;
 
   return output;
 }
@@ -134,11 +134,11 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
   var diffuseLight = max(
     dot(
       lightDir, 
-      select(fragmentNormal, input.frag_pos, mapInfo.mappingType <= 0)
+      select(fragmentNormal, input.posWS, mapInfo.mappingType <= 0)
     ), 0.0
   ) * diffuseColor;
   //AMBIENT
   var ambientLight = 0.1 * diffuseColor;
 
-  return vec4f(ambientLight + diffuseLight, 1.0);
+  return vec4f(input.normal, 1.0);
 }

@@ -139,7 +139,7 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
   let depthMap = textureSample(depthTexture, textureSampler, uv); 
   //Transform normal to -1 to 1 space
   var fragPosTS = normalize(normalMap.rgb * 2.0 - 1.0);
-  var vertToLightWS = length(lightPosWS - input.vertPosWS);
+  var vertToLightWS = lightPosWS - input.vertPosWS;
   
   var n: vec3f = fragPosTS;
   var l: vec3f = normalize(input.vertToLightTS);
@@ -153,7 +153,7 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
 
   //DIFFUSE
   var diffuseColor = diffuseMap.rgb;
-  var diffuseLight = diffuseColor * 10.0 * cosLight / (vertToLightWS * vertToLightWS);
+  var diffuseLight = diffuseColor * 10.0 * cosLight / dot(vertToLightWS, vertToLightWS);
   var ambientLight = 0.1 * diffuseColor;
 
   //return vec4(normalMap.rgb, 1.0);
