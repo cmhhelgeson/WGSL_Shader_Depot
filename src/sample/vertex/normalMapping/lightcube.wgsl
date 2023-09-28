@@ -1,8 +1,8 @@
 /* STRUCT DEFINITIONS */
 struct Uniforms {
-  modelMatrix: mat4x4f,
-  viewMatrix: mat4x4f,
-  projMatrix: mat4x4,
+  modelMatrix: mat4x4<f32>,
+  viewMatrix: mat4x4<f32>,
+  projMatrix: mat4x4<f32>,
 }
 
 struct VertexInput {
@@ -14,20 +14,18 @@ struct VertexInput {
 }
 
 struct VertexOutput {
-  @builtin(position) position : vec4f,
+  @builtin(position) Position : vec4f,
 }
 
-/* VERTEX SHADER */
 @group(0) @binding(0) var<uniform> uniforms : Uniforms;
 
 @vertex
 fn vertexMain(input: VertexInput) -> VertexOutput {
   var output : VertexOutput;
-  output.position = uniforms.projMatrix * uniforms.viewMatrix * uniforms.modelMatrix * input.position;
+  output.Position = uniforms.projMatrix * uniforms.viewMatrix * uniforms.modelMatrix * input.position;
   return output;
 }
 
-/* FRAGMENT SHADER */
 @fragment
 fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
   //Calculate light and view directions in tangent space for each fragment

@@ -261,6 +261,7 @@ export const create3DRenderPipeline = (
     }),
     vertex: {
       module: device.createShaderModule({
+        label: `${label}.vertexShader`,
         code: vertexShader,
       }),
       entryPoint: 'vertexMain',
@@ -268,6 +269,7 @@ export const create3DRenderPipeline = (
     },
     fragment: {
       module: device.createShaderModule({
+        label: `${label}.fragmentShader`,
         code: fragmentShader,
       }),
       entryPoint: 'fragmentMain',

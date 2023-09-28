@@ -140,5 +140,5 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
   //AMBIENT
   var ambientLight = 0.1 * diffuseColor;
 
-  return vec4f(input.normal, 1.0);
+  return vec4f(ambientLight + diffuseLight, 1.0);
 }

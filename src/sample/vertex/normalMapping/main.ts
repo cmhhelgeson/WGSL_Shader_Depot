@@ -37,7 +37,7 @@ SampleInitFactoryWebGPU(
       'Bump Mode': 'Normal',
       cameraPosX: 0.0,
       cameraPosY: 0.0,
-      cameraPosZ: 0.0,
+      cameraPosZ: -2.0,
       lightPosX: 0.0,
       lightPosY: 0.0,
       lightPosZ: 0.0,
@@ -48,15 +48,16 @@ SampleInitFactoryWebGPU(
       'Depth Texture',
       'Normal',
     ]);
-    gui.add(settings, 'cameraPosX', -5, 5).step(0.1);
-    gui.add(settings, 'cameraPosY', -5, 5).step(0.1);
-    gui.add(settings, 'cameraPosZ', -5, 5).step(0.1);
-    gui.add(settings, 'lightPosX', -5, 5).step(0.1);
-    gui.add(settings, 'lightPosY', -5, 5).step(0.1);
-    gui.add(settings, 'lightPosZ', -5, 5).step(0.1);
+    const cameraFolder = gui.addFolder('Camera');
+    const lightFolder = gui.addFolder('Light');
+    cameraFolder.add(settings, 'cameraPosX', -5, 5).step(0.1);
+    cameraFolder.add(settings, 'cameraPosY', -5, 5).step(0.1);
+    cameraFolder.add(settings, 'cameraPosZ', -5, 5).step(0.1);
+    lightFolder.add(settings, 'lightPosX', -5, 5).step(0.1);
+    lightFolder.add(settings, 'lightPosY', -5, 5).step(0.1);
+    lightFolder.add(settings, 'lightPosZ', -5, 5).step(0.1);
 
     //Create normal mapping resources and pipeline
-
     const depthTexture = device.createTexture({
       size: [canvas.width, canvas.height],
       format: 'depth24plus',
@@ -70,11 +71,6 @@ SampleInitFactoryWebGPU(
 
     const mapMethodBuffer = device.createBuffer({
       size: Float32Array.BYTES_PER_ELEMENT * 5,
-      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-    });
-
-    const lightCubeUniformBuffer = device.createBuffer({
-      size: MAT4X4_BYTES * 3,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
@@ -119,32 +115,6 @@ SampleInitFactoryWebGPU(
       createBoxMeshWithTangents(1.0, 1.0, 1.0)
     );
 
-    const lightCube = createMeshRenderable(
-      device,
-      createBoxMeshWithTangents(0.2, 0.2, 0.2)
-    );
-
-    const lightCubeBGDescriptor = createBindGroupDescriptor(
-      [0],
-      [GPUShaderStage.VERTEX],
-      ['buffer'],
-      [{ type: 'uniform' }],
-      [[{ buffer: lightCubeUniformBuffer }]],
-      'LightCube',
-      device
-    );
-
-    const lightCubePipeline = create3DRenderPipeline(
-      device,
-      'NormalMappingRender',
-      [lightCubeBGDescriptor.bindGroupLayout],
-      normalMapWGSL,
-      ['float32x3', 'float32x3', 'float32x2', 'float32x3', 'float32x3'],
-      normalMapWGSL,
-      presentationFormat,
-      true
-    );
-
     const frameBGDescriptor = createBindGroupDescriptor(
       [0, 1],
       [GPUShaderStage.VERTEX, GPUShaderStage.FRAGMENT | GPUShaderStage.VERTEX],
@@ -175,6 +145,38 @@ SampleInitFactoryWebGPU(
       ],
       'Toybox',
       device
+    );
+
+    //Create lightmap resources
+    const lightCubeUniformBuffer = device.createBuffer({
+      size: MAT4X4_BYTES * 3,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    });
+
+    const lightCube = createMeshRenderable(
+      device,
+      createBoxMeshWithTangents(0.2, 0.2, 0.2)
+    );
+
+    const lightCubeBGDescriptor = createBindGroupDescriptor(
+      [0],
+      [GPUShaderStage.VERTEX],
+      ['buffer'],
+      [{ type: 'uniform' }],
+      [[{ buffer: lightCubeUniformBuffer }]],
+      'LightCube',
+      device
+    );
+
+    const lightCubePipeline = create3DRenderPipeline(
+      device,
+      'LightCube',
+      [lightCubeBGDescriptor.bindGroupLayout],
+      lightCubeWGSL,
+      ['float32x3', 'float32x3', 'float32x2', 'float32x3', 'float32x3'],
+      lightCubeWGSL,
+      presentationFormat,
+      true
     );
 
     const aspect = canvas.width / canvas.height;
