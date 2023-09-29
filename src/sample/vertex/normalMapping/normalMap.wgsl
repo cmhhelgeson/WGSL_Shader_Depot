@@ -13,7 +13,7 @@ struct Uniforms_MapInfo {
   lightPosZ: f32,
   lightIntensity: f32,
   depthScale: f32,
-  depthLayers: u32,
+  depthLayers: f32,
 }
 
 struct VertexInput {
@@ -64,22 +64,34 @@ fn parallax_uv(
     //Perturb uv coordinates based on depth and camera direction
     var p: vec2f = viewDirTS.xy * (depthSample * depthScale) / viewDirTS.z;
     return uv - p;
-  } else {
-    var depthPerLayer: f32 = 1.0 / f32(mapInfo.depthLayers);
-    var currentDepth: f32 = 0.0;
-    //How much we will go down
-    var delta_uv: vec2<f32> = viewDirTS.xy * depthScale / (viewDirTS.z * f32(mapInfo.depthLayers));
-    var cur_uv = uv;
-
-    var textureDepth = depthSample;
-    for (var i: u32 = 0; i < 16; i++) {
-      //Go down a layer in depth
-      currentDepth += depthPerLayer;
-      cur_uv -= delta_uv;
-      textureDepth = textureSample(depthTexture, textureSampler, cur_uv).r;
-    }
-    return cur_uv;
   }
+  var depthPerLayer: f32 = 1.0 / f32(mapInfo.depthLayers);
+  var currentDepth: f32 = 0.0;
+  //How much we will go down
+  var delta_uv: vec2<f32> = viewDirTS.xy * depthScale / (viewDirTS.z * mapInfo.depthLayers);
+  var prev_uv = uv;
+  var cur_uv = uv;
+
+  var depthFromTexture: f32 = textureSample(depthTexture, textureSampler, cur_uv).r;
+  var prevDepthFromTexture: f32 = depthFromTexture;
+  var prevCurrentDepth: f32 = currentDepth;
+  for (var i: u32 = 0; i < 32; i++) {
+    currentDepth += depthPerLayer;
+    prev_uv = cur_uv;
+    cur_uv -= delta_uv;
+    depthFromTexture = textureSample(depthTexture, textureSampler, cur_uv).r;
+    cur_uv = select(cur_uv, prev_uv, depthFromTexture < currentDepth);
+    prevDepthFromTexture = select(depthFromTexture, prevDepthFromTexture, prevDepthFromTexture < currentDepth);
+    prevCurrentDepth = select(currentDepth, prevCurrentDepth, prevDepthFromTexture < currentDepth);
+  }
+  if (mapInfo.mappingType == 4) {
+    return cur_uv; 
+  }
+  prev_uv = cur_uv + delta_uv;
+  var next: f32 = prevDepthFromTexture - prevCurrentDepth;
+  var prev: f32 = textureSample(depthTexture, textureSampler, prev_uv).r - prevCurrentDepth + depthPerLayer;
+  var weight: f32 = next / (next - prev);
+  return mix(cur_uv, prev_uv, weight);
 }
 
 fn when_greater(v1: f32, v2: f32) -> f32 {
@@ -194,6 +206,4 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
       return vec4f(diffuseMap.rgb * diffuseLight, 1.0);
     }
   }
-
-  //return vec4f(diffuseMap.rgb * diffuseLight, 1.0);
 }

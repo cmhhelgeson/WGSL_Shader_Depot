@@ -24,7 +24,8 @@ SampleInitFactoryWebGPU(
         | 'Normal Texture'
         | 'Normal Map'
         | 'Parallax Scale'
-        | 'Steep Parallax';
+        | 'Steep Parallax'
+        | 'Parallax Occlusion';
       cameraPosX: number;
       cameraPosY: number;
       cameraPosZ: number;
@@ -54,6 +55,7 @@ SampleInitFactoryWebGPU(
       'Normal Map',
       'Parallax Scale',
       'Steep Parallax',
+      'Parallax Occlusion',
     ]);
     const cameraFolder = gui.addFolder('Camera');
     const lightFolder = gui.addFolder('Light');
@@ -252,6 +254,9 @@ SampleInitFactoryWebGPU(
         case 'Steep Parallax':
           arr[0] = 4;
           break;
+        case 'Parallax Occlusion':
+          arr[0] = 5;
+          break;
       }
     };
 
@@ -292,6 +297,7 @@ SampleInitFactoryWebGPU(
       getMappingType(mappingType);
 
       write32ToBuffer(device, mapMethodBuffer, [mappingType]);
+      console.log(settings.depthLayers);
       device.queue.writeBuffer(
         mapMethodBuffer,
         4,
