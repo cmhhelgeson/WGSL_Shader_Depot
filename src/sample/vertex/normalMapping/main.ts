@@ -19,7 +19,7 @@ let init: SampleInit;
 SampleInitFactoryWebGPU(
   async ({ canvas, pageState, gui, device, context, presentationFormat }) => {
     interface GUISettings {
-      'Bump Mode': 'None' | 'Normal Texture' | 'Depth Texture' | 'Normal';
+      'Bump Mode': 'None' | 'Normal Texture' | 'Normal Map' | 'Parallax Scale';
       cameraPosX: number;
       cameraPosY: number;
       cameraPosZ: number;
@@ -27,26 +27,31 @@ SampleInitFactoryWebGPU(
       lightPosY: number;
       lightPosZ: number;
       lightIntensity: number;
+      depthScale: number;
+      depthLayers: number;
     }
 
     const settings: GUISettings = {
-      'Bump Mode': 'Normal',
+      'Bump Mode': 'Normal Map',
       cameraPosX: 0.0,
       cameraPosY: 0.0,
       cameraPosZ: -2.0,
-      lightPosX: 0.0,
-      lightPosY: 0.0,
-      lightPosZ: 0.0,
+      lightPosX: 2.9,
+      lightPosY: -1.2,
+      lightPosZ: 2.8,
       lightIntensity: 0.05,
+      depthScale: 0.05,
+      depthLayers: 16,
     };
     gui.add(settings, 'Bump Mode', [
       'None',
       'Normal Texture',
-      'Depth Texture',
-      'Normal',
+      'Normal Map',
+      'Parallax Scale',
     ]);
     const cameraFolder = gui.addFolder('Camera');
     const lightFolder = gui.addFolder('Light');
+    const depthFolder = gui.addFolder('Depth');
     cameraFolder.add(settings, 'cameraPosX', -5, 5).step(0.1);
     cameraFolder.add(settings, 'cameraPosY', -5, 5).step(0.1);
     cameraFolder.add(settings, 'cameraPosZ', -5, 5).step(0.1);
@@ -54,6 +59,8 @@ SampleInitFactoryWebGPU(
     lightFolder.add(settings, 'lightPosY', -5, 5).step(0.1);
     lightFolder.add(settings, 'lightPosZ', -5, 5).step(0.1);
     lightFolder.add(settings, 'lightIntensity', 0.0, 0.1).step(0.01);
+    depthFolder.add(settings, 'depthScale', 0.0, 0.1).step(0.01);
+    depthFolder.add(settings, 'depthLayers', 1, 32).step(1);
 
     //Create normal mapping resources and pipeline
     const depthTexture = device.createTexture({
@@ -68,7 +75,7 @@ SampleInitFactoryWebGPU(
     });
 
     const mapMethodBuffer = device.createBuffer({
-      size: Float32Array.BYTES_PER_ELEMENT * 6,
+      size: Float32Array.BYTES_PER_ELEMENT * 7,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
@@ -230,17 +237,13 @@ SampleInitFactoryWebGPU(
         case 'Normal Texture':
           arr[0] = 1;
           break;
-        case 'Depth Texture':
+        case 'Normal Map':
           arr[0] = 2;
           break;
-        case 'Normal':
+        case 'Parallax Scale':
           arr[0] = 3;
           break;
       }
-    };
-
-    const getParallaxScale = (arr: Float32Array) => {
-      arr[0] = settings['Parallax Scale'];
     };
 
     const mappingType: Uint32Array = new Uint32Array([0]);
@@ -279,17 +282,18 @@ SampleInitFactoryWebGPU(
       ]);
 
       getMappingType(mappingType);
-      getParallaxScale(parallaxScale);
 
       write32ToBuffer(device, mapMethodBuffer, [mappingType, parallaxScale]);
       device.queue.writeBuffer(
         mapMethodBuffer,
-        8,
+        4,
         new Float32Array([
           settings.lightPosX,
           settings.lightPosY,
           settings.lightPosZ,
           settings.lightIntensity,
+          settings.depthScale,
+          settings.depthLayers,
         ])
       );
 

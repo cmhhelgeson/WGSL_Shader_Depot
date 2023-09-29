@@ -1,5 +1,5 @@
 /* STRUCT DEFINITIONS */
-struct Uniforms {
+struct SpaceTransformUniforms {
   projMatrix: mat4x4f,
   viewMatrix: mat4x4f,
   normalMatrix: mat4x4f,
@@ -13,6 +13,8 @@ struct Uniforms_MapInfo {
   lightPosY: f32,
   lightPosZ: f32,
   lightIntensity: f32,
+  depthScale: f32,
+  depthLayers: f32,
 }
 
 struct VertexInput {
@@ -48,11 +50,12 @@ fn transpose3x3(mat: mat3x3f) -> mat3x3f  {
 
 fn parallax_uv(
   uv: vec2f, 
-  view_dir: vec3f, 
-  depth_value: f32,
-  depth_scale: f32
+  viewDirTS: vec3f, 
+  depthSample: f32,
+  depthScale: f32
 ) -> vec2f {
-  var p: vec2f = view_dir.xy / view_dir.z * (depth_value * depth_scale);
+  //Perturb uv coordinates based on depth and camera direction
+  var p: vec2f = viewDirTS.xy * (depthSample * depthScale) / viewDirTS.z;
   return uv - p;
 }
 
@@ -65,27 +68,31 @@ const lightPos = vec3f(0.0, 0.0, 2.0);
 const viewPos = vec3f(0.0, 0.0, -2.0);
 
 /* VERTEX SHADER */
-@group(0) @binding(0) var<uniform> uniforms : Uniforms;
+@group(0) @binding(0) var<uniform> spaceTransform : SpaceTransformUniforms;
 @group(0) @binding(1) var<uniform> mapInfo: Uniforms_MapInfo;
 
 @vertex
 fn vertexMain(input: VertexInput) -> VertexOutput {
   var output : VertexOutput;
-
-  //Get Clip space transform out of the way
-  output.Position = uniforms.projMatrix * uniforms.viewMatrix * uniforms.modelMatrix * input.position;
+  //Create the Model to View Matrix
+  var MV = spaceTransform.viewMatrix * spaceTransform.modelMatrix;
+  //Create the Model to View to Projection Matrix
+  var MVP = spaceTransform.projMatrix * MV;
+  
+  //Get Clip space transforms and pass through values out of the way
+  output.Position = MVP * input.position;
   output.uv = input.uv;
   output.normal = input.normal;
-  //Multiply pos by modelMatrix to get frag pos in world space
-  output.posWS = vec3f((uniforms.modelMatrix * input.position).xyz);
+
+  //Multiply pos by modelMatrix to get the vertex/fragment's position in world space
+  output.posWS = vec3f((spaceTransform.modelMatrix * input.position).xyz);
   
-  //Get the model view matrix
-  var MV = uniforms.viewMatrix * uniforms.modelMatrix;
   var MV3x3 = mat3x3f(
     MV[0].xyz,
     MV[1].xyz,
     MV[2].xyz
   );
+
   //Get unit vectors of normal, tangent, and bitangents in model space
   var vertexTangent: vec3f = normalize(input.vert_tan);
   var vertexBitangent: vec3f = normalize(input.vert_bitan);
@@ -99,6 +106,7 @@ fn vertexMain(input: VertexInput) -> VertexOutput {
       vertexNormal
     )
   );
+  //Condense to vec3s so they can be passed to fragment shader
   output.tbnTS0 = tbnTS[0];
   output.tbnTS1 = tbnTS[1];
   output.tbnTS2 = tbnTS[2];
@@ -107,7 +115,7 @@ fn vertexMain(input: VertexInput) -> VertexOutput {
   output.posTS = tbnTS * (MV * input.position).xyz;
 
   //Do we need to multipy by viewPos?
-  output.viewTS = tbnTS * vec3f(0.0, 0.0, 0.0)
+  output.viewTS = tbnTS * vec3f(0.0, 0.0, 0.0);
 
   return output;
 }
@@ -128,16 +136,27 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
     input.tbnTS1,
     input.tbnTS2,
   );
-  //Get values from textures
-  let diffuseMap = textureSample(diffuseTexture, textureSampler, input.uv);
-  let normalMap = textureSample(normalTexture, textureSampler, input.uv);
-  let depthMap = textureSample(depthTexture, textureSampler, input.uv); 
+
+  //Get direction of view in tangent space
+  var viewDirTS = normalize(input.viewTS - input.posTS);
 
   //Get position, direction, and distance of light in tangent space (no need to multiply by model matrix as there is no model)
-  var lightPosVS: vec4f = uniforms.viewMatrix * vec4f(mapInfo.lightPosX, mapInfo.lightPosY, mapInfo.lightPosZ, 1.0);
+  var lightPosVS: vec4f = spaceTransform.viewMatrix * vec4f(mapInfo.lightPosX, mapInfo.lightPosY, mapInfo.lightPosZ, 1.0);
   var lightPosTS: vec3f = tbnTS * lightPosVS.xyz;
   var lightDirTS: vec3f = normalize(lightPosTS - input.posTS);
   var lightDistanceTS = distance(input.posTS, lightPosTS);
+
+  let depthMap = textureSample(depthTexture, textureSampler, input.uv); 
+
+  var uv = select(
+    parallax_uv(input.uv, viewDirTS, depthMap.r, mapInfo.depthScale),
+    input.uv,
+    mapInfo.mappingType < 3
+  );
+
+  //Get values from textures
+  let diffuseMap = textureSample(diffuseTexture, textureSampler, uv);
+  let normalMap = textureSample(normalTexture, textureSampler, uv);
 
   //Get normal in tangent space
   var normalTS = normalize((normalMap.xyz * 2.0) - 1.0);
@@ -151,29 +170,17 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
   //Strenght inversely proportional to square of distance from light
   var diffuseLight = (lightColorIntensity * diffuseStrength) / (lightDistanceTS * lightDistanceTS);
 
-  //Calculate light and view directions in tangent space for each fragment
-  /*var lightDir = normalize(input.tangentSpaceLightPos - input.tangentSpaceFragPos);
-  var viewDir = normalize(input.tangentSpaceViewPos - input.tangentSpaceFragPos);
+  switch (mapInfo.mappingType) {
+    case 0: {
+      return vec4f(diffuseMap.rgb, 1.0);
+    }
+    case 1: {
+      return vec4f(normalMap.rgb, 1.0);
+    }
+    default: {
+      return vec4f(diffuseMap.rgb * diffuseLight, 1.0);
+    }
+  }
 
-  let uv = select(parallax_uv(
-    input.uv, 
-    viewDir,
-    textureSample(depthTexture, textureSampler, input.uv).b,
-    mapInfo.parallax_scale,
-  ), vec2f(input.uv.x, 1 - input.uv.y), mapInfo.mappingType < 2);
-
-  //Obtain the normal of the fragment in [-1, 1] range
-  var fragmentNormal = (normalMap.rgb * 2.0 - 1.0);
-  //DIFFUSE
-  var diffuseColor = diffuseMap.rgb;
-  var diffuseLight = max(
-    dot(
-      lightDir, 
-      select(fragmentNormal, input.posWS, mapInfo.mappingType <= 0)
-    ), 0.0
-  ) * diffuseColor;
-  //AMBIENT
-  var ambientLight = 0.1 * diffuseColor; */
-
-  return vec4f(diffuseMap.rgb * diffuseLight, 1.0);
+  //return vec4f(diffuseMap.rgb * diffuseLight, 1.0);
 }
