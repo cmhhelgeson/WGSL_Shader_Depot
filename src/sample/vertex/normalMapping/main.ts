@@ -4,22 +4,17 @@ import {
   SampleInit,
 } from '../../../components/SampleLayout/SampleLayout';
 import normalMapWGSL from './normalMap.wgsl';
-import normalMapAltWGSL from './normalMapAlt.wgsl';
 import lightCubeWGSL from './lightcube.wgsl';
 import { createMeshRenderable } from '../../../meshes/mesh';
 import { createBoxMeshWithTangents } from '../../../meshes/box';
 import { SampleInitFactoryWebGPU } from '../../../components/SampleLayout/SampleLayoutUtils';
-import { PBRDescriptor, createPBRDescriptor, createTextureFromImage } from '../../../utils/texture';
+import { PBRDescriptor, createPBRDescriptor } from '../../../utils/texture';
 import { createBindGroupDescriptor } from '../../../utils/bindGroup';
 import { create3DRenderPipeline } from '../../../utils/program/renderProgram';
 import { write32ToBuffer, writeMat4ToBuffer } from '../../../utils/buffer';
 
 const MAT4X4_BYTES = 64;
 
-// Inspired by the following articles
-// https://apoorvaj.io/exploring-bump-mapping-with-webgl/
-// https://learnopengl.com/Advanced-Lighting/Parallax-Mapping
-// https://toji.dev/webgpu-best-practices/bind-groups.html
 let init: SampleInit;
 SampleInitFactoryWebGPU(
   async ({ canvas, pageState, gui, device, context, presentationFormat }) => {
@@ -31,6 +26,7 @@ SampleInitFactoryWebGPU(
       lightPosX: number;
       lightPosY: number;
       lightPosZ: number;
+      lightIntensity: number;
     }
 
     const settings: GUISettings = {
@@ -41,6 +37,7 @@ SampleInitFactoryWebGPU(
       lightPosX: 0.0,
       lightPosY: 0.0,
       lightPosZ: 0.0,
+      lightIntensity: 0.05,
     };
     gui.add(settings, 'Bump Mode', [
       'None',
@@ -56,6 +53,7 @@ SampleInitFactoryWebGPU(
     lightFolder.add(settings, 'lightPosX', -5, 5).step(0.1);
     lightFolder.add(settings, 'lightPosY', -5, 5).step(0.1);
     lightFolder.add(settings, 'lightPosZ', -5, 5).step(0.1);
+    lightFolder.add(settings, 'lightIntensity', 0.0, 0.1).step(0.01);
 
     //Create normal mapping resources and pipeline
     const depthTexture = device.createTexture({
@@ -70,7 +68,7 @@ SampleInitFactoryWebGPU(
     });
 
     const mapMethodBuffer = device.createBuffer({
-      size: Float32Array.BYTES_PER_ELEMENT * 5,
+      size: Float32Array.BYTES_PER_ELEMENT * 6,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
@@ -117,7 +115,10 @@ SampleInitFactoryWebGPU(
 
     const frameBGDescriptor = createBindGroupDescriptor(
       [0, 1],
-      [GPUShaderStage.VERTEX, GPUShaderStage.FRAGMENT | GPUShaderStage.VERTEX],
+      [
+        GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+        GPUShaderStage.FRAGMENT | GPUShaderStage.VERTEX,
+      ],
       ['buffer', 'buffer'],
       [{ type: 'uniform' }, { type: 'uniform' }],
       [[{ buffer: uniformBuffer }, { buffer: mapMethodBuffer }]],
@@ -288,6 +289,7 @@ SampleInitFactoryWebGPU(
           settings.lightPosX,
           settings.lightPosY,
           settings.lightPosZ,
+          settings.lightIntensity,
         ])
       );
 
