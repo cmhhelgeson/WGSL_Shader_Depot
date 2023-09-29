@@ -8,13 +8,12 @@ struct SpaceTransformUniforms {
 
 struct Uniforms_MapInfo {
   mappingType: u32,
-  parallax_scale: f32,
   lightPosX: f32,
   lightPosY: f32,
   lightPosZ: f32,
   lightIntensity: f32,
   depthScale: f32,
-  depthLayers: f32,
+  depthLayers: u32,
 }
 
 struct VertexInput {
@@ -48,15 +47,39 @@ fn transpose3x3(mat: mat3x3f) -> mat3x3f  {
   );
 }
 
+@group(0) @binding(0) var<uniform> spaceTransform : SpaceTransformUniforms;
+@group(0) @binding(1) var<uniform> mapInfo: Uniforms_MapInfo;
+@group(1) @binding(0) var textureSampler: sampler;
+@group(1) @binding(1) var diffuseTexture: texture_2d<f32>;
+@group(1) @binding(2) var normalTexture: texture_2d<f32>;
+@group(1) @binding(3) var depthTexture: texture_2d<f32>;
+
 fn parallax_uv(
   uv: vec2f, 
   viewDirTS: vec3f, 
   depthSample: f32,
-  depthScale: f32
+  depthScale: f32,
 ) -> vec2f {
-  //Perturb uv coordinates based on depth and camera direction
-  var p: vec2f = viewDirTS.xy * (depthSample * depthScale) / viewDirTS.z;
-  return uv - p;
+  if (mapInfo.mappingType == 3) {
+    //Perturb uv coordinates based on depth and camera direction
+    var p: vec2f = viewDirTS.xy * (depthSample * depthScale) / viewDirTS.z;
+    return uv - p;
+  } else {
+    var depthPerLayer: f32 = 1.0 / f32(mapInfo.depthLayers);
+    var currentDepth: f32 = 0.0;
+    //How much we will go down
+    var delta_uv: vec2<f32> = viewDirTS.xy * depthScale / (viewDirTS.z * f32(mapInfo.depthLayers));
+    var cur_uv = uv;
+
+    var textureDepth = depthSample;
+    for (var i: u32 = 0; i < 16; i++) {
+      //Go down a layer in depth
+      currentDepth += depthPerLayer;
+      cur_uv -= delta_uv;
+      textureDepth = textureSample(depthTexture, textureSampler, cur_uv).r;
+    }
+    return cur_uv;
+  }
 }
 
 fn when_greater(v1: f32, v2: f32) -> f32 {
@@ -68,9 +91,6 @@ const lightPos = vec3f(0.0, 0.0, 2.0);
 const viewPos = vec3f(0.0, 0.0, -2.0);
 
 /* VERTEX SHADER */
-@group(0) @binding(0) var<uniform> spaceTransform : SpaceTransformUniforms;
-@group(0) @binding(1) var<uniform> mapInfo: Uniforms_MapInfo;
-
 @vertex
 fn vertexMain(input: VertexInput) -> VertexOutput {
   var output : VertexOutput;
@@ -121,13 +141,6 @@ fn vertexMain(input: VertexInput) -> VertexOutput {
 }
 
 /* FRAGMENT SHADER */
-
-@group(1) @binding(0) var textureSampler: sampler;
-@group(1) @binding(1) var diffuseTexture: texture_2d<f32>;
-@group(1) @binding(2) var normalTexture: texture_2d<f32>;
-@group(1) @binding(3) var depthTexture: texture_2d<f32>;
-
-
 @fragment
 fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
   //Reconstruct tbnTS

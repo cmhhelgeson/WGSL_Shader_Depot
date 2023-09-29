@@ -19,7 +19,12 @@ let init: SampleInit;
 SampleInitFactoryWebGPU(
   async ({ canvas, pageState, gui, device, context, presentationFormat }) => {
     interface GUISettings {
-      'Bump Mode': 'None' | 'Normal Texture' | 'Normal Map' | 'Parallax Scale';
+      'Bump Mode':
+        | 'None'
+        | 'Normal Texture'
+        | 'Normal Map'
+        | 'Parallax Scale'
+        | 'Steep Parallax';
       cameraPosX: number;
       cameraPosY: number;
       cameraPosZ: number;
@@ -48,6 +53,7 @@ SampleInitFactoryWebGPU(
       'Normal Texture',
       'Normal Map',
       'Parallax Scale',
+      'Steep Parallax',
     ]);
     const cameraFolder = gui.addFolder('Camera');
     const lightFolder = gui.addFolder('Light');
@@ -243,11 +249,13 @@ SampleInitFactoryWebGPU(
         case 'Parallax Scale':
           arr[0] = 3;
           break;
+        case 'Steep Parallax':
+          arr[0] = 4;
+          break;
       }
     };
 
     const mappingType: Uint32Array = new Uint32Array([0]);
-    const parallaxScale: Float32Array = new Float32Array([0]);
 
     const texturedCubePipeline = create3DRenderPipeline(
       device,
@@ -283,7 +291,7 @@ SampleInitFactoryWebGPU(
 
       getMappingType(mappingType);
 
-      write32ToBuffer(device, mapMethodBuffer, [mappingType, parallaxScale]);
+      write32ToBuffer(device, mapMethodBuffer, [mappingType]);
       device.queue.writeBuffer(
         mapMethodBuffer,
         4,
