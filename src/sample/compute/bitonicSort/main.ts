@@ -49,8 +49,8 @@ interface SettingsInterface {
   velocityY: number;
   'Prev Step': StepType;
   'Next Step': StepType;
-  'Prev Block Height': number;
-  'Next Block Height': number;
+  'Prev Swap Span': number;
+  'Next Swap Span': number;
   workLoads: number;
   executeStep: boolean;
   'Randomize Values': () => void;
@@ -105,9 +105,9 @@ SampleInitFactoryWebGPU(
       //Next step to execute
       'Next Step': 'FLIP_LOCAL',
       //Max thread span of previous block
-      'Prev Block Height': 0,
+      'Prev Swap Span': 0,
       //Max thread span of next block
-      'Next Block Height': 2,
+      'Next Swap Span': 2,
       //workloads to dispatch per frame,
       workLoads: 1,
       //Whether we will dispatch a workload this frame
@@ -212,11 +212,11 @@ SampleInitFactoryWebGPU(
       const newCellWidth =
         Math.sqrt(settings['Total Elements']) % 2 === 0
           ? Math.floor(Math.sqrt(settings['Total Elements']))
-          : Math.floor(settings['Total Elements'] / 4);
+          : Math.floor(settings['Total Elements'] / 8);
       const newCellHeight =
         Math.sqrt(settings['Total Elements']) % 2 === 0
           ? Math.floor(Math.sqrt(settings['Total Elements']))
-          : 4;
+          : 8;
       widthInCellsCell.setValue(newCellWidth);
       heightInCellsCell.setValue(newCellHeight);
 
@@ -250,28 +250,7 @@ SampleInitFactoryWebGPU(
         Array.from({ length: settings['Total Elements'] }, (_, i) => i)
       );
 
-      //Re-set workgroup threads to half length of elements
-      workGroupThreadsCell.setValue(settings['Total Elements'] / 2);
-
-      //Get new width and height of screen display in cells
-      const newCellWidth =
-        Math.sqrt(settings['Total Elements']) % 2 === 0
-          ? Math.floor(Math.sqrt(settings['Total Elements']))
-          : Math.floor(settings['Total Elements'] / 4);
-      const newCellHeight =
-        Math.sqrt(settings['Total Elements']) % 2 === 0
-          ? Math.floor(Math.sqrt(settings['Total Elements']))
-          : 4;
-      widthInCellsCell.setValue(newCellWidth);
-      heightInCellsCell.setValue(newCellHeight);
-
-      //Set prevStep to None (restart) and next step to FLIP
-      prevStepCell.setValue('NONE');
-      nextStepCell.setValue('FLIP_LOCAL');
-
-      //Reset block heights
-      prevBlockHeightCell.setValue(0);
-      nextBlockHeightCell.setValue(2);
+      resetExecutionInformation();
 
       //Create new shader invocation with workgroupSize that reflects number of threads
       computePipeline = device.createComputePipeline({
@@ -297,7 +276,7 @@ SampleInitFactoryWebGPU(
       switch (settings['Next Step']) {
         case 'FLIP_LOCAL':
           {
-            const blockHeight = settings['Next Block Height'];
+            const blockHeight = settings['Next Swap Span'];
             const p2 = Math.floor(settings.hoveredElement / blockHeight) + 1;
             const p3 = settings.hoveredElement % blockHeight;
             swappedIndex = blockHeight * p2 - p3 - 1;
@@ -306,7 +285,7 @@ SampleInitFactoryWebGPU(
           break;
         case 'DISPERSE_LOCAL':
           {
-            const blockHeight = settings['Next Block Height'];
+            const blockHeight = settings['Next Swap Span'];
             const halfHeight = blockHeight / 2;
             swappedIndex =
               settings.hoveredElement % blockHeight < halfHeight
@@ -360,11 +339,11 @@ SampleInitFactoryWebGPU(
     const nextStepCell = executionInformationFolder.add(settings, 'Next Step');
     const prevBlockHeightCell = executionInformationFolder.add(
       settings,
-      'Prev Block Height'
+      'Prev Swap Span'
     );
     const nextBlockHeightCell = executionInformationFolder.add(
       settings,
-      'Next Block Height'
+      'Next Swap Span'
     );
     const workGroupThreadsCell = executionInformationFolder.add(
       settings,
@@ -421,7 +400,7 @@ SampleInitFactoryWebGPU(
       ]);
       const stepDetails = new Uint32Array([
         StepEnum[settings['Next Step']],
-        settings['Next Block Height'],
+        settings['Next Swap Span'],
       ]);
       device.queue.writeBuffer(
         computeUniformsBuffer,
@@ -486,9 +465,9 @@ SampleInitFactoryWebGPU(
         computePassEncoder.end();
 
         prevStepCell.setValue(settings['Next Step']);
-        prevBlockHeightCell.setValue(settings['Next Block Height']);
-        nextBlockHeightCell.setValue(settings['Next Block Height'] / 2);
-        if (settings['Next Block Height'] === 1) {
+        prevBlockHeightCell.setValue(settings['Next Swap Span']);
+        nextBlockHeightCell.setValue(settings['Next Swap Span'] / 2);
+        if (settings['Next Swap Span'] === 1) {
           highestBlockHeight *= 2;
           nextStepCell.setValue(
             highestBlockHeight === settings['Total Elements'] * 2
