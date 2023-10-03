@@ -368,6 +368,11 @@ const NormalMapping: () => JSX.Element = () =>
         editable: true,
       },
       {
+        name: './lightcube.wgsl',
+        contents: lightCubeWGSL,
+        editable: true,
+      },
+      {
         name: '../../../meshes/cube.ts',
         // eslint-disable-next-line @typescript-eslint/no-var-requires
         contents: require('!!raw-loader!../../../meshes/cube.ts').default,
