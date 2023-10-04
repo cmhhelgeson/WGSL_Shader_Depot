@@ -169,7 +169,7 @@ export abstract class Base2DRendererClass {
     bgLayouts: GPUBindGroupLayout[],
     mode: FullScreenVertexShaderType,
     code: string,
-    presentationFormat: GPUTextureFormat
+    presentationFormat: GPUTextureFormat,
   ) {
     return device.createRenderPipeline({
       label: `${label}.pipeline`,
@@ -251,7 +251,8 @@ export const create3DRenderPipeline = (
   vBufferFormats: GPUVertexFormat[],
   fragmentShader: string,
   presentationFormat: GPUTextureFormat,
-  depthTest = false
+  depthTest = false,
+  topology?: GPUPrimitiveTopology
 ) => {
   const pipelineDescriptor: GPURenderPipelineDescriptor = {
     label: `${label}.pipeline`,
@@ -280,7 +281,7 @@ export const create3DRenderPipeline = (
       ],
     },
     primitive: {
-      topology: 'triangle-list',
+      topology: topology ? topology : 'triangle-list',
       cullMode: 'back',
     },
   };

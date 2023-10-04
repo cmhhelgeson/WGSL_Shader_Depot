@@ -102,6 +102,7 @@ const createBoxGeometry = (
     }
   };
 
+  //Side face
   buildPlane(
     2, //z
     1, //y
@@ -115,6 +116,7 @@ const createBoxGeometry = (
     heightSegments
   );
 
+  //Side face
   buildPlane(
     2, //z
     1, //y
@@ -128,6 +130,7 @@ const createBoxGeometry = (
     heightSegments
   );
 
+  //Bottom face
   buildPlane(
     0, //x
     2, //z
@@ -141,6 +144,7 @@ const createBoxGeometry = (
     depthSegments
   );
 
+  //Top face
   buildPlane(
     0, //x
     2, //z
@@ -154,6 +158,7 @@ const createBoxGeometry = (
     depthSegments
   );
 
+  //Side faces
   buildPlane(
     0, //x
     1, //y
@@ -167,6 +172,7 @@ const createBoxGeometry = (
     heightSegments
   );
 
+  //Side face
   buildPlane(
     0, //x
     1, //y

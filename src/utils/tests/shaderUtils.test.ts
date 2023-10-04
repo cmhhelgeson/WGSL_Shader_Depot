@@ -1,0 +1,50 @@
+import { convertVertexFormatToWGSLFormat } from '../shaderUtils';
+
+describe('shaderUtils', () => {
+  it('returns proper format from convertVertexFormatToWGSLFormat', () => {
+    //Uint8
+    expect(convertVertexFormatToWGSLFormat('uint8x2')).toBe('vec2<u32>');
+    expect(convertVertexFormatToWGSLFormat('uint8x4')).toBe('vec4<u32>');
+    //Uint16
+    expect(convertVertexFormatToWGSLFormat('uint16x2')).toBe('vec2<u32>');
+    expect(convertVertexFormatToWGSLFormat('uint16x4')).toBe('vec4<u32>');
+    //Uint32
+    expect(convertVertexFormatToWGSLFormat('uint32')).toBe('u32');
+    expect(convertVertexFormatToWGSLFormat('uint32x2')).toBe('vec2<u32>');
+    expect(convertVertexFormatToWGSLFormat('uint32x3')).toBe('vec3<u32>');
+    expect(convertVertexFormatToWGSLFormat('uint32x4')).toBe('vec4<u32>');
+    expect(convertVertexFormatToWGSLFormat('uint32x2')).toBe('vec2<u32>');
+    //Sint8
+    expect(convertVertexFormatToWGSLFormat('sint8x2')).toBe('vec2<i32>');
+    expect(convertVertexFormatToWGSLFormat('sint8x4')).toBe('vec4<i32>');
+    //Sint16
+    expect(convertVertexFormatToWGSLFormat('sint16x2')).toBe('vec2<i32>');
+    expect(convertVertexFormatToWGSLFormat('sint16x4')).toBe('vec4<i32>');
+    //Sint32
+    expect(convertVertexFormatToWGSLFormat('sint32')).toBe('i32');
+    expect(convertVertexFormatToWGSLFormat('sint32x2')).toBe('vec2<i32>');
+    expect(convertVertexFormatToWGSLFormat('sint32x3')).toBe('vec3<i32>');
+    expect(convertVertexFormatToWGSLFormat('sint32x4')).toBe('vec4<i32>');
+    expect(convertVertexFormatToWGSLFormat('sint32x2')).toBe('vec2<i32>');
+    //Unorm8
+    expect(convertVertexFormatToWGSLFormat('unorm8x2')).toBe('vec2<f32>');
+    expect(convertVertexFormatToWGSLFormat('unorm8x4')).toBe('vec4<f32>');
+    //Unorm16
+    expect(convertVertexFormatToWGSLFormat('unorm16x2')).toBe('vec2<f32>');
+    expect(convertVertexFormatToWGSLFormat('unorm16x4')).toBe('vec4<f32>');
+    //Snorm
+    expect(convertVertexFormatToWGSLFormat('snorm8x2')).toBe('vec2<f32>');
+    expect(convertVertexFormatToWGSLFormat('snorm8x4')).toBe('vec4<f32>');
+    expect(convertVertexFormatToWGSLFormat('snorm16x2')).toBe('vec2<f32>');
+    expect(convertVertexFormatToWGSLFormat('snorm16x4')).toBe('vec4<f32>');
+    //Float32
+    expect(convertVertexFormatToWGSLFormat('float32')).toBe('f32');
+    expect(convertVertexFormatToWGSLFormat('float32x2')).toBe('vec2<f32>');
+    expect(convertVertexFormatToWGSLFormat('float32x3')).toBe('vec3<f32>');
+    expect(convertVertexFormatToWGSLFormat('float32x4')).toBe('vec4<f32>');
+    expect(convertVertexFormatToWGSLFormat('float32x2')).toBe('vec2<f32>');
+    //Float16
+    expect(convertVertexFormatToWGSLFormat('float16x2')).toBe('vec2<f16>');
+    expect(convertVertexFormatToWGSLFormat('float16x4')).toBe('vec4<f16>');
+  });
+});

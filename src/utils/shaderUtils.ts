@@ -204,3 +204,66 @@ struct VertexOutput {
 
 @group(0) @binding(0) var<uniform> uniforms: Uniforms;`;
 };
+
+export interface VertexShaderInput {
+  names: string[];
+  formats: GPUVertexFormat[];
+}
+
+export const convertVertexFormatToWGSLFormat = (format: GPUVertexFormat) => {
+  const splitText = format.split('x');
+  //32, 16
+  const bitsPerElement = parseInt(splitText[0].replace(/[^0-9]/g, ''));
+  //uint, float, etc
+  const dataType = splitText[0].replace(/[0-9]/g, '');
+  const vecSize = splitText.length > 1 ? parseInt(splitText[1]) : 1;
+
+  let wgslDataType = '';
+
+  switch (dataType) {
+    case 'float':
+      {
+        wgslDataType += 'f';
+      }
+      break;
+    case 'uint':
+      {
+        wgslDataType += 'u';
+      }
+      break;
+    case 'sint':
+      {
+        wgslDataType += 'i';
+      }
+      break;
+    default:
+      {
+        wgslDataType += 'f';
+      }
+      break;
+  }
+
+  dataType === 'float'
+    ? (wgslDataType += bitsPerElement)
+    : (wgslDataType += `32`);
+
+  if (vecSize > 1) {
+    wgslDataType = `vec${vecSize}<${wgslDataType}>`;
+  }
+  return wgslDataType;
+};
+
+export const createVertexInput = (input: VertexShaderInput) => {
+  const loopLength =
+    input.names.length > input.formats.length
+      ? input.formats.length
+      : input.names.length;
+
+  let retString = `struct VertexInput {\n`;
+
+  for (let i = 0; i < loopLength; i++) {
+    const dataType = convertVertexFormatToWGSLFormat(input.formats[i]);
+    retString += `  @location(${i}) ${input.names[i]}: ${dataType}\n`;
+  }
+  return retString;
+};
