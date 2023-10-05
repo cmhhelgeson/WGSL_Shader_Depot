@@ -1,8 +1,7 @@
 @vertex
 fn vertexMain(input: VertexInput) -> VertexOutput {
-  var output: VertexOutput;
-  var MVP = spaceUniforms.projMat * spaceUniforms.viewMat * spaceUniforms.modelMat;
-  output.Position = MVP * input.position;
+  var output : VertexOutput;
+  output.Position = spaceUniforms.projMat * spaceUniforms.viewMat * spaceUniforms.modelMat * input.position;
   return output;
 }
 

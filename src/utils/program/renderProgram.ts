@@ -324,7 +324,9 @@ export abstract class Base3DRendererClass {
     });
 
     for (const renderable of this.renderables) {
-      passEncoder.setBindGroup(bgIdxTotal, renderable.bindGroup);
+      if (renderable.bindGroup) {
+        passEncoder.setBindGroup(bgIdxTotal, renderable.bindGroup);
+      }
       passEncoder.setVertexBuffer(0, renderable.vertexBuffer);
       passEncoder.setIndexBuffer(renderable.indexBuffer, 'uint16');
       passEncoder.drawIndexed(renderable.indexCount);

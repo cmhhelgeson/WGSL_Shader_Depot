@@ -4,7 +4,7 @@ import {
   SampleInit,
 } from '../../../components/SampleLayout/SampleLayout';
 import normalMapWGSL from './normalMap.wgsl';
-import lightCubeWGSL from './lightcube.wgsl';
+import lightCubeWGSL from './lightCube.wgsl';
 import { createMeshRenderable } from '../../../meshes/mesh';
 import { createBoxMeshWithTangents } from '../../../meshes/box';
 import { SampleInitFactoryWebGPU } from '../../../components/SampleLayout/SampleLayoutUtils';
@@ -12,8 +12,7 @@ import { PBRDescriptor, createPBRDescriptor } from '../../../utils/texture';
 import { createBindGroupDescriptor } from '../../../utils/bindGroup';
 import { create3DRenderPipeline } from '../../../utils/program/renderProgram';
 import { write32ToBuffer, writeMat4ToBuffer } from '../../../utils/buffer';
-import LightCubeRenderer from './lightCube';
-
+import { VertexBuiltIn, createRenderShader } from '../../../utils/shaderUtils';
 const MAT4X4_BYTES = 64;
 
 let init: SampleInit;
@@ -70,12 +69,6 @@ SampleInitFactoryWebGPU(
     lightFolder.add(settings, 'lightIntensity', 0.0, 0.1).step(0.01);
     depthFolder.add(settings, 'depthScale', 0.0, 0.1).step(0.01);
     depthFolder.add(settings, 'depthLayers', 1, 32).step(1);
-
-    const addTestSettings = {
-      testValue: 0.0,
-    };
-
-    gui.add(addTestSettings, 'testValue', 0, 10).step(1);
 
     //Create normal mapping resources and pipeline
     const depthTexture = device.createTexture({
@@ -171,15 +164,8 @@ SampleInitFactoryWebGPU(
       device
     );
 
-    const lightCubeRenderer = new LightCubeRenderer(
-      device,
-      presentationFormat,
-      ['default'],
-      'LightCube'
-    );
-
     //Create lightmap resources
-    /*const lightCubeUniformBuffer = device.createBuffer({
+    const lightCubeUniformBuffer = device.createBuffer({
       size: MAT4X4_BYTES * 3,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
@@ -199,16 +185,48 @@ SampleInitFactoryWebGPU(
       device
     );
 
+    const vertexDataFormats: GPUVertexFormat[] = [
+      'float32x3',
+      'float32x3',
+      'float32x2',
+      'float32x3',
+      'float32x3',
+    ];
+    const vertexShaderFormats: GPUVertexFormat[] = [
+      'float32x4',
+      ...vertexDataFormats.slice(1),
+    ];
+
+    const lightCubeShaderCode = createRenderShader({
+      uniforms: [
+        {
+          structName: 'SpaceUniforms',
+          argKeys: ['projMat', 'viewMat', 'modelMat'],
+          dataType: 'mat4x4f',
+        },
+      ],
+      vertexInputs: {
+        names: ['position', 'normal', 'uv', 'vert_tan', 'vert_bitan'],
+        formats: vertexShaderFormats,
+      },
+      vertexOutput: {
+        builtins: VertexBuiltIn.POSITION,
+        outputs: [],
+      },
+      bindGroups: `@group(0) @binding(0) var<uniform> spaceUniforms: SpaceUniforms;\n\n`,
+      code: lightCubeWGSL,
+    });
+
     const lightCubePipeline = create3DRenderPipeline(
       device,
       'LightCube',
       [lightCubeBGDescriptor.bindGroupLayout],
-      lightCubeWGSL,
-      ['float32x3', 'float32x3', 'float32x2', 'float32x3', 'float32x3'],
-      lightCubeWGSL,
+      lightCubeShaderCode,
+      vertexDataFormats,
+      lightCubeShaderCode,
       presentationFormat,
       true
-    ); */
+    );
 
     const aspect = canvas.width / canvas.height;
     const projectionMatrix = mat4.perspective(
@@ -323,11 +341,11 @@ SampleInitFactoryWebGPU(
 
       //Write to lightcube shader
       const lightCubeModelMatrix = getLightCubeModelMatrix();
-      /*writeMat4ToBuffer(device, lightCubeUniformBuffer, [
-        lightCubeModelMatrix,
-        viewMatrix,
+      writeMat4ToBuffer(device, lightCubeUniformBuffer, [
         projectionMatrix,
-      ]); */
+        viewMatrix,
+        lightCubeModelMatrix,
+      ]);
 
       renderPassDescriptor.colorAttachments[0].view = context
         .getCurrentTexture()
@@ -342,17 +360,12 @@ SampleInitFactoryWebGPU(
       passEncoder.setVertexBuffer(0, toybox.vertexBuffer);
       passEncoder.setIndexBuffer(toybox.indexBuffer, 'uint16');
       passEncoder.drawIndexed(toybox.indexCount);
-      lightCubeRenderer.startRun(passEncoder, {
-        projMat: projectionMatrix,
-        viewMat: viewMatrix,
-        modelMat: lightCubeModelMatrix,
-      });
       //Draw LightBox
-      /*passEncoder.setPipeline(lightCubePipeline);
+      passEncoder.setPipeline(lightCubePipeline);
       passEncoder.setBindGroup(0, lightCubeBGDescriptor.bindGroups[0]);
       passEncoder.setVertexBuffer(0, lightCube.vertexBuffer);
       passEncoder.setIndexBuffer(lightCube.indexBuffer, 'uint16');
-      passEncoder.drawIndexed(lightCube.indexCount); */
+      passEncoder.drawIndexed(lightCube.indexCount);
       //End Pass Encoder
       passEncoder.end();
       device.queue.submit([commandEncoder.finish()]);

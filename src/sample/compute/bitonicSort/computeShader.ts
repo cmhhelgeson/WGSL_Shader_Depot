@@ -4,7 +4,6 @@ export const NaiveBitonicCompute = (threadsPerWorkgroup: number) => {
   if (threadsPerWorkgroup % 2 !== 0 || threadsPerWorkgroup > 256) {
     threadsPerWorkgroup = 256;
   }
-  console.log(threadsPerWorkgroup);
   //Ensure that workgroupSize is half the number of elements
   return `
 
