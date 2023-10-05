@@ -113,10 +113,14 @@ export const createAssignmentStatement = (
   return `${debugPackage.variableName} = ${assignment};`;
 };
 
-export const createWGSLUniform = (structName: string, keys: string[]) => {
+export const createWGSLUniform = (
+  structName: string,
+  keys: string[],
+  dataType = 'f32'
+) => {
   let retString = `struct ${structName} {\n`;
   for (let i = 0; i < keys.length; i++) {
-    retString += `  ${keys[i]}: f32,\n`;
+    retString += `  ${keys[i]}: ${dataType},\n`;
   }
   retString += `}\n`;
   return retString;
@@ -265,5 +269,67 @@ export const createVertexInput = (input: VertexShaderInput) => {
     const dataType = convertVertexFormatToWGSLFormat(input.formats[i]);
     retString += `  @location(${i}) ${input.names[i]}: ${dataType}\n`;
   }
+  retString += `}\n\n`;
+  return retString;
+};
+
+export enum VertexBuiltIn {
+  POSITION = 1,
+  VERTEX_INDEX = 2,
+  INSTANCE_INDEX = 4,
+}
+
+interface UniformDefiner {
+  structName: string;
+  argKeys: string[];
+  dataType: 'mat4x4f' | 'f32';
+}
+
+interface VertexOutputDefiner {
+  builtins: number;
+  outputs: { name: string; format: string }[];
+}
+
+const createVertexOutput = (definer: VertexOutputDefiner) => {
+  let builtins = ``;
+  if (definer.builtins & VertexBuiltIn.POSITION) {
+    builtins += '  @builtin(position) Position: vec4f\n';
+  }
+  if (definer.builtins & VertexBuiltIn.VERTEX_INDEX) {
+    builtins += `  @builtin(vertex_index) Vertex_Index: u32\n`;
+  }
+  if (definer.builtins & VertexBuiltIn.INSTANCE_INDEX) {
+    builtins += `  @builtin(instance_index) Instance_Index: u32\n`;
+  }
+  let outputs = ``;
+  definer.outputs.forEach((output, idx) => {
+    outputs += `  @location(${idx}) ${output.name}: ${output.format}\n`;
+  });
+
+  return `struct VertexOutput {\n${builtins}${outputs}}\n\n`;
+};
+
+interface VertexShaderCreationArgs {
+  uniforms: UniformDefiner[];
+  vertexInputs: VertexShaderInput;
+  vertexOutput: VertexOutputDefiner;
+  bindGroups: string;
+  code: string;
+}
+
+export const createRenderShader = (args: VertexShaderCreationArgs): string => {
+  let retString = ``;
+  retString += createVertexInput(args.vertexInputs);
+  args.uniforms.forEach((uniform) => {
+    retString += createWGSLUniform(
+      uniform.structName,
+      uniform.argKeys,
+      uniform.dataType
+    );
+    retString += `\n`;
+  });
+  retString += createVertexOutput(args.vertexOutput);
+  retString += args.bindGroups;
+  retString += args.code;
   return retString;
 };

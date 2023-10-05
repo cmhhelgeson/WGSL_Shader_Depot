@@ -50,60 +50,6 @@ type GLTFScene = {
   nodes: GLTFNode[];
 };
 
-/*export const buildSceneRenderPipeline = (  device: GPUDevice,
-  scene: GLTFScene,
-  vertexShaderModule: GPUShaderModule,
-  fragmentShaderModule: GPUShaderModule,
-  colorFormat: GPUTextureFormat,
-  depthFormat: GPUTextureFormat,
-  uniformsBGLayout: GPUBindGroupLayout
-) => {
-  
-}
-
-export const renderScene = (
-  passEncoder: GPURenderPassEncoder,
-  scene: GLTFScene,
-  bindGroups: GPUBindGroup[],
-) => {
-  for (let i = 0; i < bindGroups.length; i++) {
-    passEncoder.setBindGroup(i, bindGroups[i]);
-  }
-  for (let i = 0; i < scene.nodes.length; i++) {
-    scene.nodes
-  }
-
-}
-
-
-const buildNodeRenderPipeline = (
-  device: GPUDevice,
-  node: GLTFNode,
-  vertexShaderModule: GPUShaderModule,
-  fragmentShaderModule: GPUShaderModule,
-  colorFormat: GPUTextureFormat,
-  depthFormat: GPUTextureFormat,
-  unifromsBGLayout: GPUBindGroupLayout,
-  nodesBGLayout: GPUBindGroupLayout,
-) => {
-  node.
-
-
-} */
-
-/*export const buildSceneRenderPipeline(
-  device: GPUDevice,
-  scene: GLTFScene,
-  vertexShaderModule: GPUShaderModule,
-  fragmentShaderModule: GPUShaderModule,
-  colorFormat: GPUTextureFormat,
-  depthFormat: GPUTextureFormat,
-  uniformsBGLayout: GPUBindGroupLayout
-) => {
-  for (let i = 0)
-
-} */
-
 export const alignTo = (val: number, align: number): number => {
   return Math.floor((val + align - 1) / align) * align;
 };

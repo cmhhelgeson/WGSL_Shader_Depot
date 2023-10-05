@@ -41,11 +41,11 @@ SampleInitFactoryWebGPU(
       'Bump Mode': 'Normal Map',
       cameraPosX: 0.0,
       cameraPosY: 0.0,
-      cameraPosZ: -2.0,
-      lightPosX: 2.9,
-      lightPosY: -1.2,
-      lightPosZ: 2.8,
-      lightIntensity: 0.05,
+      cameraPosZ: -4.1,
+      lightPosX: 1.7,
+      lightPosY: -0.7,
+      lightPosZ: 1.9,
+      lightIntensity: 0.02,
       depthScale: 0.05,
       depthLayers: 16,
     };
@@ -70,6 +70,12 @@ SampleInitFactoryWebGPU(
     depthFolder.add(settings, 'depthScale', 0.0, 0.1).step(0.01);
     depthFolder.add(settings, 'depthLayers', 1, 32).step(1);
 
+    const addTestSettings = {
+      testValue: 0.0,
+    };
+
+    gui.add(addTestSettings, 'testValue', 0, 10).step(1);
+
     //Create normal mapping resources and pipeline
     const depthTexture = device.createTexture({
       size: [canvas.width, canvas.height],
@@ -78,6 +84,7 @@ SampleInitFactoryWebGPU(
     });
 
     const uniformBuffer = device.createBuffer({
+      //One extra element needed due to padding
       size: MAT4X4_BYTES * 4,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
@@ -282,22 +289,17 @@ SampleInitFactoryWebGPU(
       const viewMatrix = viewMatrixTemp as Float32Array;
 
       const modelMatrixTemp = getModelMatrix();
-      const normalMatrix = mat4.transpose(
-        mat4.invert(modelMatrixTemp)
-      ) as Float32Array;
       const modelMatrix = modelMatrixTemp as Float32Array;
 
       writeMat4ToBuffer(device, uniformBuffer, [
         projectionMatrix,
         viewMatrix,
-        normalMatrix,
         modelMatrix,
       ]);
 
       getMappingType(mappingType);
 
       write32ToBuffer(device, mapMethodBuffer, [mappingType]);
-      console.log(settings.depthLayers);
       device.queue.writeBuffer(
         mapMethodBuffer,
         4,

@@ -2,6 +2,7 @@ import fullscreenWebGLVertShader from '../../shaders/fullscreenWebGL.vert.wgsl';
 import fullScreenWebGPUVertShader from '../../shaders/fullscreenWebGPU.vert.wgsl';
 import fullScreenNDCVertShader from '../../shaders/fullscreenNDC.vert.wgsl';
 import fullscreenNDCFlippedVertShader from '../../shaders/fullscreenNDCFlipped.vert.wgsl';
+import { Renderable } from '../../meshes/mesh';
 
 export interface BaseRenderer {
   readonly renderPassDescriptor: GPURenderPassDescriptor;
@@ -294,3 +295,83 @@ export const create3DRenderPipeline = (
   }
   return device.createRenderPipeline(pipelineDescriptor);
 };
+
+//TODO: This works well for single instance objects but not for renderables
+export abstract class Base3DRendererClass {
+  abstract switchBindGroup(name: string): void;
+  abstract startRun(commandEncoder: GPURenderPassEncoder, ...args: any[]): void;
+  renderPassDescriptor: GPURenderPassDescriptor; // | GPURENDERPASSDESCRIPTOR[]
+  pipeline: GPURenderPipeline; // GPURenderPipelien[]
+  bindGroupMap: Record<string, GPUBindGroup>;
+  currentBindGroup: GPUBindGroup;
+  currentBindGroupName: string;
+  //TODO: Actually put some planning behind this? Should this belong here
+  //You're really just saying this to justiy your queasiness about this hasty
+  //decision
+  renderables: Renderable[];
+
+  executeRun(
+    passEncoder: GPURenderPassEncoder | GPURenderBundleEncoder,
+    pipeline: GPURenderPipeline,
+    bindGroups: GPUBindGroup[]
+  ) {
+    passEncoder.setPipeline(pipeline);
+    //Set bindGroups that are needed across all renderables
+    let bgIdxTotal = 0;
+    bindGroups.forEach((bg, idx) => {
+      passEncoder.setBindGroup(idx, bg);
+      bgIdxTotal += 1;
+    });
+
+    for (const renderable of this.renderables) {
+      passEncoder.setBindGroup(bgIdxTotal, renderable.bindGroup);
+      passEncoder.setVertexBuffer(0, renderable.vertexBuffer);
+      passEncoder.setIndexBuffer(renderable.indexBuffer, 'uint16');
+      passEncoder.drawIndexed(renderable.indexCount);
+    }
+  }
+
+  setUniformArguments<T, K extends readonly string[]>(
+    device: GPUDevice,
+    uniformBuffer: GPUBuffer,
+    uniformDataType: 'f32' | 'mat4x4f',
+    instance: T,
+    keys: K
+  ) {
+    const indexOffset =
+      uniformDataType === 'f32'
+        ? Float32Array.BYTES_PER_ELEMENT
+        : Float32Array.BYTES_PER_ELEMENT * 4 * 4;
+    for (let i = 0; i < keys.length; i++) {
+      device.queue.writeBuffer(
+        uniformBuffer,
+        i * indexOffset,
+        new Float32Array([instance[keys[i]]])
+      );
+    }
+  }
+
+  createRenderPipeline(
+    device: GPUDevice,
+    label: string,
+    bgLayouts: GPUBindGroupLayout[],
+    vertexShader: string,
+    vBufferFormats: GPUVertexFormat[],
+    fragmentShader: string,
+    presentationFormat: GPUTextureFormat,
+    debug = true,
+    topology?: GPUPrimitiveTopology,
+  ) {
+    return create3DRenderPipeline(
+      device,
+      label,
+      bgLayouts,
+      vertexShader,
+      vBufferFormats,
+      fragmentShader,
+      presentationFormat,
+      debug,
+      topology
+    );
+  }
+}

@@ -2,7 +2,6 @@
 struct SpaceTransformUniforms {
   projMatrix: mat4x4f,
   viewMatrix: mat4x4f,
-  normalMatrix: mat4x4f,
   modelMatrix: mat4x4f,
 }
 

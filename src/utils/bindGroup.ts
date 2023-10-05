@@ -10,11 +10,6 @@ export type BindGroupDescriptor = {
   bindGroupLayout: GPUBindGroupLayout;
 };
 
-type BindGroupDescriptorTemplate = {
-  groupEntries: GPUBindGroupEntry[];
-  layoutEntries: GPUBindGroupLayoutEntry[];
-};
-
 type ResourceTypeName =
   | 'buffer'
   | 'texture'
@@ -76,35 +71,5 @@ export const createBindGroupDescriptor = (
   return {
     bindGroups,
     bindGroupLayout,
-  };
-};
-
-export const createBindGroupDescriptorTemplate = (
-  bindings: number[],
-  visibilities: number[],
-  resourceTypes: ResourceTypeName[],
-  resourceLayouts: BindGroupBindingLayout[],
-  resources: GPUBindingResource[]
-): BindGroupDescriptorTemplate => {
-  const layoutEntries: GPUBindGroupLayoutEntry[] = [];
-  const groupEntries: GPUBindGroupEntry[] = [];
-  for (let i = 0; i < resources.length; i++) {
-    const layoutEntry: any = {};
-    layoutEntry.binding = bindings[i];
-    layoutEntry.visibility = visibilities[i % visibilities.length];
-    layoutEntry[resourceTypes[i]] = resourceLayouts[i];
-
-    layoutEntries.push(layoutEntry);
-
-    const groupEntry: any = {};
-    groupEntry.binding = bindings[i];
-    groupEntry.resource = resources[i];
-
-    groupEntries.push(groupEntry);
-  }
-
-  return {
-    groupEntries,
-    layoutEntries,
   };
 };
