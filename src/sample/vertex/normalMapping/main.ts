@@ -12,6 +12,7 @@ import { PBRDescriptor, createPBRDescriptor } from '../../../utils/texture';
 import { createBindGroupDescriptor } from '../../../utils/bindGroup';
 import { create3DRenderPipeline } from '../../../utils/program/renderProgram';
 import { write32ToBuffer, writeMat4ToBuffer } from '../../../utils/buffer';
+import LightCubeRenderer from './lightCube';
 
 const MAT4X4_BYTES = 64;
 
@@ -170,8 +171,15 @@ SampleInitFactoryWebGPU(
       device
     );
 
+    const lightCubeRenderer = new LightCubeRenderer(
+      device,
+      presentationFormat,
+      ['default'],
+      'LightCube'
+    );
+
     //Create lightmap resources
-    const lightCubeUniformBuffer = device.createBuffer({
+    /*const lightCubeUniformBuffer = device.createBuffer({
       size: MAT4X4_BYTES * 3,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
@@ -200,7 +208,7 @@ SampleInitFactoryWebGPU(
       lightCubeWGSL,
       presentationFormat,
       true
-    );
+    ); */
 
     const aspect = canvas.width / canvas.height;
     const projectionMatrix = mat4.perspective(
@@ -315,11 +323,11 @@ SampleInitFactoryWebGPU(
 
       //Write to lightcube shader
       const lightCubeModelMatrix = getLightCubeModelMatrix();
-      writeMat4ToBuffer(device, lightCubeUniformBuffer, [
+      /*writeMat4ToBuffer(device, lightCubeUniformBuffer, [
         lightCubeModelMatrix,
         viewMatrix,
         projectionMatrix,
-      ]);
+      ]); */
 
       renderPassDescriptor.colorAttachments[0].view = context
         .getCurrentTexture()
@@ -334,12 +342,17 @@ SampleInitFactoryWebGPU(
       passEncoder.setVertexBuffer(0, toybox.vertexBuffer);
       passEncoder.setIndexBuffer(toybox.indexBuffer, 'uint16');
       passEncoder.drawIndexed(toybox.indexCount);
+      lightCubeRenderer.startRun(passEncoder, {
+        projMat: projectionMatrix,
+        viewMat: viewMatrix,
+        modelMat: lightCubeModelMatrix,
+      });
       //Draw LightBox
-      passEncoder.setPipeline(lightCubePipeline);
+      /*passEncoder.setPipeline(lightCubePipeline);
       passEncoder.setBindGroup(0, lightCubeBGDescriptor.bindGroups[0]);
       passEncoder.setVertexBuffer(0, lightCube.vertexBuffer);
       passEncoder.setIndexBuffer(lightCube.indexBuffer, 'uint16');
-      passEncoder.drawIndexed(lightCube.indexCount);
+      passEncoder.drawIndexed(lightCube.indexCount); */
       //End Pass Encoder
       passEncoder.end();
       device.queue.submit([commandEncoder.finish()]);

@@ -3,7 +3,7 @@ import { createMeshRenderable } from '../../../meshes/mesh';
 import { createBindGroupDescriptor } from '../../../utils/bindGroup';
 import { Base3DRendererClass } from '../../../utils/program/renderProgram';
 import { VertexBuiltIn, createRenderShader } from '../../../utils/shaderUtils';
-import lightCubeWGSL from './lightcube.wgsl';
+import lightCubeWGSL from './lightCube.wgsl';
 
 type LightCubeRendererArgs = {
   projMat: Float32Array;
@@ -44,7 +44,7 @@ export default class LightCubeRenderer extends Base3DRendererClass {
     );
 
     const vertFormats: GPUVertexFormat[] = [
-      'float32x3',
+      'float32x4',
       'float32x3',
       'float32x2',
       'float32x3',
@@ -67,9 +67,11 @@ export default class LightCubeRenderer extends Base3DRendererClass {
         builtins: VertexBuiltIn.POSITION,
         outputs: [],
       },
-      bindGroups: `@group(0) @binding(0) var<uniform> spaceUniforms: SpaceUniforms\n\n`,
+      bindGroups: `@group(0) @binding(0) var<uniform> spaceUniforms: SpaceUniforms;\n\n`,
       code: lightCubeWGSL,
     });
+
+    console.log(lightCubeShader);
 
     this.pipeline = super.createRenderPipeline(
       device,
@@ -107,7 +109,7 @@ export default class LightCubeRenderer extends Base3DRendererClass {
         lightCubeUniformBuffer,
         'mat4x4f',
         args,
-        Object.keys(args),
+        Object.keys(args)
       );
     };
   }

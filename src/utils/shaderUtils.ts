@@ -267,7 +267,7 @@ export const createVertexInput = (input: VertexShaderInput) => {
 
   for (let i = 0; i < loopLength; i++) {
     const dataType = convertVertexFormatToWGSLFormat(input.formats[i]);
-    retString += `  @location(${i}) ${input.names[i]}: ${dataType}\n`;
+    retString += `  @location(${i}) ${input.names[i]}: ${dataType},\n`;
   }
   retString += `}\n\n`;
   return retString;
@@ -303,7 +303,7 @@ const createVertexOutput = (definer: VertexOutputDefiner) => {
   }
   let outputs = ``;
   definer.outputs.forEach((output, idx) => {
-    outputs += `  @location(${idx}) ${output.name}: ${output.format}\n`;
+    outputs += `  @location(${idx}) ${output.name}: ${output.format},\n`;
   });
 
   return `struct VertexOutput {\n${builtins}${outputs}}\n\n`;
