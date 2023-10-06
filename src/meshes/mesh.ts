@@ -87,3 +87,52 @@ export const getMeshUVAtIndex = (mesh: Mesh, index: number) => {
   );
   return vec2.fromValues(arr[0], arr[1]);
 };
+
+//TODO: Fix Tangent and bitangent mesh creation to work with any mesh
+export const addBaycentricCoordinatesToMesh = (mesh: Mesh) => {
+  interface Triangle {
+    a: number;
+    b: number;
+    c: number;
+  }
+  const significantTriangles: Triangle[] = [];
+  for (let i = 0; i < mesh.indices.length; i += 3) {
+    const [a, b, c] = mesh.indices.slice(i, i + 3).sort();
+    significantTriangles.push({ a: a, b: b, c: c });
+  }
+  significantTriangles.sort((first, second) => {
+    if (first.a < second.a) {
+      return first.a - second.a;
+    }
+    if (first.b < second.b) {
+      return first.b - second.b;
+    }
+    return first.c - second.c;
+  });
+
+  let red = vec3.create(255, 0, 0);
+
+  const newVertices = [];
+
+  //new vertex stride will be ((vertexStride / 4) + 3) * 4;
+
+  console.log(mesh.vertexStride / Float32Array.BYTES_PER_ELEMENT);
+  //Iterate through each of the original vertices (pos, normal, uv) + 3 new elements for color
+  for (
+    let i = 0;
+    i < mesh.vertices.length;
+    i += mesh.vertexStride / Float32Array.BYTES_PER_ELEMENT
+  ) {
+    const currentVertexInfo = mesh.vertices.slice(
+      0,
+      mesh.vertexStride / Float32Array.BYTES_PER_ELEMENT
+    );
+    newVertices.push(...currentVertexInfo);
+    newVertices.push(...red);
+  }
+  //TODO: Make sure colors are not adjacent
+
+  mesh.vertices = new Float32Array([...newVertices]);
+  mesh.vertexStride = (mesh.vertexStride / 4 + 3) * 4;
+  console.log(mesh.vertices);
+};

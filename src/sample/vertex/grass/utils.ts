@@ -150,7 +150,7 @@ export const SimpleMesh_Load_Model_OBJ = (data: string) => {
       };
       mesh.tris.push(tri);
     } else {
-      const dummy: Vec2 = vec2.create(0.0, 0.0;
+      const dummy: Vec2 = vec2.create(0.0, 0.0);
       const tri: Triangle = {
         p: [_verts[vi1] as Vec2, _verts[vi2] as Vec2, _verts[vi3] as Vec2],
         uvCoords: [dummy, dummy, dummy],

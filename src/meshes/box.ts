@@ -1,5 +1,5 @@
 import { vec3 } from 'wgpu-matrix';
-import { getMeshPosAtIndex, getMeshUVAtIndex, Mesh } from './mesh';
+import { addBaycentricCoordinatesToMesh, getMeshPosAtIndex, getMeshUVAtIndex, Mesh } from './mesh';
 
 export interface BoxMesh extends Mesh {
   vertices: Float32Array;
@@ -233,6 +233,11 @@ export const createBoxMeshWithTangents = (
     heightSegments,
     depthSegments
   );
+
+  console.log(mesh.vertices.length / mesh.vertexStride);
+  console.log(mesh.indices);
+
+  addBaycentricCoordinatesToMesh(mesh);
 
   const originalStrideElements =
     BoxLayout.vertexStride / Float32Array.BYTES_PER_ELEMENT;
