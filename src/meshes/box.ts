@@ -1,18 +1,16 @@
 import { vec3 } from 'wgpu-matrix';
-import { addBaycentricCoordinatesToMesh, getMeshPosAtIndex, getMeshUVAtIndex, Mesh } from './mesh';
+import {
+  getMeshPosAtIndex,
+  getMeshUVAtIndex,
+  Mesh,
+  VertexProperty,
+} from './mesh';
 
 export interface BoxMesh extends Mesh {
   vertices: Float32Array;
-  indices: Uint16Array;
+  indices: Uint16Array | Uint32Array;
   vertexStride: number;
 }
-
-export const BoxLayout = {
-  vertexStride: 8 * 4,
-  positionsOffset: 0,
-  normalOffset: 3 * 4,
-  uvOffset: 6 * 4,
-};
 
 //// Borrowed and simplified from https://github.com/mrdoob/three.js/blob/master/src/geometries/BoxGeometry.js
 //// Presumes vertex buffer alignment of verts, normals, and uvs
@@ -22,7 +20,8 @@ const createBoxGeometry = (
   depth = 1.0,
   widthSegments = 1.0,
   heightSegments = 1.0,
-  depthSegments = 1.0
+  depthSegments = 1.0,
+  vertProperties = 7
 ) => {
   widthSegments = Math.floor(widthSegments);
   heightSegments = Math.floor(heightSegments);
@@ -65,21 +64,27 @@ const createBoxGeometry = (
       for (let ix = 0; ix < gridX1; ix++) {
         const x = ix * segmentWidth - widthHalf;
 
-        //Calculate plane vertices
-        vertex[u] = x * udir;
-        vertex[v] = y * vdir;
-        vertex[w] = depthHalf;
-        vertNormalUVBuffer.push(...vertex);
+        if (vertProperties & VertexProperty.POSITION) {
+          //Calculate plane vertices
+          vertex[u] = x * udir;
+          vertex[v] = y * vdir;
+          vertex[w] = depthHalf;
+          vertNormalUVBuffer.push(...vertex);
+        }
 
-        //Caclulate normal
-        normal[u] = 0;
-        normal[v] = 0;
-        normal[w] = planeDepth > 0 ? 1.0 : -1.0;
-        vertNormalUVBuffer.push(...normal);
+        if (vertProperties & VertexProperty.NORMAL) {
+          //Caclulate normal
+          normal[u] = 0;
+          normal[v] = 0;
+          normal[w] = planeDepth > 0 ? 1.0 : -1.0;
+          vertNormalUVBuffer.push(...normal);
+        }
 
-        //Calculate uvs
-        vertNormalUVBuffer.push(ix / xSections);
-        vertNormalUVBuffer.push(1 - iy / ySections);
+        if (vertProperties & VertexProperty.UV) {
+          //Calculate uvs
+          vertNormalUVBuffer.push(ix / xSections);
+          vertNormalUVBuffer.push(1 - iy / ySections);
+        }
 
         vertexCounter += 1;
       }
@@ -192,6 +197,8 @@ const createBoxGeometry = (
   };
 };
 
+type IndexFormat = 'uint16' | 'uint32';
+
 //Possibly used later
 export const createBoxMesh = (
   width = 1.0,
@@ -199,7 +206,9 @@ export const createBoxMesh = (
   depth = 1.0,
   widthSegments = 1.0,
   heightSegments = 1.0,
-  depthSegments = 1.0
+  depthSegments = 1.0,
+  vertexProperties = 7,
+  indexFormat: IndexFormat = 'uint16'
 ): Mesh => {
   const { vertices, indices } = createBoxGeometry(
     width,
@@ -207,13 +216,35 @@ export const createBoxMesh = (
     depth,
     widthSegments,
     heightSegments,
-    depthSegments
+    depthSegments,
+    vertexProperties
   );
+
+  let vertexStride = 0;
+
+  if (vertexProperties & VertexProperty.POSITION) {
+    vertexStride += 3 * 4;
+  }
+
+  if (vertexProperties & VertexProperty.NORMAL) {
+    vertexStride += 3 * 4;
+  }
+
+  if (vertexProperties & VertexProperty.UV) {
+    vertexStride += 2 * 4;
+  }
+
+  const indicesArray =
+    indexFormat === 'uint16'
+      ? new Uint16Array(indices)
+      : new Uint32Array(indices);
+
+  console.log(indicesArray);
 
   return {
     vertices: new Float32Array(vertices),
-    indices: new Uint16Array(indices),
-    vertexStride: BoxLayout.vertexStride,
+    indices: indicesArray,
+    vertexStride: vertexStride,
   };
 };
 
@@ -234,13 +265,8 @@ export const createBoxMeshWithTangents = (
     depthSegments
   );
 
-  console.log(mesh.vertices.length / mesh.vertexStride);
-  console.log(mesh.indices);
-
-  addBaycentricCoordinatesToMesh(mesh);
-
   const originalStrideElements =
-    BoxLayout.vertexStride / Float32Array.BYTES_PER_ELEMENT;
+    mesh.vertexStride / Float32Array.BYTES_PER_ELEMENT;
 
   const vertexCount = mesh.vertices.length / originalStrideElements;
 

@@ -212,6 +212,7 @@ struct VertexOutput {
 export interface VertexShaderInput {
   names: string[];
   formats: GPUVertexFormat[];
+  builtins?: number;
 }
 
 export const convertVertexFormatToWGSLFormat = (format: GPUVertexFormat) => {
@@ -265,6 +266,13 @@ export const createVertexInput = (input: VertexShaderInput) => {
 
   let retString = `struct VertexInput {\n`;
 
+  if (input.builtins & VertexBuiltIn.VERTEX_INDEX) {
+    retString += `  @builtin(vertex_index) VertexIndex: u32,\n`;
+  }
+  if (input.builtins & VertexBuiltIn.INSTANCE_INDEX) {
+    retString += `  @builtin(instance_index) InstanceIndex: u32,\n`;
+  }
+
   for (let i = 0; i < loopLength; i++) {
     const dataType = convertVertexFormatToWGSLFormat(input.formats[i]);
     retString += `  @location(${i}) ${input.names[i]}: ${dataType},\n`;
@@ -293,13 +301,7 @@ interface VertexOutputDefiner {
 const createVertexOutput = (definer: VertexOutputDefiner) => {
   let builtins = ``;
   if (definer.builtins & VertexBuiltIn.POSITION) {
-    builtins += '  @builtin(position) Position: vec4f\n';
-  }
-  if (definer.builtins & VertexBuiltIn.VERTEX_INDEX) {
-    builtins += `  @builtin(vertex_index) Vertex_Index: u32\n`;
-  }
-  if (definer.builtins & VertexBuiltIn.INSTANCE_INDEX) {
-    builtins += `  @builtin(instance_index) Instance_Index: u32\n`;
+    builtins += '  @builtin(position) Position: vec4f,\n';
   }
   let outputs = ``;
   definer.outputs.forEach((output, idx) => {
@@ -313,7 +315,6 @@ interface VertexShaderCreationArgs {
   uniforms: UniformDefiner[];
   vertexInputs: VertexShaderInput;
   vertexOutput: VertexOutputDefiner;
-  bindGroups: string;
   code: string;
 }
 
@@ -329,7 +330,7 @@ export const createRenderShader = (args: VertexShaderCreationArgs): string => {
     retString += `\n`;
   });
   retString += createVertexOutput(args.vertexOutput);
-  retString += args.bindGroups;
   retString += args.code;
+  console.log(retString);
   return retString;
 };

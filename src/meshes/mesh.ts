@@ -9,7 +9,7 @@ export interface Renderable {
 
 export interface Mesh {
   vertices: Float32Array;
-  indices: Uint16Array;
+  indices: Uint16Array | Uint32Array;
   vertexStride: number;
 }
 
@@ -22,6 +22,14 @@ type MeshLayoutType = {
   bitangentOffset?: number;
 };
 
+export enum VertexProperty {
+  POSITION = 1,
+  NORMAL = 2,
+  UV = 4,
+  TANGENT = 8,
+  BITANGENT = 16,
+}
+
 // All numbers represent byte offsets
 const MeshLayout: MeshLayoutType = {
   vertexStride: 8 * 4, //32 byte vertex
@@ -32,12 +40,21 @@ const MeshLayout: MeshLayoutType = {
 
 export const createMeshRenderable = (
   device: GPUDevice,
-  mesh: Mesh
+  mesh: Mesh,
+  storeVertices = false,
+  storeIndices = false
 ): Renderable => {
+  const vertexBufferUsage = storeVertices
+    ? GPUBufferUsage.VERTEX | GPUBufferUsage.STORAGE
+    : GPUBufferUsage.VERTEX;
   // Create a vertex buffer from the sphere data.
+
+  const indexBufferUsage = storeIndices
+    ? GPUBufferUsage.INDEX | GPUBufferUsage.STORAGE
+    : GPUBufferUsage.INDEX;
   const vertexBuffer = device.createBuffer({
     size: mesh.vertices.byteLength,
-    usage: GPUBufferUsage.VERTEX,
+    usage: vertexBufferUsage,
     mappedAtCreation: true,
   });
   new Float32Array(vertexBuffer.getMappedRange()).set(mesh.vertices);
@@ -45,7 +62,7 @@ export const createMeshRenderable = (
 
   const indexBuffer = device.createBuffer({
     size: mesh.indices.byteLength,
-    usage: GPUBufferUsage.INDEX,
+    usage: indexBufferUsage,
     mappedAtCreation: true,
   });
 
@@ -110,7 +127,7 @@ export const addBaycentricCoordinatesToMesh = (mesh: Mesh) => {
     return first.c - second.c;
   });
 
-  let red = vec3.create(255, 0, 0);
+  const red = vec3.create(255, 0, 0);
 
   const newVertices = [];
 

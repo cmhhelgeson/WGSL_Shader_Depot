@@ -253,7 +253,8 @@ export const create3DRenderPipeline = (
   fragmentShader: string,
   presentationFormat: GPUTextureFormat,
   depthTest = false,
-  topology?: GPUPrimitiveTopology
+  topology?: GPUPrimitiveTopology,
+  indexFormat = 'uint16'
 ) => {
   const pipelineDescriptor: GPURenderPipelineDescriptor = {
     label: `${label}.pipeline`,

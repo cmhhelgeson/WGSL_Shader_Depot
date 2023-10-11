@@ -1,4 +1,8 @@
-import { vec2, vec3 } from 'wgpu-matrix';
+export const emptyFunc = () => {
+  return;
+};
+
+/*import { vec2, vec3 } from 'wgpu-matrix';
 import { Vec2 } from 'wgpu-matrix/dist/1.x/vec2';
 import { Vec3 } from 'wgpu-matrix/dist/1.x/vec3';
 
@@ -208,4 +212,4 @@ export const getChunkDistanceFromCamera = (
       (cameraPos[1] - chunkCenter[1]) ** 2 +
       (cameraPos[2] - chunkCenter[2]) ** 2
   );
-};
+}; */

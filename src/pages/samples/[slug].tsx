@@ -27,6 +27,7 @@ export const pages = {
   complexCRT: dynamic(() => import('../../sample/fragment/complexCRT/main')),
   sdfCircle: dynamic(() => import('../../sample/sdfCircle/main')),
   bitonicSort: dynamic(() => import('../../sample/compute/bitonicSort/main')),
+  wireframe: dynamic(() => import('../../sample/vertex/wireframe/main')),
 };
 
 export const fragmentPages = {
@@ -45,6 +46,7 @@ export const vertexPages = {
   normalMapping: dynamic(
     () => import('../../sample/vertex/normalMapping/main')
   ),
+  wireframe: dynamic(() => import('../../sample/vertex/wireframe/main')),
 };
 
 export const computePages = {

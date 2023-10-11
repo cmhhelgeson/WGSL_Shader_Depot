@@ -213,7 +213,6 @@ SampleInitFactoryWebGPU(
         builtins: VertexBuiltIn.POSITION,
         outputs: [],
       },
-      bindGroups: `@group(0) @binding(0) var<uniform> spaceUniforms: SpaceUniforms;\n\n`,
       code: lightCubeWGSL,
     });
 
@@ -401,9 +400,9 @@ const NormalMapping: () => JSX.Element = () =>
         editable: true,
       },
       {
-        name: '../../../meshes/cube.ts',
+        name: '../../../meshes/box.ts',
         // eslint-disable-next-line @typescript-eslint/no-var-requires
-        contents: require('!!raw-loader!../../../meshes/cube.ts').default,
+        contents: require('!!raw-loader!../../../meshes/box.ts').default,
       },
     ],
     filename: __filename,
