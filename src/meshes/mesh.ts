@@ -23,6 +23,7 @@ type MeshLayoutType = {
 };
 
 export enum VertexProperty {
+  NONE = 0,
   POSITION = 1,
   NORMAL = 2,
   UV = 4,
@@ -52,6 +53,8 @@ export const createMeshRenderable = (
   const indexBufferUsage = storeIndices
     ? GPUBufferUsage.INDEX | GPUBufferUsage.STORAGE
     : GPUBufferUsage.INDEX;
+  console.log(`vertexBufferSize: ${mesh.vertices.byteLength}`);
+  console.log(mesh.vertices);
   const vertexBuffer = device.createBuffer({
     size: mesh.vertices.byteLength,
     usage: vertexBufferUsage,
@@ -66,7 +69,17 @@ export const createMeshRenderable = (
     mappedAtCreation: true,
   });
 
-  new Uint16Array(indexBuffer.getMappedRange()).set(mesh.indices);
+  if (
+    mesh.indices.byteLength ===
+    mesh.indices.length * Uint16Array.BYTES_PER_ELEMENT
+  ) {
+    console.log('mapping uint16 indices');
+    new Uint16Array(indexBuffer.getMappedRange()).set(mesh.indices);
+  } else {
+    console.log('mapping uint32 indices');
+    new Uint32Array(indexBuffer.getMappedRange()).set(mesh.indices);
+  }
+
   indexBuffer.unmap();
 
   return {

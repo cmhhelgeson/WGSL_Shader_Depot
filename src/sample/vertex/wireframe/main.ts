@@ -64,42 +64,7 @@ SampleInitFactoryWebGPU(
       },
     };
 
-    const uint16Mesh = createBoxMesh(
-      1.0,
-      1.0,
-      1.0,
-      1.0,
-      1.0,
-      1.0,
-      VertexProperty.POSITION,
-      'uint16'
-    );
-
-    const uint32Mesh = createBoxMesh(
-      1.0,
-      1.0,
-      1.0,
-      1.0,
-      1.0,
-      1.0,
-      VertexProperty.POSITION,
-      'uint32'
-    );
-
-    if (uint16Mesh.indices.length !== uint32Mesh.indices.length) {
-      console.log('indices lengths do not match');
-    }
-
-    console.log(uint16Mesh.indices);
-    console.log(uint32Mesh.indices);
-
-    for (let i = 0; i < uint16Mesh.indices.length; i++) {
-      if (uint16Mesh.indices[i] !== uint32Mesh.indices[i]) {
-        console.log("indice doesn't match");
-      }
-    }
-
-    const meshIndexFormat = 'uint32';
+    const toyboxIndexFormat = 'uint32';
 
     const toybox = createMeshRenderable(
       device,
@@ -111,7 +76,7 @@ SampleInitFactoryWebGPU(
         1.0,
         1.0,
         VertexProperty.POSITION,
-        meshIndexFormat
+        toyboxIndexFormat
       ),
       true,
       true
@@ -180,7 +145,8 @@ SampleInitFactoryWebGPU(
       vertexDataFormats,
       wireFrameShaderCode,
       presentationFormat,
-      true
+      true,
+      'l'
     );
 
     const aspect = canvas.width / canvas.height;
@@ -247,7 +213,7 @@ SampleInitFactoryWebGPU(
       passEncoder.setPipeline(wireFramePipeline);
       passEncoder.setBindGroup(0, wireFrameBGDescript.bindGroups[0]);
       passEncoder.setVertexBuffer(0, toybox.vertexBuffer);
-      passEncoder.setIndexBuffer(toybox.indexBuffer, meshIndexFormat);
+      passEncoder.setIndexBuffer(toybox.indexBuffer, toyboxIndexFormat);
       passEncoder.drawIndexed(toybox.indexCount);
       //End Pass Encoder
       passEncoder.end();
