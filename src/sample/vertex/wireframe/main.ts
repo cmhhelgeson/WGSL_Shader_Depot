@@ -45,6 +45,8 @@ SampleInitFactoryWebGPU(
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
+    //
+
     const renderPassDescriptor: GPURenderPassDescriptor = {
       colorAttachments: [
         {
