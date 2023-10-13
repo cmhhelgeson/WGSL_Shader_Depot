@@ -1,5 +1,6 @@
 import { vec3 } from 'wgpu-matrix';
 import {
+  calculateVertexStride,
   getMeshPosAtIndex,
   getMeshUVAtIndex,
   Mesh,
@@ -220,19 +221,7 @@ export const createBoxMesh = (
     vertexProperties
   );
 
-  let vertexStride = 0;
-
-  if (vertexProperties & VertexProperty.POSITION) {
-    vertexStride += 3 * 4;
-  }
-
-  if (vertexProperties & VertexProperty.NORMAL) {
-    vertexStride += 3 * 4;
-  }
-
-  if (vertexProperties & VertexProperty.UV) {
-    vertexStride += 2 * 4;
-  }
+  const vertexStride = calculateVertexStride(vertexProperties);
 
   const indicesArray =
     indexFormat === 'uint16'

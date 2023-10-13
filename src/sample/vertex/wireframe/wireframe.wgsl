@@ -21,9 +21,8 @@ fn vertexMain(input: VertexInput) -> VertexOutput {
     1.0,
   );
 
-
   var output : VertexOutput;
-  output.Position = spaceUniforms.projMat * spaceUniforms.viewMat * spaceUniforms.modelMat * input.position;
+  output.Position = spaceUniforms.projMat * spaceUniforms.viewMat * spaceUniforms.modelMat * position;
   return output;
 }
 

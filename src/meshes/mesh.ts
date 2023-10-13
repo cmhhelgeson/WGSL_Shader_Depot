@@ -22,6 +22,11 @@ type MeshLayoutType = {
   bitangentOffset?: number;
 };
 
+export interface MeshProperties {
+  vertexProperties?: number;
+  indexFormat?: GPUIndexFormat;
+}
+
 export enum VertexProperty {
   NONE = 0,
   POSITION = 1,
@@ -166,3 +171,22 @@ export const addBaycentricCoordinatesToMesh = (mesh: Mesh) => {
   mesh.vertexStride = (mesh.vertexStride / 4 + 3) * 4;
   console.log(mesh.vertices);
 };
+
+export const calculateVertexStride = (vertexProperties: number) => {
+  let vertexStride = 0;
+  const bytesPerElement = Float32Array.BYTES_PER_ELEMENT;
+
+  if (vertexProperties & VertexProperty.POSITION) {
+    vertexStride += 3 * bytesPerElement;
+  }
+
+  if (vertexProperties & VertexProperty.NORMAL) {
+    vertexStride += 3 * bytesPerElement;
+  }
+
+  if (vertexProperties & VertexProperty.UV) {
+    vertexStride += 2 * bytesPerElement;
+  }
+
+  return vertexStride;
+}

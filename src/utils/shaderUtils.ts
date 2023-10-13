@@ -287,7 +287,7 @@ export enum VertexBuiltIn {
   INSTANCE_INDEX = 4,
 }
 
-interface UniformDefiner {
+export interface UniformDefiner {
   structName: string;
   argKeys: string[];
   dataType: 'mat4x4f' | 'f32';

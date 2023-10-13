@@ -1,4 +1,5 @@
 import { vec3 } from 'wgpu-matrix';
+import { MeshProperties, VertexProperty, calculateVertexStride } from './mesh';
 
 export interface SphereMesh {
   vertices: Float32Array;
@@ -13,11 +14,12 @@ export const SphereLayout = {
 };
 
 // Borrowed and simplified from https://github.com/mrdoob/three.js/blob/master/src/geometries/SphereGeometry.js
-export function createSphereMesh(
+export function createSphereGeometry(
   radius: number,
   widthSegments = 32,
   heightSegments = 16,
-  randomness = 0
+  randomness = 0,
+  vertexProperties = 7
 ): SphereMesh {
   const vertices = [];
   const indices = [];
@@ -64,16 +66,22 @@ export function createSphereMesh(
         }
       }
 
-      vertices.push(...vertex);
+      if (vertexProperties && VertexProperty.POSITION) {
+        vertices.push(...vertex);
+      }
 
-      // normal
-      vec3.copy(vertex, normal);
-      vec3.normalize(normal, normal);
-      vertices.push(...normal);
+      if (vertexProperties && VertexProperty.NORMAL) {
+        // normal
+        vec3.copy(vertex, normal);
+        vec3.normalize(normal, normal);
+        vertices.push(...normal);
+      }
 
-      // uv
-      vertices.push(u + uOffset, 1 - v);
-      verticesRow.push(index++);
+      if (vertexProperties && VertexProperty.UV) {
+        // uv
+        vertices.push(u + uOffset, 1 - v);
+        verticesRow.push(index++);
+      }
     }
 
     grid.push(verticesRow);
@@ -97,3 +105,42 @@ export function createSphereMesh(
     indices: new Uint16Array(indices),
   };
 }
+
+interface SphereMeshProperties extends MeshProperties {
+  radius: number;
+  widthSegments?: number;
+  heightSegments?: number;
+  randomness?: 0;
+}
+
+export const createSphereMesh = (
+  properties: SphereMeshProperties = {
+    radius: 1,
+    widthSegments: 32,
+    heightSegments: 16,
+    randomness: 0,
+    vertexProperties: 7,
+    indexFormat: 'uint16',
+  }
+) => {
+  const { vertices, indices } = createSphereGeometry(
+    properties.radius,
+    properties.widthSegments,
+    properties.heightSegments,
+    properties.randomness,
+    properties.vertexProperties
+  );
+
+  const vertexStride = calculateVertexStride(properties.vertexProperties);
+
+  const indicesArray =
+    properties.indexFormat === 'uint16'
+      ? new Uint16Array(indices)
+      : new Uint32Array(indices);
+
+  return {
+    vertices: new Float32Array(vertices),
+    indices: indicesArray,
+    vertexStride: vertexStride,
+  };
+};

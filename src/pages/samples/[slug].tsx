@@ -46,7 +46,6 @@ export const vertexPages = {
   normalMapping: dynamic(
     () => import('../../sample/vertex/normalMapping/main')
   ),
-  wireframe: dynamic(() => import('../../sample/vertex/wireframe/main')),
 };
 
 export const computePages = {

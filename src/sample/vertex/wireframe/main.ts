@@ -4,13 +4,19 @@ import {
   SampleInit,
 } from '../../../components/SampleLayout/SampleLayout';
 import wireFrameWGSL from './wireframe.wgsl';
+import solidMeshWGSL from './solidMesh.wgsl';
 import { VertexProperty, createMeshRenderable } from '../../../meshes/mesh';
 import { createBoxMesh } from '../../../meshes/box';
 import { SampleInitFactoryWebGPU } from '../../../components/SampleLayout/SampleLayoutUtils';
 import { createBindGroupDescriptor } from '../../../utils/bindGroup';
 import { create3DRenderPipeline } from '../../../utils/program/renderProgram';
 import { writeMat4ToBuffer } from '../../../utils/buffer';
-import { VertexBuiltIn, createRenderShader } from '../../../utils/shaderUtils';
+import {
+  UniformDefiner,
+  VertexBuiltIn,
+  createRenderShader,
+} from '../../../utils/shaderUtils';
+import { createSphereMesh } from '../../../meshes/sphere';
 const MAT4X4_BYTES = 64;
 
 let init: SampleInit;
@@ -21,11 +27,8 @@ SampleInitFactoryWebGPU(
       cameraPosY: 0.0,
       cameraPosZ: -4.1,
       lineThickness: 1.0,
+      'Render Mode': 'Wireframe',
     };
-    gui.add(settings, 'cameraPosX', -5, 5).step(0.1);
-    gui.add(settings, 'cameraPosY', -5, 5).step(0.1);
-    gui.add(settings, 'cameraPosZ', -5, 5).step(0.1);
-    gui.add(settings, 'lineThickness').step(0.1);
 
     //Create normal mapping resources and pipeline
     const depthTexture = device.createTexture({
@@ -67,7 +70,6 @@ SampleInitFactoryWebGPU(
     };
 
     const toyboxIndexFormat = 'uint32';
-
     const toybox = createMeshRenderable(
       device,
       createBoxMesh(
@@ -114,13 +116,15 @@ SampleInitFactoryWebGPU(
     const vertexDataFormats: GPUVertexFormat[] = ['float32x3'];
     const vertexShaderFormats: GPUVertexFormat[] = ['float32x4'];
 
+    const SpaceUniforms: UniformDefiner = {
+      structName: 'SpaceUniforms',
+      argKeys: ['projMat', 'viewMat', 'modelMat'],
+      dataType: 'mat4x4f',
+    };
+
     const wireFrameShaderCode = createRenderShader({
       uniforms: [
-        {
-          structName: 'SpaceUniforms',
-          argKeys: ['projMat', 'viewMat', 'modelMat'],
-          dataType: 'mat4x4f',
-        },
+        SpaceUniforms,
         {
           structName: 'LineUniforms',
           argKeys: ['lineThickness'],
@@ -128,8 +132,8 @@ SampleInitFactoryWebGPU(
         },
       ],
       vertexInputs: {
-        names: ['position'],
-        formats: vertexShaderFormats,
+        names: [],
+        formats: [],
         builtins: VertexBuiltIn.VERTEX_INDEX | VertexBuiltIn.INSTANCE_INDEX,
       },
       vertexOutput: {
@@ -139,16 +143,42 @@ SampleInitFactoryWebGPU(
       code: wireFrameWGSL,
     });
 
+    const solidMeshShaderCode = createRenderShader({
+      uniforms: [SpaceUniforms],
+      vertexInputs: {
+        names: ['position'],
+        formats: ['float32x4'],
+        builtins: VertexBuiltIn.VERTEX_INDEX,
+      },
+      vertexOutput: {
+        builtins: VertexBuiltIn.POSITION,
+        outputs: [],
+      },
+      code: solidMeshWGSL,
+    });
+
     const wireFramePipeline = create3DRenderPipeline(
       device,
       'Wireframe',
       [wireFrameBGDescript.bindGroupLayout],
       wireFrameShaderCode,
-      vertexDataFormats,
+      [],
       wireFrameShaderCode,
       presentationFormat,
       true,
-      'l'
+      'line-list'
+    );
+
+    const solidMeshPipeline = create3DRenderPipeline(
+      device,
+      'SolidMesh',
+      [wireFrameBGDescript.bindGroupLayout],
+      solidMeshShaderCode,
+      vertexDataFormats,
+      solidMeshShaderCode,
+      presentationFormat,
+      true,
+      'triangle-list'
     );
 
     const aspect = canvas.width / canvas.height;
@@ -182,6 +212,29 @@ SampleInitFactoryWebGPU(
       return modelMatrix;
     }
 
+    let currentPipeline = wireFramePipeline;
+
+    gui.add(settings, 'cameraPosX', -5, 5).step(0.1);
+    gui.add(settings, 'cameraPosY', -5, 5).step(0.1);
+    gui.add(settings, 'cameraPosZ', -5, 5).step(0.1);
+    gui.add(settings, 'lineThickness').step(0.1);
+    gui
+      .add(settings, 'Render Mode', ['Solid Mesh', 'Wireframe'])
+      .onChange(() => {
+        switch (settings['Render Mode']) {
+          case 'Solid Mesh':
+            {
+              currentPipeline = solidMeshPipeline;
+            }
+            break;
+          case 'Wireframe':
+            {
+              currentPipeline = wireFramePipeline;
+            }
+            break;
+        }
+      });
+
     function frame() {
       // Sample is no longer the active page.
       if (!pageState.active) return;
@@ -212,7 +265,8 @@ SampleInitFactoryWebGPU(
       const commandEncoder = device.createCommandEncoder();
       const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
       //Draw wireframe Cube
-      passEncoder.setPipeline(wireFramePipeline);
+      //passEncoder.setPipeline(wireFramePipeline);
+      passEncoder.setPipeline(currentPipeline);
       passEncoder.setBindGroup(0, wireFrameBGDescript.bindGroups[0]);
       passEncoder.setVertexBuffer(0, toybox.vertexBuffer);
       passEncoder.setIndexBuffer(toybox.indexBuffer, toyboxIndexFormat);

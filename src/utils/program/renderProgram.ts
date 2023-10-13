@@ -267,7 +267,8 @@ export const create3DRenderPipeline = (
         code: vertexShader,
       }),
       entryPoint: 'vertexMain',
-      buffers: createVBuffers(vBufferFormats),
+      buffers:
+        vBufferFormats.length !== 0 ? createVBuffers(vBufferFormats) : [],
     },
     fragment: {
       module: device.createShaderModule({
