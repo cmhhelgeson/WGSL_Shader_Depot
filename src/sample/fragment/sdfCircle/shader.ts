@@ -1,4 +1,4 @@
-import { createFragmentShaderResources } from '../../utils/shaderUtils';
+import { createFragmentShaderResources } from '../../../utils/shaderUtils';
 
 export const argKeys = ['radius', 'xOffset', 'yOffset', 'debugStep'];
 

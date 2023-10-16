@@ -23,11 +23,11 @@ export const pages = {
   ),
   gltf: dynamic(() => import('../../sample/vertex/gltfViewer/main')),
   computeBalls: dynamic(() => import('../../sample/compute/computeBalls/main')),
-  micrograd: dynamic(() => import('../../sample/micrograd/main')),
   complexCRT: dynamic(() => import('../../sample/fragment/complexCRT/main')),
-  sdfCircle: dynamic(() => import('../../sample/sdfCircle/main')),
+  sdfCircle: dynamic(() => import('../../sample/fragment/sdfCircle/main')),
   bitonicSort: dynamic(() => import('../../sample/compute/bitonicSort/main')),
   wireframe: dynamic(() => import('../../sample/vertex/wireframe/main')),
+  fluid: dynamic(() => import('../../sample/compute/fluid/main')),
 };
 
 export const fragmentPages = {

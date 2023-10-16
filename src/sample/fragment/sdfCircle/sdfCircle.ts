@@ -1,7 +1,7 @@
-import { createBindGroupDescriptor } from '../../utils/bindGroup';
-import { Base2DRendererClass } from '../../utils/program/renderProgram';
+import { createBindGroupDescriptor } from '../../../utils/bindGroup';
+import { Base2DRendererClass } from '../../../utils/program/renderProgram';
 import { SDFCircleShader, argKeys } from './shader';
-import { ShaderKeyInterface } from '../../utils/shaderUtils';
+import { ShaderKeyInterface } from '../../../utils/shaderUtils';
 
 type SDFCircleRendererArgs = ShaderKeyInterface<typeof argKeys>;
 

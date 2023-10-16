@@ -134,7 +134,7 @@ export abstract class Base2DRendererClass {
   currentBindGroup: GPUBindGroup;
   currentBindGroupName: string;
 
-  executeRun(
+  protected executeRun(
     commandEncoder: GPUCommandEncoder,
     renderPassDescriptor: GPURenderPassDescriptor,
     pipeline: GPURenderPipeline,
@@ -170,7 +170,7 @@ export abstract class Base2DRendererClass {
     bgLayouts: GPUBindGroupLayout[],
     mode: FullScreenVertexShaderType,
     code: string,
-    presentationFormat: GPUTextureFormat,
+    presentationFormat: GPUTextureFormat
   ) {
     return device.createRenderPipeline({
       label: `${label}.pipeline`,
@@ -253,7 +253,8 @@ export const create3DRenderPipeline = (
   fragmentShader: string,
   presentationFormat: GPUTextureFormat,
   depthTest = false,
-  topology?: GPUPrimitiveTopology,
+  topology: GPUPrimitiveTopology = 'triangle-list',
+  cullMode: GPUCullMode = 'back',
 ) => {
   const pipelineDescriptor: GPURenderPipelineDescriptor = {
     label: `${label}.pipeline`,
@@ -283,8 +284,8 @@ export const create3DRenderPipeline = (
       ],
     },
     primitive: {
-      topology: topology ? topology : 'triangle-list',
-      cullMode: 'back',
+      topology: topology,
+      cullMode: cullMode,
     },
   };
   if (depthTest) {
@@ -363,7 +364,7 @@ export abstract class Base3DRendererClass {
     fragmentShader: string,
     presentationFormat: GPUTextureFormat,
     debug = true,
-    topology?: GPUPrimitiveTopology,
+    topology?: GPUPrimitiveTopology
   ) {
     return create3DRenderPipeline(
       device,

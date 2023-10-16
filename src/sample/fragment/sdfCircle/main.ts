@@ -1,8 +1,8 @@
 /* eslint-disable prettier/prettier */
-import { makeSample, SampleInit } from '../../components/SampleLayout/SampleLayout';
-import fullscreenVertNDCFlipped from '../../shaders/fullscreenNDCFlipped.vert.wgsl';
+import { makeSample, SampleInit } from '../../../components/SampleLayout/SampleLayout';
+import fullscreenVertNDCFlipped from '../../../shaders/fullscreenNDCFlipped.vert.wgsl';
 
-import { SampleInitFactoryWebGPU } from '../../components/SampleLayout/SampleLayoutUtils';
+import { SampleInitFactoryWebGPU } from '../../../components/SampleLayout/SampleLayoutUtils';
 import SDFCircleRenderer from './sdfCircle';
 import { SDFCircleShader } from './shader';
 
@@ -95,8 +95,8 @@ SampleInitFactoryWebGPU(
 //Effectively the equivalent of returning <SampleLayout>
 const complexCRTExample: () => JSX.Element = () =>
   makeSample({
-    name: 'Complex CRT Shader',
-    description: 'A more accurate CRT Shader simulating the phosphor cells of the display.',
+    name: 'SDF Circle Shader',
+    description: 'Simple shader rendering an SDF circle',
     init,
     coordinateSystem: 'NDCFlipped',
     gui: true,

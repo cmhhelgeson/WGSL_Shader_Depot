@@ -318,6 +318,8 @@ interface VertexShaderCreationArgs {
   code: string;
 }
 
+//TODO: Return the normal version of the shader as well as the debug version of the shader
+//For 2d Shaderes
 export const createRenderShader = (args: VertexShaderCreationArgs): string => {
   let retString = ``;
   retString += createVertexInput(args.vertexInputs);
