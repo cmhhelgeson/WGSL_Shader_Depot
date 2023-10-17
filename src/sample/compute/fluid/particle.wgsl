@@ -2,7 +2,14 @@ fn sdfCircle(p: vec2<f32>, r: f32) -> f32 {
   return length(p)-r;
 }
 
+struct Particle {
+  color: vec3<f32>,
+  position: vec2<f32>,
+  velocity: vec2<f32>,
+}
+
 @group(0) @binding(0) var<uniform> ballUniforms: BallUniforms;
+@group(1) @binding(0) var<storage, read> input_particles: array<Particle>;
 
 @vertex
 fn vertexMain(input: VertexInput) -> VertexOutput {
@@ -28,7 +35,7 @@ fn vertexMain(input: VertexInput) -> VertexOutput {
 
   //Convert position and offset to canvasSpace
   var posCS = pos[input.VertexIndex] / vec2<f32>(ballUniforms.canvasWidth, ballUniforms.canvasHeight);
-  var offset = ballUniforms.offset + f32(input.InstanceIndex * 100);
+  var offset = input_particles[input.InstanceIndex].position;
   var offsetCS = offset / vec2<f32>(ballUniforms.canvasWidth, ballUniforms.canvasHeight);
 
   //ballUniforms.radius should be clamped to the height
