@@ -15,11 +15,9 @@ import { FluidComputeShader } from './fluid';
 
 let init: SampleInit;
 SampleInitFactoryWebGPU(
-  async ({ pageState, device, gui, presentationFormat, context, canvas }) => {
-    //TODO: hover/target pos system a little too complex, need to simplify
+  async ({ pageState, device, gui, presentationFormat, context, canvas, stats}) => {
     const settings = {
-      //number of cellElements. Must equal widthInCells * heightInCells and workGroupThreads * 2
-      Gravity: 9.8,
+      Gravity: 0,
       'Particle Radius': 10.0,
       Damping: 0.7,
     };
@@ -42,7 +40,7 @@ SampleInitFactoryWebGPU(
     // Define resources for render shader.
     const BallUniforms: UniformDefiner = {
       structName: 'BallUniforms',
-      argKeys: ['radius', 'offset', 'canvasWidth', 'canvasHeight'],
+      argKeys: ['radius', 'canvasWidth', 'canvasHeight'],
       dataType: 'f32',
     };
 
@@ -76,8 +74,8 @@ SampleInitFactoryWebGPU(
     );
 
     // Define resources for compute shader
-    // 3 elements for color, 1 padding byte, 2 for position, 2 for velocity
-    const elementsPerParticle = 8;
+    // 2 f32s for position, 2 for velocity
+    const elementsPerParticle = 4;
     const numParticles = 256;
     const particlesBufferSize =
       elementsPerParticle * numParticles * Float32Array.BYTES_PER_ELEMENT;
@@ -86,20 +84,15 @@ SampleInitFactoryWebGPU(
       new ArrayBuffer(particlesBufferSize)
     );
 
-    for (let i = 0; i < numParticles; i += elementsPerParticle) {
-      // Color
-      inputParticlesData[i * elementsPerParticle + 0] = 0.65;
-      inputParticlesData[1] = 0.8;
-      inputParticlesData[2] = 1;
-      // inputParticles[3] Padding Byte
-
+    for (let i = 0; i < numParticles; i++) {
       // Position
-      inputParticlesData[4] = -(elementsPerParticle / 2) + i;
-      inputParticlesData[5] = 0;
+      inputParticlesData[i * elementsPerParticle + 0] =
+        -(numParticles / 2) + i * 10;
+      inputParticlesData[i * elementsPerParticle + 1] = 0;
 
       // Velocity
-      inputParticlesData[6] = 0;
-      inputParticlesData[7] = 0;
+      inputParticlesData[i * elementsPerParticle + 2] = 0;
+      inputParticlesData[i * elementsPerParticle + 3] = 0;
     }
 
     // Particles Buffer
@@ -142,6 +135,8 @@ SampleInitFactoryWebGPU(
       [GPUShaderStage.COMPUTE, GPUShaderStage.COMPUTE],
       ['buffer', 'buffer'],
       [{ type: 'uniform' }, { type: 'uniform' }],
+      // @group(x) @binding(0) generalUniforms
+      // @group(x) @binding(1) particleUniforms
       [[{ buffer: generalUniformsBuffer }, { buffer: particleUniformsBuffer }]],
       'UniformBuffers',
       device
@@ -180,12 +175,17 @@ SampleInitFactoryWebGPU(
     );
 
     gui.add(settings, 'Particle Radius', 0.0, 100.0).step(1.0);
-    gui.add(settings, 'offset', -100.0, 100.0).step(0.1);
+    gui.add(settings, 'Gravity', 0.0, 20.0).step(0.1);
+    gui.add(settings, 'Damping', 0.0, 1.0).step(0.1);
+
+    console.log(inputParticlesData);
 
     let lastFrame = performance.now();
 
     async function frame() {
       if (!pageState.active) return;
+
+      stats.begin();
 
       const now = performance.now();
       const deltaTime = (now - lastFrame) / 1000;
@@ -217,7 +217,6 @@ SampleInitFactoryWebGPU(
         0,
         new Float32Array([
           settings['Particle Radius'],
-          settings.offset,
           canvas.width,
           canvas.height,
         ])
@@ -272,7 +271,8 @@ SampleInitFactoryWebGPU(
       stagingParticlesBuffer.unmap();
       //Set the current input to the computed result of the GPU calculation
       inputParticlesData = computedParticlesOutput;
-      console.log(inputParticlesData);
+
+      stats.end();
       requestAnimationFrame(frame);
     }
     requestAnimationFrame(frame);
@@ -287,6 +287,7 @@ const fluidExample: () => JSX.Element = () =>
     init,
     coordinateSystem: 'NDC',
     gui: true,
+    stats: true,
     sources: [
       {
         name: __filename.substring(__dirname.length + 1),
