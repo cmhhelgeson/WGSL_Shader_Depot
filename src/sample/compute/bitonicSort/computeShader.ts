@@ -59,6 +59,14 @@ fn prepare_flip_and_disperse(thread_id: u32, block_height: u32) {
 @group(0) @binding(1) var<storage, read_write> output_data: array<u32>;
 @group(0) @binding(2) var<uniform> uniforms: Uniforms;
 
+fn global_swap(idx_before: u32, idx_after: u32) {
+  if (input_data[idx_after] < input_data[idx_before]) {
+    var temp: u32 = input_data[idx_before]
+    output_data[idx_before] = input_data[idx_after];
+    output_data[idx_after] = temp;
+  }
+}
+
 //Our compute shader will execute specified # of threads or elements / 2 threads
 @compute @workgroup_size(${threadsPerWorkgroup}, 1, 1)
 fn computeMain(

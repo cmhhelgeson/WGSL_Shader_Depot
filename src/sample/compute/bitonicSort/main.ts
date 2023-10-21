@@ -469,16 +469,16 @@ SampleInitFactoryWebGPU(
         nextBlockHeightCell.setValue(settings['Next Swap Span'] / 2);
         if (settings['Next Swap Span'] === 1) {
           highestBlockHeight *= 2;
-          nextStepCell.setValue(
-            highestBlockHeight === settings['Total Elements'] * 2
-              ? 'NONE'
-              : 'FLIP_LOCAL'
-          );
-          nextBlockHeightCell.setValue(
-            highestBlockHeight === settings['Total Elements'] * 2
-              ? 0
-              : highestBlockHeight
-          );
+          if (highestBlockHeight === settings['Total Elements'] * 2) {
+            nextStepCell.setValue('NONE');
+            nextBlockHeightCell.setValue(highestBlockHeight);
+          } else if (highestBlockHeight > settings.workGroupThreads * 2) {
+            nextStepCell.setValue('FLIP_GLOBAL');
+            nextBlockHeightCell.setValue(highestBlockHeight);
+          } else {
+            nextStepCell.setValue('FLIP_LOCAL');
+            nextBlockHeightCell.setValue(highestBlockHeight);
+          }
         } else {
           nextStepCell.setValue('DISPERSE_LOCAL');
         }

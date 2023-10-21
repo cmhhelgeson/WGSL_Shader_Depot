@@ -66,7 +66,7 @@ const createBoxGeometry = (
         const x = ix * segmentWidth - widthHalf;
 
         if (vertProperties & VertexProperty.POSITION) {
-          //Calculate plane vertices
+          // Calculate plane vertices
           vertex[u] = x * udir;
           vertex[v] = y * vdir;
           vertex[w] = depthHalf;
@@ -74,7 +74,7 @@ const createBoxGeometry = (
         }
 
         if (vertProperties & VertexProperty.NORMAL) {
-          //Caclulate normal
+          // Caclulate normal
           normal[u] = 0;
           normal[v] = 0;
           normal[w] = planeDepth > 0 ? 1.0 : -1.0;
@@ -82,7 +82,7 @@ const createBoxGeometry = (
         }
 
         if (vertProperties & VertexProperty.UV) {
-          //Calculate uvs
+          // Calculate uvs
           vertNormalUVBuffer.push(ix / xSections);
           vertNormalUVBuffer.push(1 - iy / ySections);
         }
@@ -98,8 +98,8 @@ const createBoxGeometry = (
         const c = numVertices + (ix + 1) + gridX1 * (iy + 1);
         const d = numVertices + (ix + 1) + gridX1 * iy;
 
-        //Push vertex indices
-        //6 indices for each face
+        // Push vertex indices
+        // 6 indices for each face
         indices.push(a, b, d);
         indices.push(b, c, d);
 
@@ -108,7 +108,7 @@ const createBoxGeometry = (
     }
   };
 
-  //Side face
+  // Side face
   buildPlane(
     2, //z
     1, //y
@@ -122,7 +122,7 @@ const createBoxGeometry = (
     heightSegments
   );
 
-  //Side face
+  // Side face
   buildPlane(
     2, //z
     1, //y
@@ -136,7 +136,7 @@ const createBoxGeometry = (
     heightSegments
   );
 
-  //Bottom face
+  // Bottom face
   buildPlane(
     0, //x
     2, //z
@@ -150,7 +150,7 @@ const createBoxGeometry = (
     depthSegments
   );
 
-  //Top face
+  // Top face
   buildPlane(
     0, //x
     2, //z
@@ -164,7 +164,7 @@ const createBoxGeometry = (
     depthSegments
   );
 
-  //Side faces
+  // Side faces
   buildPlane(
     0, //x
     1, //y
@@ -178,7 +178,7 @@ const createBoxGeometry = (
     heightSegments
   );
 
-  //Side face
+  // Side face
   buildPlane(
     0, //x
     1, //y
@@ -200,7 +200,6 @@ const createBoxGeometry = (
 
 type IndexFormat = 'uint16' | 'uint32';
 
-//Possibly used later
 export const createBoxMesh = (
   width = 1.0,
   height = 1.0,
@@ -290,9 +289,9 @@ export const createBoxMeshWithTangents = (
     const deltaUV1 = vec3.sub(uv2, uv1);
     const deltaUV2 = vec3.sub(uv3, uv1);
 
-    //Edge of a triangle moves in both u and v direction (2d)
-    //deltaU * tangent vector + deltav * bitangent
-    //Manipulating the data into matrices, we get an equation
+    // Edge of a triangle moves in both u and v direction (2d)
+    // deltaU * tangent vector + deltav * bitangent
+    // Manipulating the data into matrices, we get an equation
 
     const constantVal =
       1.0 / (deltaUV1[0] * deltaUV2[1] - deltaUV1[1] * deltaUV2[0]);
@@ -332,22 +331,22 @@ export const createBoxMeshWithTangents = (
   const wTangentArray = new Float32Array(vertexCount * newStrideElements);
 
   for (let i = 0; i < vertexCount; i++) {
-    //Copy original vertex data (pos, normal uv)
+    // Copy original vertex data (pos, normal uv)
     wTangentArray.set(
-      //Get the original vertex [8 elements] (3 ele pos, 3 ele normal, 2 ele uv)
+      // Get the original vertex [8 elements] (3 ele pos, 3 ele normal, 2 ele uv)
       mesh.vertices.subarray(
         i * originalStrideElements,
         (i + 1) * originalStrideElements
       ),
-      //And put it at the proper location in the new array [14 bytes = 8 og + 6 empty]
+      // And put it at the proper location in the new array [14 bytes = 8 og + 6 empty]
       i * newStrideElements
     );
-    //For each vertex, place tangent after originalStride
+    // For each vertex, place tangent after originalStride
     wTangentArray.set(
       tangents[i],
       i * newStrideElements + originalStrideElements
     );
-    //Place bitangent after 3 elements of tangent
+    // Place bitangent after 3 elements of tangent
     wTangentArray.set(
       bitangents[i],
       i * newStrideElements + originalStrideElements + 3
