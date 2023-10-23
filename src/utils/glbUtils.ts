@@ -258,34 +258,6 @@ export class GLTFAccessor {
   }
 }
 
-/*export const createGPUBufferFromBufferView = (
-  device: GPUDevice,
-  bufferView: BufferView,
-  buffer: Uint8Array,
-  usage: number
-) => {
-  if (!usage) {
-    return null;
-  }
-  const gpuBuffer = device.createBuffer({});
-  for (let i = 0; i < data.bufferViews.length; i++) {
-    const currentBufferView = data.bufferViews[i];
-    const bufferIndex = currentBufferView.buffer;
-    const currentBuffer = data.buffers[bufferIndex];
-    const buf: GPUBuffer = device.createBuffer({
-      size: alignTo(this.view.byteLength, 4),
-      usage: this.usage,
-      mappedAtCreation: true,
-    });
-    new Uint8Array(buf.getMappedRange()).set(this.view);
-    buf.unmap();
-  }
-};
-
-type PrimitiveTest = {
-  renderPipeline: GPURenderPipeline;
-}; */
-
 export class GLTFPrimitive {
   positions: GLTFAccessor;
   indices: GLTFAccessor;

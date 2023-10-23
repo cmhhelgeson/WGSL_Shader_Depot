@@ -70,9 +70,10 @@ SampleInitFactoryWebGPU(
     canvasRef,
   }) => {
     const maxWorkgroupsX = device.limits.maxComputeWorkgroupSizeX;
+    const maxElements = maxWorkgroupsX * 4;
 
     const totalElementLengths = [];
-    for (let i = maxWorkgroupsX * 2; i >= 4; i /= 2) {
+    for (let i = maxElements; i >= 4; i /= 2) {
       totalElementLengths.push(i);
     }
 
@@ -129,7 +130,7 @@ SampleInitFactoryWebGPU(
     );
 
     //Initialize elementsBuffer and elementsStagingBuffer
-    const elementsBufferSize = Float32Array.BYTES_PER_ELEMENT * 512;
+    const elementsBufferSize = Float32Array.BYTES_PER_ELEMENT * maxElements;
     //Initialize input, output, staging buffers
     const elementsInputBuffer = device.createBuffer({
       size: elementsBufferSize,
@@ -206,7 +207,9 @@ SampleInitFactoryWebGPU(
     );
 
     const resetExecutionInformation = () => {
-      workGroupThreadsCell.setValue(settings['Total Elements'] / 2);
+      workGroupThreadsCell.setValue(
+        Math.min(settings['Total Elements'] / 2, maxWorkgroupsX)
+      );
 
       //Get new width and height of screen display in cells
       const newCellWidth =
@@ -461,7 +464,12 @@ SampleInitFactoryWebGPU(
         const computePassEncoder = commandEncoder.beginComputePass();
         computePassEncoder.setPipeline(computePipeline);
         computePassEncoder.setBindGroup(0, computeBGDescript.bindGroups[0]);
-        computePassEncoder.dispatchWorkgroups(1);
+        const totalWorkgroups =
+          (settings['Total Elements'] - 1) / (maxWorkgroupsX * 2);
+        if (totalWorkgroups !== 1) {
+          console.log('testsf');
+        }
+        computePassEncoder.dispatchWorkgroups(Math.ceil(totalWorkgroups));
         computePassEncoder.end();
 
         prevStepCell.setValue(settings['Next Step']);
@@ -471,7 +479,7 @@ SampleInitFactoryWebGPU(
           highestBlockHeight *= 2;
           if (highestBlockHeight === settings['Total Elements'] * 2) {
             nextStepCell.setValue('NONE');
-            nextBlockHeightCell.setValue(highestBlockHeight);
+            nextBlockHeightCell.setValue(0);
           } else if (highestBlockHeight > settings.workGroupThreads * 2) {
             nextStepCell.setValue('FLIP_GLOBAL');
             nextBlockHeightCell.setValue(highestBlockHeight);
